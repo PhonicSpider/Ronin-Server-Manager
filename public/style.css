@@ -1,0 +1,789 @@
+:root {
+    /* These will be controlled by the color pickers */
+    --bg-color: 15, 17, 26; /* RGB values for #0f111a */
+    --card-color: 255, 255, 255; /* RGB values for cards */
+    --bg-opacity: 1; /* Entire App Opacity */
+    --card-opacity: 0.03; /* Card-specific Opacity */
+    --text-color: 255, 255, 255; /* RGB for text color */
+    --text: rgb(var(--text-color));
+    --dim: rgba(var(--text-color), 0.6);
+    /* Keep these as they are */
+    --accent: #007bff;
+    --success: #10b981;
+    --danger: #ef4444;
+    --border: rgba(255, 255, 255, 0.1);
+}
+
+/* Ensures all global elements use this text color */
+body, input, textarea, select, button, .setting-info h4 {
+    color: var(--text) !important;
+}
+
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: rgb(15, 17, 26);
+    background: rgba(var(--bg-color), var(--bg-opacity)) !important; /* This combines the color and opacity variables */
+    color: var(--text);
+    margin: 0;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    transition: background 0.3s ease;
+}
+
+.card {
+    /* This allows cards to have their own transparency level */
+    background: rgba(var(--card-color), calc(var(--bg-opacity) * 0.1));
+    backdrop-filter: blur(10px); /* The "Glass" effect */
+    -webkit-backdrop-filter: blur(10px); /* For compatibility */
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 1px 4px 8px rgb(47, 46, 46, 0.54);
+}
+
+/* --- SIDEBAR --- */
+.sidebar {
+    width: 280px;
+    background: var(--sidebar);
+    border-right: 1px solid var(--border);
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 30px;
+}
+
+.sidebar-logo {
+    width: 24px;
+    height: 24px;
+}
+
+sidebar-footer {
+    margin-top: auto;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+}
+
+.nav-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.nav-item {
+    position: relative;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+    z-index: 1;
+}
+
+.nav-item:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-1px);
+}
+.nav-item.active {
+    background: rgba(0, 123, 255, 0.15);
+    border-width: 1px;
+    border-color: var(--accent);
+    color: #fff;
+    transform: translate(-3px, -3px); /* Moves it up and left */
+    box-shadow: 4px 4px 10px rgb(94, 94, 94, 0.76), 0 0 15px rgb(233, 233, 233, 0.10); /* 1st shadow: tight and dark | 2nd shadow: wide and soft */
+    z-index: 10; /* Pulls it to the front so the shadow overlaps others */
+}
+
+/* --- STATUS DOTS --- */
+.status-dot {
+    display: inline-block; /* CRITICAL: Allows width/height to work */
+    width: 10px; /* Slightly larger for visibility */
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 12px;
+    flex-shrink: 0; /* Prevents the dot from squishing */
+    vertical-align: middle;
+}
+
+.dot-online {
+    background-color: var(--success);
+    box-shadow: 0 0 10px var(--success);
+    animation: pulse 2s infinite;
+    border: none; 
+}
+
+.dot-offline {
+    background: #331a1a;
+    border: 1px solid var(--danger);
+    box-shadow: none;
+    animation: none;
+}
+
+@keyframes pulse {
+    0% {
+
+        opacity: 0.5;
+
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.5;
+    }
+}
+
+/* --- OPTIONS GEAR --- */
+.item-options-gear {
+    opacity: 0;
+    font-size: 14px;
+    padding: 5px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+    user-select: none;
+}
+
+.nav-item:hover .item-options-gear {
+    opacity: 0.6;
+}
+
+.item-options-gear:hover {
+    opacity: 1 !important;
+    transform: rotate(45deg);
+    color: var(--accent);
+}
+
+/* The floating container */
+#options-dropdown {
+    display: none !important;
+    position: fixed;
+    background-color: #1a1a1a;
+    min-width: 180px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+    z-index: 10000;
+    overflow: hidden; /* Keeps corners rounded */
+}
+
+/* Individual links/buttons in the menu */
+#options-dropdown a {
+    color: #ddd;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    transition: background 0.2s, color 0.2s;
+    cursor: pointer;
+}
+
+#options-dropdown a:hover {
+    background-color: var(--accent); 
+    color: white;
+}
+
+/* The divider line */
+.dropdown-divider {
+    height: 1px;
+    background-color: #333;
+    margin: 4px 0;
+}
+
+/* Red text for Delete */
+.text-danger:hover {
+    background-color: #cf6679 !important;
+}
+
+/* The toggle class */
+#options-dropdown.show {
+    display: block !important;
+}
+
+/* --- DELETE BUTTON --- */
+.delete-btn {
+    position: absolute;
+    right: 10px;
+    opacity: 0;
+    transition: 0.2s;
+    font-size: 18px;
+}
+
+.nav-item:hover .delete-btn {
+    opacity: 1;
+}
+
+.delete-btn:hover {
+    color: var(--danger);
+}
+
+/* --- VIEWS --- */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 40px;
+    overflow: hidden; /* This keeps the outer sidebar/frame from scrolling */
+    height: 100vh;
+}
+
+.placeholder-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    color: var(--dim);
+}
+
+/* Ensure the views don't overlap each other's click space */
+#no-selection, #manager-ui, #settings-ui {
+    width: 100%;
+    position: relative; /* Keep them in their own stack */
+    z-index: 1;
+    overflow-y: auto; /* Allows each view to scroll independently if content exceeds height */
+    padding-bottom: 20px; /* Adjust this value for more/less gap */
+    box-sizing: border-box; /* Ensures padding doesn't push the width out */
+}
+
+/* Specific fix for the Manager UI to ensure it's "on top" when visible */
+#manager-ui {
+    display: none; /* Controlled by JS */
+}
+
+#settings-ui {
+    animation: fadeIn 0.3s ease;
+    scroll-behavior: smooth;
+    width: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px 20px 80px 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Adds consistent spacing between your cards automatically */
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#no-selection {
+    display: none; /* Controlled by JS */
+    flex-direction: column;
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 15px;
+    gap: 20px;
+}
+
+/* Make the dashboard scrollbar subtle to match the glass look */
+#no-selection::-webkit-scrollbar {
+    width: 8px;
+}
+
+#no-selection::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+#status-summary-list {
+    margin-top: 8px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    padding: 10px 20px;
+    min-height: 180px; 
+    max-height: 400px; 
+    flex-shrink: 0; 
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+#status-summary-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+#status-summary-list::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 10px;
+}
+
+/* --- THEME STYLES --- */
+
+.setting-info h4 {
+    margin: 0;
+    color: #fff;
+    font-size: 16px;
+}
+
+.setting-info p {
+    margin: 4px 0 0;
+    color: #888;
+    font-size: 13px;
+}
+
+/* --- THE PRESET GRID (16 COLORS) --- */
+.swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr); /* 8 items per row */
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.color-swatch {
+    aspect-ratio: 1 / 1;
+    width: 100%;
+    max-width: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 2px solid rgba(255,255,255,0.1);
+    transition: all 0.2s ease;
+}
+
+.color-swatch:hover {
+    transform: scale(1.15);
+    border-color: rgba(255,255,255,0.5);
+    z-index: 2;
+}
+
+.color-swatch.active {
+    border-color: #fff;
+    box-shadow: 0 0 12px var(--accent);
+}
+
+/* --- THE DIVIDER LINE --- */
+.divider {
+    height: 1px;
+    background: var(--border);
+    margin: 25px 0;
+    opacity: 0.3;
+}
+
+/* --- CUSTOM COLOR ROW --- */
+.custom-theme-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.custom-picker-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#hex-display {
+    font-family: 'Consolas', monospace;
+    background: rgba(0,0,0,0.5);
+    padding: 5px 10px;
+    border-radius: 6px;
+    color: var(--accent);
+    font-size: 13px;
+    border: 1px solid var(--border);
+}
+
+/* --- CUSTOM PICKER BUTTON --- */
+/* The Box containing the picker */
+.custom-picker-wrapper {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    overflow: hidden;
+    /* This allows the wrapper to show the color! */
+    background-color: var(--accent);
+    transition: transform 0.2s;
+}
+
+/* Specific background for the other pickers */
+#bg-color-picker-wrapper {
+    background-color: rgb(var(--bg-color));
+}
+
+#text-color-picker-wrapper {
+    background-color: rgb(var(--text-color));
+}
+
+.custom-picker-wrapper:hover {
+    transform: scale(1.1);
+    border-color: var(--accent);
+}
+
+/* The invisible input that sits on top */
+#accent-picker, #bg-color-picker, #text-color-picker {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    width: 60px;
+    height: 60px;
+    opacity: 0; /* Fully invisible */
+    cursor: pointer;
+    /* Removes the browser "large border" or shadow */
+    border: none;
+    outline: none;
+}
+
+.custom-picker-text {
+    font-size: 12px;
+    color: var(--text-color);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: rgba(0,0,0,0.5);
+}
+
+input[type="checkbox"] {
+    accent-color: var(--accent); /* Makes the checkmark match your theme! */
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* --- GAUGES --- */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.gauge-box {
+    text-align: center;
+}
+
+.gauge-svg {
+    width: 150px;
+}
+
+.gauge-bg {
+    fill: none;
+    stroke: #2a2d3e;
+    stroke-width: 8;
+    stroke-linecap: round;
+}
+
+.gauge-fill {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 157;
+    stroke-dashoffset: 157;
+    transition: 0.8s;
+}
+
+.ram-color {
+    stroke: var(--success);
+}
+
+/* TODO 
+    Stop the console window from scrolling
+    and make it have a scroll bar as it grows
+    , and make the text wrap instead of going off the screen
+*/ 
+/* --- TERMINAL --- */
+.terminal-container {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    background: #000;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-top: 8px;
+    min-height: 200px;
+    max-height: 500px;
+    margin-bottom: 30px;
+}
+
+.terminal-header {
+    padding: 10px 15px;
+    background: rgba(255,255,255,0.05);
+    border-bottom: 1px solid var(--border);
+    justify-content: center;
+    align-items: center;
+    display: flex;
+    align-content: center;
+    gap: 10px;
+}
+
+.terminal-body {
+    flex: 1;
+    padding: 12px;
+    background: #000;
+    font-size: 11px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    overflow-y: auto;
+    overflow-x: hidden;
+    white-space: normal;
+    word-wrap: break-word;
+    align-content: flex-start;
+    color: #8b949e;
+    display: block;
+    text-align: left;
+}
+
+/* --- COLORS AND GLOBAL ACTIONS --- */
+.danger-hover:hover {
+    background-color: var(--danger) !important;
+    border-color: var(--danger) !important;
+    color: white !important;
+}
+
+.good-hover:hover {
+    background-color: var(--success) !important;
+    border-color: var(--success) !important;
+    color: white !important;
+}
+
+.log-error {
+    color: var(--danger);
+    font-weight: bold;
+}
+
+/* --- BUTTONS -- */
+.btn {
+    position: relative;
+    padding: 10px 15px;
+    border-radius: 6px;
+    border: none;
+    z-index: 11;
+    cursor: pointer !important;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: #fff;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: #fff;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: #fff;
+}
+
+.btn-settings:hover {
+    background: rgba(0, 123, 255, 0.15);
+    border-width: 1px;
+    border-color: var(--accent);
+}
+
+#show-gui-btn {
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    background: transparent;
+}
+
+#show-gui-btn:hover {
+    background: rgba(0, 123, 255, 0.1);
+    color: #fff;
+}
+
+#show-gui-btn:disabled {
+    border-color: var(--border);
+    color: var(--dim);
+    background: rgba(255, 255, 255, 0.05);
+    cursor: not-allowed;
+    opacity: 0.5;
+    transform: none !important; /* Prevents hover animations */
+}
+
+.full-width {
+    width: 100%;
+}
+
+.global-actions .btn-group {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+
+.btn.small {
+    flex: 1; /* This forces both buttons to take up 50% of the space */
+    padding: 6px 2px;
+    font-size: 11px;
+}
+
+.action-bar {
+    position: relative;
+    z-index: 10; /* Lifts the buttons above any background containers */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    pointer-events: auto; /* Ensures clicks are captured */
+}
+
+/* --- MODAL --- */
+.modal {
+    display: none; /* Controlled by JS */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(5px); /* Adds a modern frosted glass effect */
+    z-index: 9999; /* Ensures it sits above EVERYTHING */
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: var(--sidebar);
+    width: 500px;
+    padding: 35px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Creates uniform spacing between inputs */
+}
+
+.modal-content h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.4rem;
+    color: var(--accent);
+}
+
+.modal-content input[type="text"] {
+    width: 100%;
+    padding: 12px;
+    background: #000;
+    border: 1px solid var(--border);
+    color: #fff;
+    border-radius: 6px;
+    font-size: 14px;
+    box-sizing: border-box; /* Critical: prevents padding from growing the width */
+}
+
+.path-group {
+    display: flex;
+    gap: 10px;
+}
+
+.path-group input {
+    flex: 1; /* Path input takes most space */
+}
+
+/* --- MODAL INPUT REFINEMENTS --- */
+.input-block {
+    margin-bottom: 15px;
+}
+
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+#args-container {
+    margin-top: 10px;
+    animation: fadeIn 0.2s ease;
+}
+
+textarea {
+    width: 100%;
+    height: 80px;
+    background: #000;
+    border: 1px solid var(--border);
+    color: #fff;
+    border-radius: 6px;
+    padding: 10px;
+    font-family: 'Consolas', monospace;
+    font-size: 12px;
+    resize: none;
+    box-sizing: border-box;
+}
+
+textarea:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+.custom-select {
+    width: 100%;
+    padding: 10px;
+    background: #000;
+    border: 1px solid var(--border);
+    color: #fff;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+    appearance: none; /* Removes default arrow */
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27292.4%27%20height%3D%27292.4%27%3E%3Cpath%20fill%3D%27%2394a3b8%27%20d%3D%27M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%27/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px top 50%;
+    background-size: 10px auto;
+}
+
+.custom-select:focus {
+    border-color: var(--accent);
+}
+
+/* --- STATUS SCREENS --- */
+.status-summary-row {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    align-items: center;
+    padding: 8px 5px;
+    box-sizing: border-box;
+    border-bottom: 1px solid var(--border);
+}
+
+.status-summary-row span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 10px;
+}
+
+.status-summary-row:last-child {
+    border-bottom: none;
+}
+
+.pill {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.pill-online {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--success);
+}
+
+.pill-offline {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--danger);
+}

@@ -1,0 +1,57 @@
+1. Adjust gui button to only be visible when server is offline
+
+2. Adjust "findRealPID"  to include other server types that have different names (not specific to SE)
+
+3. need to check if Minecraft servers do the same thing
+
+
+// (3-5-26) \\
+--- GUI Button Visibility Based on Server Status ---
+Reverse gui button to only be visible when server is offline.  
+This will be done by checking the server status and toggling the 
+visibility of the button accordingly.
+
+--- Enhancing "findRealPID" Functionality ---
+Strated process to change real PID search to find any server type, not just SE.
+
+// (3-7-26) \\
+--- Adjusted "findRealPID" for Multiple Server Types ---
+Continuing to adjust the "findRealPID" function to include other server types that have different names. 
+This will involve identifying the common patterns in process names for various server types and 
+implementing a more flexible search mechanism.
+
+// (3-8-26) \\
+--- Checking Minecraft Server Behavior ---
+Started checking if Minecraft servers exhibit the same behavior as SE servers in terms of 
+process management. We need to ensure you can run a server by pathing to the start.bat file and 
+that the process is correctly identified by the "findRealPID" function.
+
+--- Updated Stop-server Command for servers ---
+Adjusted the stop-server command to ensure it correctly identifies and terminates the server process, without forcing them.
+This will involve implementing a more graceful shutdown procedure, allowing the server to close properly and avoid potential data loss or corruption.
+It will send a command to the server console and send a windows close command if the console is not an input window.
+We will user a powershell command to send a shutdown signal to the server process, allowing it to close gracefully.
+
+--- Updated start-server Command for servers ---
+Adjusted command to store the PID of the started server process in a more reliable way, ensuring that it can be 
+accurately tracked and managed by the application.
+Mainly by the "stop-server" command, which will now be able to reference the stored PID to terminate the correct process when needed.
+
+// (3-9-26) \\
+--- Adjusted the server spawning to work with different locations of starters (like minecraft using java to start with some managers) ---
+This will involve implementing a more flexible spawning mechanism that can handle various types of server starters, 
+including those that use Java or other runtime environments.
+
+--- Added checkbox to choose working firectory for server spawning ---
+Added a checkbox in the GUI to allow users to choose whether to set the working directory for server spawning.
+This will provide users with more control over the server spawning process and allow for better compatibility with 
+different server types and configurations.
+
+// (3-11-26) \\
+--- Got servers of diufferent kinds working in conjuction and being read by the console properly ---
+This involved testing and adjusting the server spawning and management processes to ensure that they work correctly with different
+types of servers, including Minecraft and SE servers.
+
+Adjusted stop server function to send commands for graceful shut down seperatley instead of as one command
+inserted logs to debug and verify process.
+This is mainly for Minecraft style CMD servers

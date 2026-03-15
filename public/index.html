@@ -1,0 +1,358 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RONIN SERVER MANAGER</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="logo-container">
+            <img src="../icon.png" alt="Logo" class="sidebar-logo">
+            <span>SERVER_MANAGER</span>
+            <span id="admin-badge" style="display:none; font-size: 10px; background: var(--success); color: white; padding: 2px 5px; border-radius: 4px; margin-left: 5px;">ADMIN</span>
+        </div>
+
+        <div class="nav-item" onclick="showView('home')" style="margin-bottom: 20px; border-left: 3px solid var(--accent);">
+            <span style="margin-right: 10px;">🏠</span>
+            <span class="server-name">Network Home</span>
+        </div>
+
+        <div class="sidebar-label">SERVERS</div>
+        <nav id="server-list" class="nav-container"></nav>
+
+        <div class="sidebar-footer">
+            <button class="btn btn-primary full-width" onclick="openModal()">+ Add New Server</button>
+
+            <div class="global-actions">
+                <p class="tiny-label">GLOBAL CONTROLS</p>
+                <div class="btn-group">
+                    <button class="btn btn-outline small good-hover" onclick="globalAction('start')">Start All</button>
+                    <button class="btn btn-outline small danger-hover" onclick="globalAction('stop')">Stop All</button>
+                </div>
+            </div>
+
+            <button class="btn btn-settings btn-outline full-width" style="margin-top: 10px;" onclick="showView('settings')">
+                ⚙️ App Settings
+            </button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+
+        <div id="no-selection" class="placeholder-view">
+            <header class="header" style="width: 100%; text-align: left; margin-bottom: 30px;">
+                <h1>Server Overview</h1>
+                <p class="tiny-label" id="current-time">System Status: Active</p>
+            </header>
+
+            <div class="stats-grid" style="width: 100%;">
+                <div class="card gauge-box">
+                    <span class="stat-label">TOTAL CPU (ALL SERVERS)</span>
+                    <svg class="gauge-svg" viewBox="0 0 120 70">
+                        <path class="gauge-bg" d="M 10 60 A 50 50 0 0 1 110 60" />
+                        <path id="total-cpu-gauge" class="gauge-fill" d="M 10 60 A 50 50 0 0 1 110 60" />
+                    </svg>
+                    <div class="gauge-val" id="total-cpu-val">0.0%</div>
+                    <p class="tiny-label">Combined Processor Load</p>
+                </div>
+                <div class="card gauge-box">
+                    <span class="stat-label">TOTAL RAM (ALL SERVERS)</span>
+                    <svg class="gauge-svg" viewBox="0 0 120 70">
+                        <path class="gauge-bg" d="M 10 60 A 50 50 0 0 1 110 60" />
+                        <path id="total-ram-gauge" class="gauge-fill ram-color" d="M 10 60 A 50 50 0 0 1 110 60" />
+                    </svg>
+                    <div class="gauge-val" id="total-ram-val" style="color: var(--success);">0 MB</div>
+                    <p class="tiny-label">Total Memory Allocation</p>
+                </div>
+            </div>
+            <!--
+        <div class="card" style="width: 100%; margin-top: 20px; display: flex; flex-direction: column; max-height: 40vh; flex-shrink: 0; box-sizing: border-box;">
+            <h3 style="margin: 0 0 10px 0; height: 30px; flex-shrink: 0;">Live Status Summary</h3>
+            <div id="status-summary-list" style="overflow-y: auto; overflow-x: hidden; flex: 1; min-height: 150px; padding: 10px; box-sizing: border-box; width: 100%;">
+            </div>
+        </div>
+        -->
+            <div class="terminal-container">
+                <div class="terminal-header">SYSTEM & BOOT LOGS</div>
+                <div id="system-console" class="terminal-body">
+                    [RSM] Manager Initialized. Ready to launch...
+                </div>
+            </div>
+        </div>
+
+        <div id="manager-ui" style="display:none;">
+            <header class="header">
+                <div>
+                    <h1 id="active-name">Instance Name</h1>
+                    <div class="status-row">
+                        <span id="active-status" class="status-text">Offline</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="stats-grid" style="width: 100%;">
+                <div class="card gauge-box">
+                    <span class="stat-label">INSTANCE CPU USAGE</span>
+                    <svg class="gauge-svg" viewBox="0 0 120 70">
+                        <path class="gauge-bg" d="M 10 60 A 50 50 0 0 1 110 60" />
+                        <path id="cpu-gauge" class="gauge-fill" d="M 10 60 A 50 50 0 0 1 110 60" />
+                    </svg>
+                    <div class="gauge-val" id="cpu-val">0.0%</div>
+                    <p class="tiny-label">Processor Load</p>
+                </div>
+
+                <div class="card gauge-box">
+                    <span class="stat-label">INSTANCE RAM USAGE</span>
+                    <svg class="gauge-svg" viewBox="0 0 120 70">
+                        <path class="gauge-bg" d="M 10 60 A 50 50 0 0 1 110 60" />
+                        <path id="ram-gauge" class="gauge-fill ram-color" d="M 10 60 A 50 50 0 0 1 110 60" />
+                    </svg>
+                    <div class="gauge-val" id="ram-val" style="color: var(--success);">0 MB</div>
+                    <p class="tiny-label">Memory Allocation</p>
+                </div>
+            </div>
+
+            <div class="action-bar card">
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="startServer()" title=" Launch Server">Launch Server</button>
+                    <button id="show-gui-btn" class="btn btn-outline" onclick="showServerGUI()" title="Show Server Window" disabled>Show GUI</button>
+                    <button class="btn btn-danger" onclick="stopServer()" title="Shutdown Server">Shutdown</button>
+                    <button class="btn btn-danger" onclick="killServer()" title="Force Terminate Process">Force Kill</button>
+                </div>
+                <div class="toggle-group">
+                    <input type="checkbox" id="auto-restart-chk">
+                    <label for="auto-restart-chk">Auto-Restart</label>
+                </div>
+            </div>
+
+            <div id="crash-alert" class="alert-banner" style="display:none;">
+                <span id="crash-msg">Crash detected</span>
+            </div>
+
+            <div class="terminal-container">
+                <div class="terminal-header">LIVE CONSOLE</div>
+                <div id="console" class="terminal-body"></div>
+            </div>
+        </div>
+
+        <!--TODO
+            Fix bottom of settings page from being cut off, and scrollable if content exceeds window height. 
+            Maybe add a "Save Settings" button that appears when changes are made, to avoid confusion 
+            about whether changes are applied immediately or not.
+        -->
+        <div id="settings-ui" style="display:none;">
+            <header class="header">
+                <h1>Global Settings</h1>
+            </header>
+
+            <div class="card" style="margin-bottom: 25px; border: 1px solid var(--border); background: rgba(255,255,255,0.02);">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
+                    <div style="flex: 1;">
+                        <h4 style="margin: 0; font-size: 16px; color: var(--text);">Theme Presets</h4>
+                        <p style="margin: 4px 0 0; font-size: 12px; color: var(--dim);">Quickly switch between professional color schemes.</p>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn" onclick="applyFireTheme()"
+                                style="background: #ff4500; color: white; border: none; padding: 8px 16px; font-size: 12px;">
+                            Internal Fire
+                        </button>
+                        <button class="btn btn-outline" onclick="applyDefaultTheme()"
+                                style="padding: 8px 16px; font-size: 12px; border: 1px solid var(--accent); color: var(--accent);">
+                            Ronin Classic
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="setting-info">
+                    <h4>Accent Theme</h4>
+                    <p>Select the color for buttons, gauges, and active highlights.</p>
+                </div>
+
+                <div class="swatch-grid">
+                    <div class="color-swatch" style="background: #007bff;" onclick="updateAccent('#007bff')"></div>
+                    <div class="color-swatch" style="background: #7289da;" onclick="updateAccent('#7289da')"></div>
+                    <div class="color-swatch" style="background: #2ecc71;" onclick="updateAccent('#2ecc71')"></div>
+                    <div class="color-swatch" style="background: #1abc9c;" onclick="updateAccent('#1abc9c')"></div>
+                    <div class="color-swatch" style="background: #3498db;" onclick="updateAccent('#3498db')"></div>
+                    <div class="color-swatch" style="background: #9b59b6;" onclick="updateAccent('#9b59b6')"></div>
+                    <div class="color-swatch" style="background: #8e44ad;" onclick="updateAccent('#8e44ad')"></div>
+                    <div class="color-swatch" style="background: #e91e63;" onclick="updateAccent('#e91e63')"></div>
+                    <div class="color-swatch" style="background: #e74c3c;" onclick="updateAccent('#e74c3c')"></div>
+                    <div class="color-swatch" style="background: #e67e22;" onclick="updateAccent('#e67e22')"></div>
+                    <div class="color-swatch" style="background: #f1c40f;" onclick="updateAccent('#f1c40f')"></div>
+                    <div class="color-swatch" style="background: #f39c12;" onclick="updateAccent('#f39c12')"></div>
+                    <div class="color-swatch" style="background: #ecf0f1;" onclick="updateAccent('#ecf0f1')"></div>
+                    <div class="color-swatch" style="background: #95a5a6;" onclick="updateAccent('#95a5a6')"></div>
+                    <div class="color-swatch" style="background: #34495e;" onclick="updateAccent('#34495e')"></div>
+                    <div class="color-swatch" style="background: #ff5722;" onclick="updateAccent('#ff5722')"></div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="custom-theme-row">
+                    <span class="dim-text">Custom Accent</span>
+                    <div class="custom-picker-container">
+                        <div class="custom-picker-wrapper" id="accent-wrapper" style="background-color: var(--accent);">
+                            <input type="color" id="accent-picker" oninput="updateAccent(this.value)">
+                        </div>
+                        <code id="hex-display">#007BFF</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <div class="setting-info">
+                    <h4>Background Base</h4>
+                    <p>Main window color. Presets include dark slate, deep navy, and pitch black.</p>
+                </div>
+
+                <div class="swatch-grid">
+                    <div class="color-swatch" style="background: #0f111a;" onclick="updateBgColor('#0f111a')"></div>
+                    <div class="color-swatch" style="background: #161925;" onclick="updateBgColor('#161925')"></div>
+                    <div class="color-swatch" style="background: #000000;" onclick="updateBgColor('#000000')"></div>
+                    <div class="color-swatch" style="background: #1a1a2e;" onclick="updateBgColor('#1a1a2e')"></div>
+                    <div class="color-swatch" style="background: #2c3e50;" onclick="updateBgColor('#2c3e50')"></div>
+                    <div class="color-swatch" style="background: #121212;" onclick="updateBgColor('#121212')"></div>
+                    <div class="color-swatch" style="background: #1e1e2f;" onclick="updateBgColor('#1e1e2f')"></div>
+                    <div class="color-swatch" style="background: #252934;" onclick="updateBgColor('#252934')"></div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="custom-theme-row">
+                    <span class="dim-text">Custom Background</span>
+                    <div class="custom-picker-container">
+                        <div class="custom-picker-wrapper" id="bg-wrapper" style="background-color: rgb(var(--bg-color));">
+                            <input type="color" id="bg-color-picker" oninput="updateBgColor(this.value)">
+                        </div>
+                        <code class="custom-picker-text" id="bg-hex-display">#0F111A</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="card" style="margin-top: 20px;">
+                <div class="custom-theme-row">
+                    <div class="setting-info">
+                        <h4>Text Color</h4>
+                        <p>Adjust the primary color for labels and descriptions.</p>
+                    </div>
+                    <div class="custom-picker-container">
+                        <div class="custom-picker-wrapper" id="text-wrapper" style="background-color: rgb(var(--text-color));">
+                            <input type="color" id="text-color-picker" oninput="updateTextColor(this.value)">
+                        </div>
+                        <code class="custom-picker-text" id="text-hex-display">#FFFFFF</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <h3>Appearance Depth</h3>
+                <div class="setting-info">
+                    <h4>Window Glass Strength</h4>
+                </div>
+                <div class="setting-row" style="display: flex; align-items: center; gap: 15px;">
+                    <input type="range" id="bg-opacity-slider" min="0.1" max="1.0" step="0.01" value="1.0"
+                           oninput="updateOpacity('bg', this.value)" style="flex: 1;">
+                    <span id="bg-opacity-label" style="min-width: 45px; text-align: right;">100%</span>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <h3>System Behavior</h3>
+                <div class="setting-row">
+                    <span>Launch Manager on Windows Startup</span>
+                    <input type="checkbox" id="launch-startup-chk" onchange="toggleStartup(this.checked)">
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h3>Add Server Configuration</h3>
+
+            <div class="input-block">
+                <label class="tiny-label">DISPLAY NAME</label>
+                <input type="text" id="newName" placeholder="e.g. Space Engineers - Survival">
+            </div>
+
+            <div class="input-block">
+                <label class="tiny-label">EXECUTABLE PATH</label>
+                <div class="path-group">
+                    <input type="text" id="exePath" readonly placeholder="Click Browse...">
+                    <button class="btn btn-outline" onclick="browse()">Browse</button>
+                </div>
+            </div>
+
+            <div class="checkbox-row" style="margin-top: 15px;">
+                <input type="checkbox" id="hasWorkingDir" onchange="document.getElementById('working-dir-container').style.display = this.checked ? 'block' : 'none'">
+                <label for="hasWorkingDir" style="font-size: 13px; color: var(--dim); margin-left: 8px;">Override Working Directory (Required for Minecraft/Java)</label>
+            </div>
+
+            <div id="working-dir-container" style="display:none; margin-top: 10px; padding-left: 20px; border-left: 2px solid var(--accent);">
+                <label class="tiny-label">SERVER DATA FOLDER</label>
+                <div class="path-group">
+                    <input type="text" id="workingDir" readonly placeholder="Select the folder where server files live...">
+                    <button class="btn btn-outline" onclick="browseWorkingFolder()">Browse</button>
+                </div>
+                <p style="font-size: 11px; color: var(--dim); margin-top: 4px;">For Java servers, this is where your .jar and world folders are.</p>
+            </div>
+
+            <div class="checkbox-row" style="margin-top: 10px;">
+                <input type="checkbox" id="hasLogPath" onchange="document.getElementById('log-container').style.display = this.checked ? 'block' : 'none'">
+                <label for="hasLogPath" style="font-size: 13px; color: var(--dim); margin-left: 8px;">Enable External Log Tailing (GUI Servers)</label>
+            </div>
+
+            <div id="log-container" style="display:none; margin-top: 10px; padding-left: 20px; border-left: 2px solid var(--accent);">
+                <label class="tiny-label">LOG FOLDER PATH</label>
+                <div class="path-group">
+                    <input type="text" id="logPath" readonly placeholder="Select the folder where logs are saved...">
+                    <button class="btn btn-outline" onclick="browseLogFolder()">Browse</button>
+                </div>
+                <p style="font-size: 11px; color: var(--dim); margin-top: 4px;">Point this to the folder containing the .log files.</p>
+            </div>
+
+            <div class="checkbox-row" style="margin-top: 15px;">
+                <input type="checkbox" id="hasArgs" onchange="document.getElementById('args-container').style.display = this.checked ? 'block' : 'none'">
+                <label for="hasArgs" style="font-size: 13px; color: var(--dim); margin-left: 8px;">Enable Custom Launch Arguments</label>
+            </div>
+
+            <div id="args-container" style="display:none; margin-top: 10px;">
+                <label class="tiny-label">ARGUMENTS (FLAGS)</label>
+                <textarea id="customArgs" placeholder="-console -ignorelastsession -path 'C:\Data'"></textarea>
+            </div>
+
+            <div style="margin-top: 15px;">
+                <label class="tiny-label">WINDOWS PROCESS PRIORITY</label>
+                <select id="processPriority" class="custom-select">
+                    <option value="64">Low (IDLE_PRIORITY_CLASS)</option>
+                    <option value="32" selected>Normal (NORMAL_PRIORITY_CLASS)</option>
+                    <option value="128">High (HIGH_PRIORITY_CLASS)</option>
+                    <option value="256">Realtime (Use with caution!)</option>
+                </select>
+            </div>
+
+            <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-primary" style="flex: 2;" onclick="saveNewServer()">Save Configuration</button>
+                <button class="btn btn-outline" style="flex: 1;" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="options-dropdown" class="dropdown-content">
+        <a onclick="openEditModal()">⚙️ Edit Launch Settings</a>
+        <a onclick="openServerFolder()">📂 Open Server Folder</a>
+        <div class="dropdown-divider"></div>
+        <a onclick="deleteServer()" class="text-danger">🗑️ Delete Server</a>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

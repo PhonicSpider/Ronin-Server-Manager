@@ -1,0 +1,13 @@
+# Dependency folders
+node_modules/
+
+# Build output (The EXEs you generate)
+dist/
+build/
+
+# MkDocs compiled site
+site/
+
+# IDE files
+.vs/
+out/
