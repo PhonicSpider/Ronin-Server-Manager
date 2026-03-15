@@ -25,7 +25,7 @@
         "repo": "ronin-server-manager"
       }
     ],
-    "productName": "Ronin Server Manager",
+    "productName": "Ronin-Server-Manager",
     "directories": {
       "output": "dist",
       "buildResources": "build"
