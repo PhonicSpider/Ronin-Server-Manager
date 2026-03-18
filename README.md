@@ -1,6 +1,6 @@
 # 🔥 Ronin Server Manager (RSM)
 
-[![Documentation](https://img.shields.io/badge/docs-Code Base-orange?style=for-the-badge&logo=materialformkdocs)](https://github.com/PhonicSpider/Ronin-Server-Manager)
+[![Documentation](https://img.shields.io/badge/docs-Code_Base-orange?style=for-the-badge&logo=materialformkdocs)](https://github.com/PhonicSpider/Ronin-Server-Manager)
 
 > **The ultimate orchestration tool for All Your Game Servers**
 
