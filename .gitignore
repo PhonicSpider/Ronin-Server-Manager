@@ -1,13 +1,35 @@
-# Dependency folders
-node_modules/
+# --- Visual Studio 2026 Specifics ---
+.vs/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]in/
+[Oo]bj/
 
-# Build output (The EXEs you generate)
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio 2026 SQL Server files (IntelliSense/Browsing)
+*.VC.db
+*.VC.opendb
+
+# Precompiled Object files
+*.obj
+*.pdb
+*.ilk
+*.aps
+
+# --- MkDocs / Python Specifics ---
+site/
+.cache/
+__pycache__/
+
+# --- Node / Electron Specifics ---
+node_modules/
 dist/
 build/
-
-# MkDocs compiled site
-site/
-
-# IDE files
-.vs/
-out/
