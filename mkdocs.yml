@@ -45,3 +45,6 @@ markdown_extensions:
 
 extra_css:
   - stylesheets/extra.css  # Custom CSS for additional styling- 
+
+repo_url: https://github.com/PhonicSpider/Ronin-Server-Manager
+edit_uri: edit/main/docs/
