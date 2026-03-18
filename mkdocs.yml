@@ -1,0 +1,47 @@
+﻿site_name: Ronin Server Manager
+theme:
+  name: material  # This is the best-looking dark theme
+
+  palette:
+    scheme: slate # Matches your app's dark aesthetic
+    primary: deep orange  # A bold color for highlights
+    accent: deep orange  # Consistent accent color
+
+  font:
+    text: Inter # Very clean, modern tech font
+    code: Fira Code # Great for arguments and paths
+  
+  features:
+    - navigation.sections    # Groups sidebar into clean blocks
+    - navigation.indexes     # Keeps section titles clickable
+    - navigation.expand      # FORCES the menu to stay open (No more Burger menu on desktop)
+    - navigation.tracking    # Highlights where the user is as they scroll
+    - toc.follow             # Keeps the right-side Table of Contents in sync
+    - content.code.copy      # Adds the 'copy' button
+    - content.tabs.link      # Syncs tabs across different pages
+
+nav:
+  - 🏠 Home: index.md
+  - 🖥️ Server Setup:
+      - 🏗️ Overview: servers/index.md
+      - 🟩 Minecraft: servers/minecraft.md
+      - 🚀 Space Engineers: servers/space-engineers.md
+      - 🦕 Ark Survival: servers/ark-survival.md
+      - ☢️ Rust: servers/rust.md
+      - 👹 PalWorld: servers/palworld.md
+  - 🛠️ Support: troubleshooting.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - attr_list
+  - md_in_html
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+extra_css:
+  - stylesheets/extra.css  # Custom CSS for additional styling- 

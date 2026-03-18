@@ -55,3 +55,32 @@ types of servers, including Minecraft and SE servers.
 Adjusted stop server function to send commands for graceful shut down seperatley instead of as one command
 inserted logs to debug and verify process.
 This is mainly for Minecraft style CMD servers
+
+// (3-15-26) \\
+--- Polish ---
+Added some polish to the server management features, including improving the user interface and ensuring that all functionalities
+Made the terminals nt touching the bottom edge and have them now scrollable instead of growing. 
+This will enhance the overall user experience and make it easier to manage servers through the application.
+
+Did the same with the settings page to allow the cards to be seen and not be hidden by the bottom edge in wondowed form
+
+Initialized the git repository and made the first commit with the current state of the project.
+This will allow for better version control and collaboration in the future.
+Alose ran the dist command to create a distributable version of the application, which can be shared and installed
+on other machines without needing to set up the development environment. and to allow for testing of the application in a 
+more production-like environment.
+
+// (3-16-26) \\
+--- Docs ---
+Started process of creating documentation for users to understand how to use the application and its features.
+This will include a user guide, FAQs, and troubleshooting tips to help users get the most out of the application and
+resolve any issues they may encounter. The documentation will be made available on the project's website and included in the
+application's help section for easy access.
+
+Found that "Open Folder is not opening correct folder for minecraft servers
+
+Figure out why "Start All" is not working for the server list
+
+Fix formatting on the documentation to make it more readable and visually appealing, ensuring that users can easily navigate
+and understand the information provided. This will involve organizing the content into clear sections, using headings and 
+subheadings, and incorporating visuals such as screenshots or diagrams where appropriate to enhance comprehension.
