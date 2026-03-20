@@ -294,6 +294,42 @@ ipcMain.on('start-server', (event, srv) => {
         event.reply('system-error', `Failed to spawn ${srv.name}: ${err.message}`);
     });
 
+    // New handler for sending commands to active servers
+    ipcMain.on('send-command', async (event, { srvId, command }) => {
+        const procInfo = activeProcesses[srvId];
+        if (!procInfo) return;
+
+        const srv = managedServers.find(s => s.id === srvId);
+        if (!srv) return;
+
+        // --- Path A: Minecraft / Java (Using the Shell) ---
+        if (srv.path.toLowerCase().endsWith('.jar') || srv.path.toLowerCase().includes('minecraft')) {
+            if (procInfo.shell && procInfo.shell.stdin.writable) {
+                procInfo.shell.stdin.write(command + "\n");
+                event.reply('console-out', { id: srvId, msg: `> ${command}\n` });
+            }
+        }
+
+        // --- Path B: Space Engineers (Using the Web API) ---
+        else if (srv.path.toLowerCase().includes('spaceengineers')) {
+            // We'll assume you saved the Remote API port/password in the server object
+            const port = srv.apiPort || 8080;
+            const password = srv.apiPassword || "";
+
+            // Note: You may need to 'npm install axios' for this part
+            try {
+                const axios = require('axios');
+                await axios.post(`http://localhost:${port}/v1/session/game`,
+                    { Command: command },
+                    { headers: { 'Remote-Control-Http-Password': password } }
+                );
+                event.reply('console-out', { id: srvId, msg: `[RSM-API] Sent: ${command}\n` });
+            } catch (err) {
+                event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] API Call Failed: ${err.message}\n` });
+            }
+        }
+    });
+
     // 4. Search: Parent-Child + Universal Fallback
     setTimeout(() => {
         if (!child.pid) return;

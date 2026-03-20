@@ -135,6 +135,13 @@
             <div class="terminal-container">
                 <div class="terminal-header">LIVE CONSOLE</div>
                 <div id="console" class="terminal-body"></div>
+                <div class="console-input-wrapper">
+                    <span class="console-prompt">></span>
+                    <input type="text"
+                           id="console-input"
+                           placeholder="Type a command and press Enter..."
+                           onkeypress="sendConsoleCommand(event)">
+                </div>
             </div>
         </div>
 

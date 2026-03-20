@@ -361,6 +361,34 @@ window.killServer = () => {
 };
 
 /**
+ * CONSOLE COMMAND INPUT
+ * Captures text from the input box and sends it to the active server.
+ */
+window.sendConsoleCommand = (event) => {
+    // Only trigger if the user presses 'Enter'
+    if (event.key === 'Enter') {
+        const inputEl = document.getElementById('console-input');
+        const command = inputEl.value.trim();
+
+        if (command && activeId) {
+            // Find the server object to log it locally first
+            const srv = servers.find(s => s.id === activeId);
+
+            // Send the command to the Main process
+            ipcRenderer.send('send-command', {
+                srvId: activeId,
+                command: command
+            });
+
+            // Clear the input for the next command
+            inputEl.value = '';
+
+            window.logToSystem(`Command sent to ${srv.name}: ${command}`);
+        }
+    }
+};
+
+/**
  *  6.
  * Updates the global accent color and handles UI highlights.
  */

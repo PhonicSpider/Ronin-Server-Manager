@@ -510,9 +510,9 @@ input[type="checkbox"] {
     border-radius: 8px;
     border: 1px solid var(--border);
     margin-top: 8px;
-    min-height: 200px;
+    min-height: 300px;
     max-height: 500px;
-    margin-bottom: 30px;
+    margin-bottom: 10px;
 }
 
 .terminal-header {
@@ -540,6 +540,49 @@ input[type="checkbox"] {
     color: #8b949e;
     display: block;
     text-align: left;
+}
+
+/* --- CONSOLE INPUT --- */
+.console-input-wrapper {
+    display: flex;
+    align-items: center;
+    background: #000; /* Matches terminal body */
+    border-top: 1px solid var(--border);
+    padding: 10px 15px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.console-prompt {
+    color: var(--accent);
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-weight: bold;
+    margin-right: 12px;
+    user-select: none;
+    font-size: 14px;
+}
+
+#console-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+    padding: 0;
+}
+
+    #console-input::placeholder {
+        color: var(--dim);
+        font-style: italic;
+        font-size: 12px;
+    }
+
+/* Optional: Highlight the input area when terminal is focused */
+.terminal-container:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.1);
 }
 
 /* --- COLORS AND GLOBAL ACTIONS --- */
