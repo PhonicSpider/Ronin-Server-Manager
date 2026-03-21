@@ -1,8 +1,9 @@
 ﻿site_name: Ronin Server Manager
+site_url: https://phonicspider.github.io/Ronin-Server-Manager/
 theme:
   name: material  # This is the best-looking dark theme
   logo: assets/images/logo.png  # custom logo
-  favicon: assets/images/logo.png  # custom favicon
+  # favicon: assets/images/logo.png  # custom favicon
 
   palette:
     scheme: slate # Matches your app's dark aesthetic
