@@ -18,7 +18,7 @@ jobs:
           pip install mkdocs-glightbox
           pip install mkdocs-material-extensions
           pip install mkdocs-material
-          - uses: actions/cache@v4
+      - uses: actions/cache@v4
         with:
           key: mkdocs-material-${{ env.cache_id }}
           path: .cache
