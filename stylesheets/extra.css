@@ -1,0 +1,282 @@
+﻿/*
+                    ______                           __
+                   ╱ ____╱__  ____  ___  _________ _╱ ╱
+                  ╱ ╱ __╱ _ ╲╱ __ ╲╱ _ ╲╱ ___╱ __ `╱ ╱ 
+                 ╱ ╱_╱ ╱  __╱ ╱ ╱ ╱  __╱ ╱   ╱ ╱_╱ ╱ ╱  
+                 ╲____╱╲___╱_╱ ╱_╱╲___╱_╱    ╲__,_╱_╱   
+*/
+
+/* Match the 'Internal Fire' Theme */
+[data-md-color-scheme="slate"] {
+    --md-default-bg-color: #0a0a0a;
+    --md-default-bg-color--light: #121212;
+    --md-primary-fg-color: #ff4500;
+    --md-primary-fg-color--light: #ff6a33;
+    --md-primary-fg-color--dark: #cc3700;
+    --md-default-fg-color: #ffffff;
+    --md-default-fg-color--light: rgba(255, 255, 255, 0.7);
+    --md-default-fg-color--lighter: rgba(255, 255, 255, 0.45);
+}
+
+/* Page Depth & Header */
+body {
+    /* Fixed radial glow to let glass cards shine */
+    background: radial-gradient(circle at 50% 10%, #1a0a05 0%, #0a0a0a 80%) !important;
+    background-attachment: fixed !important;
+}
+
+.md-header {
+    background-color: rgba(0, 0, 0, 0.9) !important;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #1a1a1a;
+}
+
+/* Modern Typography & Title Glow */
+.md-typeset h1, .md-typeset h2 {
+    color: #ffffff;
+    font-weight: 800;
+    text-shadow: 0 0 20px rgba(255, 69, 0, 0.2);
+}
+
+/* Section Accent: Orange left-border for H2 */
+.md-typeset h2 {
+    border-left: 4px solid #ff4500;
+    padding-left: 15px;
+    background: linear-gradient(90deg, rgba(255, 69, 0, 0.07) 0%, transparent 100%);
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+.md-logo img {
+    filter: drop-shadow(0 0 5px #ff4500);
+}
+
+/*
+                    ______               __    
+                   ╱ ____╱___ __________╱ ╱____
+                  ╱ ╱   ╱ __ `╱ ___╱ __  ╱ ___╱
+                 ╱ ╱___╱ ╱_╱ ╱ ╱   ╱ ╱_╱ (__  ) 
+                 ╲____╱╲__,_╱_╱    ╲__,_╱____╱  
+                                                
+*/
+
+/* Glassmorphism Card Elevation */
+.md-typeset .grid.cards > :is(ul, ol) > li, .md-typeset .grid.cards > li {
+background-color: rgba(30, 30, 30, 0.4) !important;
+backdrop-filter: blur(12px) saturate(180%);
+-webkit-backdrop-filter: blur(12px) saturate(180%);
+border: 1px solid rgba(255, 255, 255, 0.1);
+border-radius: 12px;
+padding: 20px;
+transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Internal Fire Hover Effect */
+.md-typeset .grid.cards > :is(ul, ol) > li:hover,
+.md-typeset .grid.cards > li:hover {
+    background-color: rgba(255, 69, 0, 0.05) !important;
+    border-color: rgba(255, 69, 0, 0.5);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 69, 0, 0.2);
+    transform: translateY(-5px);
+}
+
+/* Card Titles with Gradient */
+.md-typeset .grid.cards li strong {
+    background: linear-gradient(to right, #ff4500, #ff8c00);
+    /* Standard property */
+    background-clip: text;
+    /* Vendor prefixes for compatibility */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    /* Fix for some browsers needing a color fallback */
+    color: transparent;
+    font-size: 1.15em;
+    display: inline-block;
+    margin-bottom: 8px;
+}
+
+/*
+                _____                              __           __   ______      __        
+               ╱ ___╱__  ______  ____  ____  _____╱ ╱____  ____╱ ╱  ╱_  __╱___ _╱ ╱_  _____
+               ╲__ ╲╱ ╱ ╱ ╱ __ ╲╱ __ ╲╱ __ ╲╱ ___╱ __╱ _ ╲╱ __  ╱    ╱ ╱ ╱ __ `╱ __ ╲╱ ___╱
+              ___╱ ╱ ╱_╱ ╱ ╱_╱ ╱ ╱_╱ ╱ ╱_╱ ╱ ╱  ╱ ╱_╱  __╱ ╱_╱ ╱    ╱ ╱ ╱ ╱_╱ ╱ ╱_╱ (__  ) 
+             ╱____╱╲__,_╱ .___╱ .___╱╲____╱_╱   ╲__╱╲___╱╲__,_╱    ╱_╱  ╲__,_╱_.___╱____╱  
+                        ╱_╱   ╱_╱                                                           
+                                                                              
+*/
+
+.md-typeset .md-button--primary {
+    background-color: #ff4500;
+    border-color: #ff4500;
+    color: #ffffff;
+    border-radius: 6px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.md-typeset .md-button--primary:hover {
+    background-color: #ff6a33;
+    border-color: #ff6a33;
+    box-shadow: 0 0 15px rgba(255, 69, 0, 0.5);
+}
+
+/* Container for the tabs */
+.md-typeset .tabbed-set {
+    background-color: rgba(22, 22, 22, 0.4);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: 25px;
+}
+
+.md-typeset .tabbed-labels {
+    display: flex;
+    border-bottom: 1px solid #333;
+    margin-bottom: 20px;
+}
+
+.md-typeset .tabbed-labels label:hover {
+    color: #ff4500;
+}
+
+.md-typeset .tabbed-set input:checked + label {
+    color: #ff4500 !important;
+    border-bottom: 3px solid #ff4500;
+    font-weight: bold;
+    background: linear-gradient(to top, rgba(255, 69, 0, 0.1), transparent);
+}
+
+/*
+    NEW: ENHANCED BACKGROUND TEXT DETAIL 
+    (For Minecraft, Space Engineers, etc. outside of cards)
+*/
+
+.md-typeset h3 {
+    color: #ff4500;
+    font-size: 1.4em;
+    border-bottom: 1px solid rgba(255, 69, 0, 0.2);
+    padding-bottom: 8px;
+    margin-top: 2em;
+}
+
+.md-typeset ul li {
+    list-style-type: none;
+    position: relative;
+    padding-left: 25px;
+    margin-bottom: 12px;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* Custom "Fire Bullet" */
+.md-typeset ul li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.6em;
+    width: 8px;
+    height: 2px;
+    background-color: #ff4500;
+    box-shadow: 0 0 8px #ff4500;
+}
+
+/* Code block highlight */
+.md-typeset code {
+    background-color: rgba(255, 69, 0, 0.1) !important;
+    color: #ff9d7a !important;
+    border: 1px solid rgba(255, 69, 0, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/*
+                   _____ _     __     __              
+                  ╱ ___╱(_)___╱ ╱__  ╱ ╱_  ____ ______
+                  ╲__ ╲╱ ╱ __  ╱ _ ╲╱ __ ╲╱ __ `╱ ___╱
+                 ___╱ ╱ ╱ ╱_╱ ╱  __╱ ╱_╱ ╱ ╱_╱ ╱ ╱    
+                ╱____╱_╱╲__,_╱╲___╱_.___╱╲__,_╱_╱     
+*/
+
+/* 1. Style the Main Navigation Titles (The "Headers" of the sidebars) */
+.md-nav__title,
+.md-sidebar--secondary .md-nav__title {
+    color: #ff4500 !important;
+    font-weight: 800 !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.75rem;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 69, 0, 0.2);
+    margin-bottom: 15px !important;
+}
+
+/* 2. Style the "Active" link with the Internal Fire glow */
+.md-nav__link--active {
+    color: #ff4500 !important;
+    font-weight: 700 !important;
+    background: linear-gradient(90deg, rgba(255, 69, 0, 0.15) 0%, transparent 100%);
+    border-left: 3px solid #ff4500;
+    padding-left: 15px !important; /* Slightly more padding for the glow */
+    transition: all 0.3s ease;
+}
+
+/* 3. Glass hover effect for all non-active nav links */
+.md-nav__link:hover {
+    color: #ff8c00 !important;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+}
+
+/* 4. Secondary Sidebar (Right Side ToC) link detail */
+.md-sidebar--secondary .md-nav__link {
+    font-size: 0.75rem;
+    transition: color 0.2s, background-color 0.2s;
+    margin-top: 2px;
+}
+
+/* 5. Custom "Internal Fire" Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #ff4500;
+}
+
+/* 6. Fix for Desktop Logo Alignment */
+@media screen and (min-width: 76.25em) {
+    .md-header__button.md-logo {
+        margin-right: 20px;
+    }
+}
+
+/* --- TABLE OF CONTENTS (RIGHT SIDEBAR) SPACING --- */
+
+/* Add vertical breathing room between ToC links */
+.md-sidebar--secondary .md-nav__link {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    line-height: 1.4; /* Improves readability for multi-line headers */
+    display: block;
+    margin-bottom: 4px; /* Tiny gap between the "hit boxes" of the links */
+}
+
+/* Add a subtle indent for sub-headers (H3, H4) in the ToC */
+.md-sidebar--secondary .md-nav__list .md-nav__item .md-nav__list .md-nav__link {
+    padding-left: 25px !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.05); /* Very faint vertical guide line */
+}
+
+/* Glow effect when hovering over ToC items */
+.md-sidebar--secondary .md-nav__link:hover {
+    color: #ff4500 !important;
+    background-color: rgba(255, 69, 0, 0.05);
+    padding-left: 12px !important; /* Slight "nudge" effect on hover */
+}
