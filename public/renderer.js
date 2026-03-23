@@ -203,8 +203,8 @@ function selectServer(id) {
     if (!srv) return;
 
     showView('manager');
-
-    document.getElementById('active-name').innerText = srv.name;
+    const typeLabel = srv.type ? ` [${srv.type}]` : "";
+    document.getElementById('active-name').innerText = srv.name + typeLabel;
     const consoleEl = document.getElementById('console');
     consoleEl.innerHTML = `<div>${srv.logs || "Console ready..."}</div>`; // Load existing logs into the console
     setTimeout(() => { // Delay to ensure logs are rendered before scrolling
@@ -275,6 +275,8 @@ window.openEditModal = () => {
 
     // Finalize
     window.editingServerId = srv.id;
+    // Ensure we skip Step 1 (the cards) and go straight to the form
+    window.showWizardStep(2);
     openModal();
 };
 
@@ -657,10 +659,44 @@ function updateGauge(type, percent, label) {
 }
 
 // Modal Toggle
-window.openModal = () => document.getElementById('modal').style.display = 'flex';
+window.openModal = () => {
+    // If we aren't editing, default to step 1. 
+    // If editingServerId IS set, openEditModal has already called showWizardStep(2).
+    if (!window.editingServerId) {
+        window.showWizardStep(1);
+    }
+    document.getElementById('modal').style.display = 'flex';
+};
+
 window.closeModal = () => {
     document.getElementById('modal').style.display = 'none';
     window.editingServerId = null;
+    // Reset the wizard for next time
+    window.showWizardStep(1);
+};
+
+// Logic to swap between Step 1 (Cards) and Step 2 (Form)
+window.showWizardStep = (step) => {
+    const s1 = document.getElementById('wizard-step-1');
+    const s2 = document.getElementById('wizard-step-2');
+    if (step === 1) {
+        s1.style.display = 'block';
+        s2.style.display = 'none';
+    } else {
+        s1.style.display = 'none';
+        s2.style.display = 'block';
+    }
+};
+
+// Triggered when a user clicks a "Type Card" (Minecraft, Space Engineers, etc.)
+window.selectServerType = (type) => {
+    window.selectedType = type; // Store this globally to save later
+    window.showWizardStep(2);   // Move to the config form
+};
+
+// Back button on page 2
+window.goBackToWizardStep1 = () => {
+    window.showWizardStep(1);
 };
 
 // Opens the server's custom GUI if available (Some games have a separate .exe for the GUI, this sends the path to the backend to open it)
@@ -680,45 +716,39 @@ window.saveNewServer = () => {
     const path = document.getElementById('exePath').value;
     const priority = document.getElementById('processPriority').value;
 
-    // Arguments Logic
+    // Type Logic: Use the one from the wizard, or 'Generic' if editing an old server
+    const type = window.selectedType || "Generic";
+
+    // Arguments & Paths Logic
     const hasArgs = document.getElementById('hasArgs').checked;
     const args = hasArgs ? document.getElementById('customArgs').value : "";
-
-    // Log Path Logic
     const hasLog = document.getElementById('hasLogPath').checked;
     const logPath = hasLog ? document.getElementById('logPath').value : null;
-
-    // NEW: Working Directory Logic
     const hasWorkingDir = document.getElementById('hasWorkingDir').checked;
     const workingDir = hasWorkingDir ? document.getElementById('workingDir').value : null;
 
-    const action = window.editingServerId ? "Updated" : "Created new";
-
     if (!name || !path) return alert("Please provide a name and select an executable.");
+
+    const action = window.editingServerId ? "Updated" : "Created new";
 
     if (window.editingServerId) {
         const index = servers.findIndex(s => s.id === window.editingServerId);
         if (index !== -1) {
-            // Update existing
             servers[index] = {
                 ...servers[index],
-                name,
-                path,
-                args,
-                logPath,
-                workingDir, // Save workingDir
-                priority
+                name, path, args, logPath, workingDir, priority
+                // Note: We usually don't change the 'type' during an edit
             };
         }
     } else {
-        // Create new
         servers.push({
             id: Date.now().toString(),
             name,
             path,
+            type, // <--- SAVING THE TYPE HERE
             args,
             logPath,
-            workingDir, // Save workingDir
+            workingDir,
             priority,
             status: 'Offline',
             logs: '',
@@ -726,13 +756,15 @@ window.saveNewServer = () => {
         });
     }
 
-    // Updated system log to include Working Directory status
-    window.logToSystem(`${action} configuration for "${name}". Log Tailing: ${hasLog ? 'Enabled' : 'Disabled'}. Custom Dir: ${hasWorkingDir ? 'Yes' : 'No'}`);
-
     ipcRenderer.send('save-servers', servers);
     renderSidebar();
+
+    // Cleanup: Clear inputs so they are empty for the next "Add"
+    document.getElementById('newName').value = "";
+    document.getElementById('exePath').value = "";
+    window.selectedType = null;
+
     closeModal();
-    showView('home');
 };
 
 // Internal Log System for Manager Errors/Info

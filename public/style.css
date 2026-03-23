@@ -496,11 +496,6 @@ input[type="checkbox"] {
     stroke: var(--success);
 }
 
-/* TODO 
-    Stop the console window from scrolling
-    and make it have a scroll bar as it grows
-    , and make the text wrap instead of going off the screen
-*/ 
 /* --- TERMINAL --- */
 .terminal-container {
     display: flex;
@@ -573,11 +568,11 @@ input[type="checkbox"] {
     padding: 0;
 }
 
-    #console-input::placeholder {
-        color: var(--dim);
-        font-style: italic;
-        font-size: 12px;
-    }
+#console-input::placeholder {
+    color: var(--dim);
+    font-style: italic;
+    font-size: 12px;
+}
 
 /* Optional: Highlight the input area when terminal is focused */
 .terminal-container:focus-within {
@@ -788,6 +783,64 @@ textarea:focus {
 }
 
 .custom-select:focus {
+    border-color: var(--accent);
+}
+
+/* --- WIZARD STEP STYLES --- */
+
+.server-type-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.type-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.type-card:hover {
+    background: rgba(0, 123, 255, 0.1); /* Using your accent color with transparency */
+    border-color: var(--accent);
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.type-icon {
+    font-size: 32px;
+    filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
+}
+
+.type-card span:not(.type-icon) {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* For the Back button in Step 2 */
+.btn-back {
+    margin-bottom: 10px;
+    padding: 5px 10px;
+    font-size: 11px;
+    text-transform: uppercase;
+    border-color: var(--border);
+    opacity: 0.7;
+}
+
+.btn-back:hover {
+    opacity: 1;
     border-color: var(--accent);
 }
 

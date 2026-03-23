@@ -84,3 +84,17 @@ Figure out why "Start All" is not working for the server list
 Fix formatting on the documentation to make it more readable and visually appealing, ensuring that users can easily navigate
 and understand the information provided. This will involve organizing the content into clear sections, using headings and 
 subheadings, and incorporating visuals such as screenshots or diagrams where appropriate to enhance comprehension.
+
+// (3-22-26) \\
+Updated files for starting the command line funstions
+- Adding command line input
+- Created command line logic
+
+Created new Branch for reworking the server adding section
+- reworked modals to have 2, 
+ - 1. for type selection (minecraft, Space Engineers, Etc)
+ - 2. Configuration based on files needed for the server type
+
+Need to fix the buttons in the 1st modal
+Need to rework the second page to show what is needed for the type of server selected
+Need to test adding server and all saves/configurations done

@@ -283,72 +283,42 @@
 
     <div id="modal" class="modal">
         <div class="modal-content">
-            <h3>Add Server Configuration</h3>
-
-            <div class="input-block">
-                <label class="tiny-label">DISPLAY NAME</label>
-                <input type="text" id="newName" placeholder="e.g. Space Engineers - Survival">
-            </div>
-
-            <div class="input-block">
-                <label class="tiny-label">EXECUTABLE PATH</label>
-                <div class="path-group">
-                    <input type="text" id="exePath" readonly placeholder="Click Browse...">
-                    <button class="btn btn-outline" onclick="browse()">Browse</button>
+            <div id="wizard-step-1">
+                <h3 style="margin-bottom: 20px;">Select Server Type</h3>
+                <div class="server-type-grid">
+                    <div class="type-card" onclick="selectServerType('minecraft')">
+                        <span class="type-icon">⛏️</span>
+                        <span>Minecraft</span>
+                    </div>
+                    <div class="type-card" onclick="selectServerType('space-engineers')">
+                        <span class="type-icon">🚀</span>
+                        <span>Space Engineers</span>
+                    </div>
+                    <div class="type-card" onclick="selectServerType('other')">
+                        <span class="type-icon">🛠️</span>
+                        <span>Custom / Other</span>
+                    </div>
+                </div>
+                <div class="modal-footer" style="margin-top: 20px;">
+                    <button class="btn btn-outline full-width" onclick="closeModal()">Cancel</button>
                 </div>
             </div>
 
-            <div class="checkbox-row" style="margin-top: 15px;">
-                <input type="checkbox" id="hasWorkingDir" onchange="document.getElementById('working-dir-container').style.display = this.checked ? 'block' : 'none'">
-                <label for="hasWorkingDir" style="font-size: 13px; color: var(--dim); margin-left: 8px;">Override Working Directory (Required for Minecraft/Java)</label>
-            </div>
-
-            <div id="working-dir-container" style="display:none; margin-top: 10px; padding-left: 20px; border-left: 2px solid var(--accent);">
-                <label class="tiny-label">SERVER DATA FOLDER</label>
-                <div class="path-group">
-                    <input type="text" id="workingDir" readonly placeholder="Select the folder where server files live...">
-                    <button class="btn btn-outline" onclick="browseWorkingFolder()">Browse</button>
+            <div id="wizard-step-2" style="display: none;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                    <button class="btn btn-outline small" onclick="goBackToStep1()">← Back</button>
+                    <h3 id="wizard-title" style="margin: 0;">Configure Server</h3>
                 </div>
-                <p style="font-size: 11px; color: var(--dim); margin-top: 4px;">For Java servers, this is where your .jar and world folders are.</p>
-            </div>
 
-            <div class="checkbox-row" style="margin-top: 10px;">
-                <input type="checkbox" id="hasLogPath" onchange="document.getElementById('log-container').style.display = this.checked ? 'block' : 'none'">
-                <label for="hasLogPath" style="font-size: 13px; color: var(--dim); margin-left: 8px;">Enable External Log Tailing (GUI Servers)</label>
-            </div>
-
-            <div id="log-container" style="display:none; margin-top: 10px; padding-left: 20px; border-left: 2px solid var(--accent);">
-                <label class="tiny-label">LOG FOLDER PATH</label>
-                <div class="path-group">
-                    <input type="text" id="logPath" readonly placeholder="Select the folder where logs are saved...">
-                    <button class="btn btn-outline" onclick="browseLogFolder()">Browse</button>
+                <div class="input-block">
+                    <label class="tiny-label">DISPLAY NAME</label>
+                    <input type="text" id="newName" placeholder="e.g. My Awesome Server">
                 </div>
-                <p style="font-size: 11px; color: var(--dim); margin-top: 4px;">Point this to the folder containing the .log files.</p>
-            </div>
 
-            <div class="checkbox-row" style="margin-top: 15px;">
-                <input type="checkbox" id="hasArgs" onchange="document.getElementById('args-container').style.display = this.checked ? 'block' : 'none'">
-                <label for="hasArgs" style="font-size: 13px; color: var(--dim); margin-left: 8px;">Enable Custom Launch Arguments</label>
-            </div>
-
-            <div id="args-container" style="display:none; margin-top: 10px;">
-                <label class="tiny-label">ARGUMENTS (FLAGS)</label>
-                <textarea id="customArgs" placeholder="-console -ignorelastsession -path 'C:\Data'"></textarea>
-            </div>
-
-            <div style="margin-top: 15px;">
-                <label class="tiny-label">WINDOWS PROCESS PRIORITY</label>
-                <select id="processPriority" class="custom-select">
-                    <option value="64">Low (IDLE_PRIORITY_CLASS)</option>
-                    <option value="32" selected>Normal (NORMAL_PRIORITY_CLASS)</option>
-                    <option value="128">High (HIGH_PRIORITY_CLASS)</option>
-                    <option value="256">Realtime (Use with caution!)</option>
-                </select>
-            </div>
-
-            <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 20px;">
-                <button class="btn btn-primary" style="flex: 2;" onclick="saveNewServer()">Save Configuration</button>
-                <button class="btn btn-outline" style="flex: 1;" onclick="closeModal()">Cancel</button>
+                <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn btn-primary" style="flex: 2;" onclick="saveNewServer()">Save Configuration</button>
+                    <button class="btn btn-outline" style="flex: 1;" onclick="closeModal()">Cancel</button>
+                </div>
             </div>
         </div>
     </div>
