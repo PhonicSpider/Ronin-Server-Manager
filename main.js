@@ -294,39 +294,51 @@ ipcMain.on('start-server', (event, srv) => {
         event.reply('system-error', `Failed to spawn ${srv.name}: ${err.message}`);
     });
 
-    // New handler for sending commands to active servers
+    // handler for sending commands to active servers
+    // --- Updated Console Command Handler ---
     ipcMain.on('send-command', async (event, { srvId, command }) => {
+        // 1. Find the active process info
         const procInfo = activeProcesses[srvId];
-        if (!procInfo) return;
+        if (!procInfo) {
+            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] Server is not active. Cannot send command.\n` });
+            return;
+        }
 
         const srv = managedServers.find(s => s.id === srvId);
         if (!srv) return;
 
-        // --- Path A: Minecraft / Java (Using the Shell) ---
-        if (srv.path.toLowerCase().endsWith('.jar') || srv.path.toLowerCase().includes('minecraft')) {
-            if (procInfo.shell && procInfo.shell.stdin.writable) {
+        // --- Path A: Minecraft / Java / Standard Input ---
+        // If we have a writable shell (captured during start-server)
+        if (procInfo.shell && procInfo.shell.stdin.writable) {
+            try {
+                // We use \n for Minecraft/Java to simulate hitting "Enter"
                 procInfo.shell.stdin.write(command + "\n");
+
+                // Mirror the command to the UI console so the user sees what they typed
                 event.reply('console-out', { id: srvId, msg: `> ${command}\n` });
+            } catch (err) {
+                event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] Stdin Write Failed: ${err.message}\n` });
             }
         }
 
-        // --- Path B: Space Engineers (Using the Web API) ---
+        // --- Path B: Space Engineers (Remote API Fallback) ---
         else if (srv.path.toLowerCase().includes('spaceengineers')) {
-            // We'll assume you saved the Remote API port/password in the server object
             const port = srv.apiPort || 8080;
             const password = srv.apiPassword || "";
 
-            // Note: You may need to 'npm install axios' for this part
             try {
-                const axios = require('axios');
+                const axios = require('axios'); // Ensure axios is installed: npm install axios
                 await axios.post(`http://localhost:${port}/v1/session/game`,
                     { Command: command },
                     { headers: { 'Remote-Control-Http-Password': password } }
                 );
                 event.reply('console-out', { id: srvId, msg: `[RSM-API] Sent: ${command}\n` });
             } catch (err) {
-                event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] API Call Failed: ${err.message}\n` });
+                event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] SE API Call Failed: ${err.message}\n` });
             }
+        }
+        else {
+            event.reply('console-out', { id: srvId, msg: `[RSM-WARN] This server type does not support direct console input yet.\n` });
         }
     });
 

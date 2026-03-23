@@ -761,5 +761,17 @@ window.logToSystem = (msg) => {
     }
 };
 
+// Activate the input box
+document.addEventListener('DOMContentLoaded', () => {
+    const consoleInput = document.getElementById('console-input');
+    if (consoleInput) {
+        consoleInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                window.sendConsoleCommand(e);
+            }
+        });
+    }
+});
+
 ipcRenderer.on('system-error', (event, errorMsg) => window.logToSystem(`ERROR: ${errorMsg}`));
 ipcRenderer.on('system-info', (event, infoMsg) => window.logToSystem(`INFO: ${infoMsg}`));
