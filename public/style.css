@@ -844,6 +844,25 @@ textarea:focus {
     border-color: var(--accent);
 }
 
+/* 1. Hide all platform-specific blocks by default */
+.platform-specific {
+    display: none;
+}
+
+/* 2. Platform Grid Styling (Ensures the cards look correct) */
+.platform-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-top: 20px;
+}
+
+#wizard-step-2 {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
 /* --- STATUS SCREENS --- */
 .status-summary-row {
     display: flex;

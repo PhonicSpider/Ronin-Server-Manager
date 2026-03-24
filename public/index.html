@@ -286,7 +286,7 @@
             <div id="wizard-step-1">
                 <h3 style="margin-bottom: 20px;">Select Server Type</h3>
                 <div class="server-type-grid">
-                    <div class="type-card" onclick="selectServerType('minecraft')">
+                    <div class="type-card" onclick="selectServerType('minecraft')">  
                         <span class="type-icon">⛏️</span>
                         <span>Minecraft</span>
                     </div>
@@ -299,6 +299,9 @@
                         <span>Custom / Other</span>
                     </div>
                 </div>
+
+                <!--Add future game selection types here-->
+                <!--Copy the ones above and change as needed, then add to renderer.js in the [selectServerTypoe] function-->
                 <div class="modal-footer" style="margin-top: 20px;">
                     <button class="btn btn-outline full-width" onclick="closeModal()">Cancel</button>
                 </div>
@@ -306,13 +309,34 @@
 
             <div id="wizard-step-2" style="display: none;">
                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-                    <button class="btn btn-outline small" onclick="goBackToStep1()">← Back</button>
+                    <button class="btn-back btn-outline small" onclick="goBackToStep1()">← Back</button>
                     <h3 id="wizard-title" style="margin: 0;">Configure Server</h3>
                 </div>
 
                 <div class="input-block">
                     <label class="tiny-label">DISPLAY NAME</label>
-                    <input type="text" id="newName" placeholder="e.g. My Awesome Server">
+                    <input type="text" id="newName">
+                </div>
+
+                <div id="path-block" class="input-block platform-specific">
+                    <label class="tiny-label" id="path-label">EXECUTABLE PATH</label>
+                    <div class="path-group">
+                        <input type="text" id="exePath" readonly>
+                        <button class="btn btn-outline" onclick="browse()">Browse</button>
+                    </div>
+                </div>
+
+                <div id="working-dir-block" class="input-block platform-specific">
+                    <label class="tiny-label">WORKING DIRECTORY (GAME FOLDER)</label>
+                    <div class="path-group">
+                        <input type="text" id="workingDir" readonly>
+                        <button class="btn btn-outline" onclick="browseWorkingFolder()">Browse</button>
+                    </div>
+                </div>
+
+                <div id="args-block" class="input-block platform-specific">
+                    <label class="tiny-label">LAUNCH ARGUMENTS</label>
+                    <textarea id="customArgs"></textarea>
                 </div>
 
                 <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 20px;">

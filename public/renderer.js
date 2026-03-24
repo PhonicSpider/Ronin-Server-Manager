@@ -218,7 +218,7 @@ function selectServer(id) {
     renderSidebar();
 
     const showGuiBtn = document.getElementById('show-gui-btn');
-    if (showGuiBtn) showGuiBtn.disabled = (srv.status === 'Online');
+    if (showGuiBtn) showGuiBtn.disabled = (srv.status === 'Online'); // Shows the GUI button only when the server is offline
 }
 
 /**
@@ -690,12 +690,44 @@ window.showWizardStep = (step) => {
 
 // Triggered when a user clicks a "Type Card" (Minecraft, Space Engineers, etc.)
 window.selectServerType = (type) => {
-    window.selectedType = type; // Store this globally to save later
-    window.showWizardStep(2);   // Move to the config form
+    window.selectedType = type;
+
+    // 1. Hide ALL specific blocks first to start with a clean slate
+    document.querySelectorAll('.platform-specific').forEach(b => {
+        b.style.display = 'none'
+    });
+
+    // 2. Use Switch to decide what to show
+    switch (type) {
+        case 'minecraft':
+            // Show only what Minecraft needs
+            document.getElementById('path-label').innerText = "JAVA EXECUTABLE (javaw.exe)";
+            document.getElementById('path-block').style.display = 'block';
+            document.getElementById('working-dir-block').style.display = 'block';
+            document.getElementById('args-block').style.display = 'block';
+            break;
+
+        case 'space-engineers':
+            // Show only what SE2 needs
+            document.getElementById('path-label').innerText = "SERVER EXECUTABLE (.exe)";
+            document.getElementById('path-block').style.display = 'block';
+            // SE2 might not need working dir override usually, so we keep it hidden
+            break;
+
+        ///// ADD FUTURE GAME OPTIONS HERE WITH VARIABLES \\\\\
+
+        case 'other':
+            // Show everything for Generic
+            document.querySelectorAll('.platform-specific').forEach(b => b.style.display = 'block');
+            document.getElementById('path-label').innerText = "EXECUTABLE PATH";
+            break;
+    }
+
+    window.showWizardStep(2);
 };
 
 // Back button on page 2
-window.goBackToWizardStep1 = () => {
+window.goBackToStep1 = () => {
     window.showWizardStep(1);
 };
 
@@ -715,6 +747,10 @@ window.saveNewServer = () => {
     const name = document.getElementById('newName').value;
     const path = document.getElementById('exePath').value;
     const priority = document.getElementById('processPriority').value;
+
+    // Platform Specific Inputs
+    const mcRam = document.getElementById('mcRam')?.value || "";
+    const seInstance = document.getElementById('seInstance')?.value || "";
 
     // Type Logic: Use the one from the wizard, or 'Generic' if editing an old server
     const type = window.selectedType || "Generic";
@@ -736,7 +772,7 @@ window.saveNewServer = () => {
         if (index !== -1) {
             servers[index] = {
                 ...servers[index],
-                name, path, args, logPath, workingDir, priority
+                name, path, args, logPath, workingDir, priority, mcRam, seInstance
                 // Note: We usually don't change the 'type' during an edit
             };
         }
@@ -746,6 +782,8 @@ window.saveNewServer = () => {
             name,
             path,
             type, // <--- SAVING THE TYPE HERE
+            mcRam,
+            seInstance,
             args,
             logPath,
             workingDir,
