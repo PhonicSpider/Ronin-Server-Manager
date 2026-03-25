@@ -705,13 +705,27 @@ window.selectServerType = (type) => {
             document.getElementById('path-block').style.display = 'block';
             document.getElementById('working-dir-block').style.display = 'block';
             document.getElementById('args-block').style.display = 'block';
+
+            // Examples (Placeholders)
+            document.getElementById('newName').placeholder = "e.g. Minecraft Survival Hub";
+            document.getElementById('exePath').placeholder = "C:\\Program Files\\Java\\...\\java.exe";
+            document.getElementById('workingDir').placeholder = "C:\\Servers\\Minecraft_1.20";
+            document.getElementById('customArgs').placeholder = "-Xmx4G -Xms2G -jar server.jar nogui";
             break;
 
         case 'space-engineers':
-            // Show only what SE2 needs
+            // Show only what SE needs
             document.getElementById('path-label').innerText = "SERVER EXECUTABLE (.exe)";
             document.getElementById('path-block').style.display = 'block';
-            // SE2 might not need working dir override usually, so we keep it hidden
+            document.getElementById('working-dir-block').style.display = 'block';
+            document.getElementById('args-block').style.displaye = 'block';
+            // SE might not need working dir override usually, so we keep it hidden
+
+            // Examples (Placeholders)
+            document.getElementById('newName').placeholder = "e.g. SE - Orion Sector";
+            document.getElementById('exePath').placeholder = "...\\DedicatedServer64\\SpaceEngineersDedicated.exe";
+            document.getElementById('workingDir').placeholder = "C:\ProgramData\SpaceEngineersDedicated\InstanceFolder";
+            document.getElementById('customArgs').placeholder = "-console -ignorelastsession -path 'path\to\instance folder' (in double quotes)";
             break;
 
         ///// ADD FUTURE GAME OPTIONS HERE WITH VARIABLES \\\\\
@@ -720,6 +734,8 @@ window.selectServerType = (type) => {
             // Show everything for Generic
             document.querySelectorAll('.platform-specific').forEach(b => b.style.display = 'block');
             document.getElementById('path-label').innerText = "EXECUTABLE PATH";
+
+            document.getElementById('customArgs').placeholder = "-flag1 -flag2 -config 'path/to/file"
             break;
     }
 
