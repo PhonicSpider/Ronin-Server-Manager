@@ -326,12 +326,21 @@
                     </div>
                 </div>
 
-                <div id="working-dir-block" class="input-block platform-specific"> <!--WORKING DIR / LOG LOCATION-->
+                <div id="working-dir-block" class="input-block platform-specific"> <!--WORKING DIR / INSTANCE LOCATION-->
                     <label class="tiny-label">WORKING DIRECTORY (GAME FOLDER)</label>
                     <div class="path-group">
                         <input type="text" id="workingDir" readonly>
                         <button class="btn btn-outline" onclick="browseWorkingFolder()">Browse</button>
                     </div>
+                </div>
+
+                <div id="log-block" class="input-block platform-specific"> <!-- LOG PATH FOR GUI SERVERS -->
+                    <label class="tiny-label">LOG FILE / FOLDER PATH</label>
+                    <div class="path-group">
+                        <input type="text" id="logPath" readonly placeholder="Select log location...">
+                        <button class="btn btn-outline" onclick="browseLogFolder()">Browse</button>
+                    </div>
+                    <p style="font-size: 11px; color: var(--dim); margin-top: 4px;">Point this to your SpaceEngineersDedicated.log file.</p>
                 </div>
 
                 <div id="args-block" class="input-block platform-specific"> <!--ARGS BLOCK-->

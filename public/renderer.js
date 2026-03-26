@@ -251,30 +251,47 @@ window.deleteServer = () => {
 
 // Opens the Add Server modal but fills it with existing server data for editing
 window.openEditModal = () => {
+    // Note: Ensure 'targetId' is being passed or defined globally before this call
     if (!targetId) return;
     const srv = servers.find(s => s.id === targetId);
     if (!srv) return;
 
-    // Standard Fields (Original)
-    document.getElementById('newName').value = srv.name;
-    document.getElementById('exePath').value = srv.path;
+    // 1. Identify the Server Type (Default to 'other' for legacy servers)
+    const type = srv.type || 'other';
+    window.selectedType = type; // Store it for the save function
+
+    // 2. Trigger the Wizard Logic
+    // This hides/shows the correct blocks and updates labels (e.g., "JAVA EXECUTABLE")
+    window.selectServerType(type);
+
+    // 3. Populate Standard Fields
+    document.getElementById('newName').value = srv.name || "";
+    document.getElementById('exePath').value = srv.path || "";
     document.getElementById('processPriority').value = srv.priority || "32";
 
-    // Arguments Setup (Original)
-    const hasArgs = !!(srv.args && srv.args.length > 0);
-    document.getElementById('hasArgs').checked = hasArgs;
-    document.getElementById('args-container').style.display = hasArgs ? 'block' : 'none';
-    document.getElementById('customArgs').value = srv.args || "";
+    // 4. Populate Platform-Specific Fields
+    // We fill these regardless of type; if the block is hidden, the value just stays in the background
+    if (document.getElementById('customArgs')) {
+        document.getElementById('customArgs').value = srv.args || "";
+    }
+    if (document.getElementById('workingDir')) {
+        document.getElementById('workingDir').value = srv.workingDir || "";
+    }
+    if (document.getElementById('logPath')) {
+        document.getElementById('logPath').value = srv.logPath || "";
+    }
 
-    // Log Path Setup
-    // Checks if a logPath exists and toggles the UI accordingly
-    const hasLog = !!(srv.logPath);
-    document.getElementById('hasLogPath').checked = hasLog;
-    document.getElementById('log-container').style.display = hasLog ? 'block' : 'none';
-    document.getElementById('logPath').value = srv.logPath || "";
+    // Fill MC/SE specific fields if you added those inputs to your HTML
+    if (document.getElementById('mcRam')) {
+        document.getElementById('mcRam').value = srv.mcRam || "";
+    }
+    if (document.getElementById('seInstance')) {
+        document.getElementById('seInstance').value = srv.seInstance || "";
+    }
 
-    // Finalize
+    // 5. Finalize State
     window.editingServerId = srv.id;
+
     // Ensure we skip Step 1 (the cards) and go straight to the form
     window.showWizardStep(2);
     openModal();
@@ -701,16 +718,17 @@ window.selectServerType = (type) => {
     switch (type) {
         case 'minecraft':
             // Show only what Minecraft needs
-            document.getElementById('path-label').innerText = "JAVA EXECUTABLE (javaw.exe)";
-            document.getElementById('path-block').style.display = 'block';
-            document.getElementById('working-dir-block').style.display = 'block';
-            document.getElementById('args-block').style.display = 'block';
+            document.getElementById('path-label').innerText = "JAVA EXECUTABLE (javaw.exe)"; // Path for server starting application (i.e. java or server launcher)
+            document.getElementById('path-block').style.display = 'block'; 
+            document.getElementById('working-dir-block').style.display = 'block'; // Workiing directory or server location
+            document.getElementById('args-block').style.display = 'block'; // custom args
+            document.getElementById('log-block').style.display = 'none'; // Location of log files (mainly for servers like Space Engineers that need to tail the log file)
 
             // Examples (Placeholders)
             document.getElementById('newName').placeholder = "e.g. Minecraft Survival Hub";
             document.getElementById('exePath').placeholder = "C:\\Program Files\\Java\\...\\java.exe";
             document.getElementById('workingDir').placeholder = "C:\\Servers\\Minecraft_1.20";
-            document.getElementById('customArgs').placeholder = "-Xmx4G -Xms2G -jar server.jar nogui";
+            document.getElementById('customArgs').value = "-Xmx4G -Xms2G -jar server.jar nogui";
             break;
 
         case 'space-engineers':
@@ -718,14 +736,16 @@ window.selectServerType = (type) => {
             document.getElementById('path-label').innerText = "SERVER EXECUTABLE (.exe)";
             document.getElementById('path-block').style.display = 'block';
             document.getElementById('working-dir-block').style.display = 'block';
-            document.getElementById('args-block').style.displaye = 'block';
+            document.getElementById('args-block').style.display = 'block';
+            document.getElementById('log-block').style.display = 'block';
             // SE might not need working dir override usually, so we keep it hidden
 
             // Examples (Placeholders)
             document.getElementById('newName').placeholder = "e.g. SE - Orion Sector";
             document.getElementById('exePath').placeholder = "...\\DedicatedServer64\\SpaceEngineersDedicated.exe";
             document.getElementById('workingDir').placeholder = "C:\ProgramData\SpaceEngineersDedicated\InstanceFolder";
-            document.getElementById('customArgs').placeholder = "-console -ignorelastsession -path 'path\to\instance folder' (in double quotes)";
+            document.getElementById('logPath').placeholder = "same\as\instance\folder\normally";
+            document.getElementById('customArgs').value = "-console -ignorelastsession -path 'path\to\instance folder' (in double quotes)";
             break;
 
         ///// ADD FUTURE GAME OPTIONS HERE WITH VARIABLES \\\\\
@@ -760,36 +780,36 @@ function showServerGUI() {
 
 // Adds a new server or updates an existing one in the list
 window.saveNewServer = () => {
+    // 1. Grab Basic Info
     const name = document.getElementById('newName').value;
     const path = document.getElementById('exePath').value;
     const priority = document.getElementById('processPriority').value;
 
-    // Platform Specific Inputs
+    // 2. Grab Type
+    const type = window.selectedType || "other"; // Default to 'other' if null
+
+    // 3. Grab Values Directly
+    // Instead of checking if a checkbox is 'checked', we just grab the value.
+    // If the box was hidden by the wizard, the value will naturally be empty/null.
+    const args = document.getElementById('customArgs').value || "";
+    const workingDir = document.getElementById('workingDir').value || "";
+    const logPath = document.getElementById('logPath').value || "";
+
+    // Minecraft/SE specific (using optional chaining ?. just in case the ID is missing)
     const mcRam = document.getElementById('mcRam')?.value || "";
     const seInstance = document.getElementById('seInstance')?.value || "";
 
-    // Type Logic: Use the one from the wizard, or 'Generic' if editing an old server
-    const type = window.selectedType || "Generic";
-
-    // Arguments & Paths Logic
-    const hasArgs = document.getElementById('hasArgs').checked;
-    const args = hasArgs ? document.getElementById('customArgs').value : "";
-    const hasLog = document.getElementById('hasLogPath').checked;
-    const logPath = hasLog ? document.getElementById('logPath').value : null;
-    const hasWorkingDir = document.getElementById('hasWorkingDir').checked;
-    const workingDir = hasWorkingDir ? document.getElementById('workingDir').value : null;
-
+    // 4. Validation
     if (!name || !path) return alert("Please provide a name and select an executable.");
 
-    const action = window.editingServerId ? "Updated" : "Created new";
-
+    // 5. Save/Update Logic
     if (window.editingServerId) {
         const index = servers.findIndex(s => s.id === window.editingServerId);
         if (index !== -1) {
             servers[index] = {
-                ...servers[index],
+                ...servers[index], // Keep ID, status, logs, pid
                 name, path, args, logPath, workingDir, priority, mcRam, seInstance
-                // Note: We usually don't change the 'type' during an edit
+                // We keep the original 'type' during edits
             };
         }
     } else {
@@ -797,7 +817,7 @@ window.saveNewServer = () => {
             id: Date.now().toString(),
             name,
             path,
-            type, // <--- SAVING THE TYPE HERE
+            type,
             mcRam,
             seInstance,
             args,
@@ -810,13 +830,20 @@ window.saveNewServer = () => {
         });
     }
 
+    // 6. Persistence & UI
     ipcRenderer.send('save-servers', servers);
     renderSidebar();
 
-    // Cleanup: Clear inputs so they are empty for the next "Add"
-    document.getElementById('newName').value = "";
-    document.getElementById('exePath').value = "";
+    // 7. Full Cleanup
+    // Clear every possible field so the next 'Add Server' starts fresh
+    const fieldsToClear = ['newName', 'exePath', 'workingDir', 'customArgs', 'logPath', 'mcRam', 'seInstance'];
+    fieldsToClear.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+    });
+
     window.selectedType = null;
+    window.editingServerId = null; // Important: Clear the edit ID!
 
     closeModal();
 };
