@@ -595,22 +595,23 @@ ipcMain.on('kill-server', (event, pid) => {
     });
 });
 
-ipcMain.on('open-folder', (event, inputPath) => {
-    if (!inputPath) return;
+ipcMain.on('open-folder', (event, srv) => {
+    if (!srv) return;
 
-    let finalPath = inputPath;
+    // Logic: 
+    // 1. If we received an object with a workingDir, use that.
+    // 2. Otherwise, if it's a string (old style), use the string.
+    let targetPath = (typeof srv === 'object') ? (srv.workingDir || srv.path) : srv;
 
-    // If the path points to a file (like an .exe), get the folder it's in
-    // If it's already a folder (like the instance path), leave it alone
     try {
-        if (fs.existsSync(inputPath) && fs.lstatSync(inputPath).isFile()) {
-            finalPath = path.dirname(inputPath);
-        }
-
-        if (fs.existsSync(finalPath)) {
-            shell.openPath(finalPath);
+        if (fs.existsSync(targetPath)) {
+            // If the path is a file (like the EXE), get its directory
+            if (fs.lstatSync(targetPath).isFile()) {
+                targetPath = path.dirname(targetPath);
+            }
+            shell.openPath(targetPath);
         } else {
-            event.reply('system-error', `Folder does not exist: ${finalPath}`);
+            event.reply('system-error', `Folder does not exist: ${targetPath}`);
         }
     } catch (e) {
         event.reply('system-error', "Error accessing folder path.");

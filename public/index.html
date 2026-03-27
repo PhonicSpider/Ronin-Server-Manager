@@ -357,8 +357,8 @@
     </div>
 
     <div id="options-dropdown" class="dropdown-content">
-        <a onclick="openEditModal()">⚙️ Edit Launch Settings</a>
-        <a onclick="openServerFolder()">📂 Open Server Folder</a>
+        <a onclick="openEditModal('${srv.id}')">⚙️ Edit Launch Settings</a>
+        <a onclick="openServerFolder('${srv.id}')">📂 Open Server Folder</a>
         <div class="dropdown-divider"></div>
         <a onclick="deleteServer()" class="text-danger">🗑️ Delete Server</a>
     </div>

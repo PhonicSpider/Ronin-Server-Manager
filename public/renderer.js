@@ -161,9 +161,12 @@ function renderSidebar() {
         item.className = `nav-item ${activeId === s.id ? 'active' : ''}`;
         item.draggable = true;
 
+        const icon = getTypeIcon(s.type);
+
         item.innerHTML = `
             <div class="nav-content">
                 <span class="status-dot ${s.status === 'Online' ? 'dot-online' : 'dot-offline'}"></span>
+                <span class="type-icon" style="margin-right: 3px; opacity: 0.8;">${icon}</span>
                 <span class="server-name">${s.name}</span>
             </div>
             <div class="item-options-gear" onclick="toggleSidebarMenu(event, '${s.id}')">
@@ -186,6 +189,16 @@ function renderSidebar() {
         nav.appendChild(item);
     });
 }
+
+// Gets icon of server type
+const getTypeIcon = (type) => {
+    switch (type) {
+        case 'minecraft': return '⛏️';
+        case 'space-engineers': return '🚀';
+        // Add new types here
+        default: return '🖥️'; // Generic server icon
+    }
+};
 
 // Saves the new order of servers to the backend after a drag-drop
 function handleSort(fromIndex, toIndex) {
@@ -250,7 +263,7 @@ window.deleteServer = () => {
 };
 
 // Opens the Add Server modal but fills it with existing server data for editing
-window.openEditModal = () => {
+window.openEditModal = (targetId) => {
     // Note: Ensure 'targetId' is being passed or defined globally before this call
     if (!targetId) return;
     const srv = servers.find(s => s.id === targetId);
@@ -314,11 +327,16 @@ window.browseLogFolder = async () => {
 };
 
 // Opens the Windows File Explorer to the server's directory (Original)
-window.openServerFolder = () => {
+window.openServerFolder = (targetId) => { // Added targetId as a parameter
     if (!targetId) return;
     const srv = servers.find(s => s.id === targetId);
     if (!srv) return;
-    ipcRenderer.send('open-folder', srv.path);
+
+    // Logic: If there is a Working Directory saved, open that. 
+    // Otherwise, open the folder where the executable lives.
+    const folderToOpen = srv.workingDir || srv.path;
+
+    ipcRenderer.send('open-folder', folderToOpen);
 };
 
 window.browseWorkingFolder = async () => {
