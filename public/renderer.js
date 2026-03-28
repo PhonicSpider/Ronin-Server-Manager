@@ -240,74 +240,113 @@ function selectServer(id) {
  */
 window.toggleSidebarMenu = (event, srvId) => {
     event.stopPropagation();
-    targetId = srvId; // Remember which server we clicked the gear for
+
+    // 1. Assign the global targetId for other functions to use
+    targetId = srvId;
+
+    // 2. Locate the buttons inside your static HTML dropdown
+    // We can use querySelector to find the <a> tags by their order or text
     const menu = document.getElementById("options-dropdown");
+    const links = menu.querySelectorAll('a');
+
+    // 3. Manually bind the functions to these buttons for THIS specific server
+    // Index 0: Edit | Index 1: Open Folder | Index 2: Delete (based on your HTML)
+    if (links[0]) links[0].onclick = () => window.openEditModal(srvId);
+    if (links[1]) links[1].onclick = () => window.openServerFolder(srvId);
+    if (links[2]) links[2].onclick = () => window.deleteServer(srvId);
+
+    // 4. Position and show the menu
     menu.style.top = `${event.clientY}px`;
     menu.style.left = `${event.clientX + 10}px`;
     menu.classList.add("show");
+
+    console.log(`[RSM-DEBUG] Menu opened for server: ${srvId}`);
 };
 
 // Removes server from list (Requires server to be stopped first)
-window.deleteServer = () => {
-    const idToDelete = targetId; // Use the targetId set by the gear menu click
-    if (!idToDelete) return;
-    const srv = servers.find(s => s.id === idToDelete);
-    if (srv.status === 'Online') return alert("Stop the server before deleting.");
+window.deleteServer = (id) => {
+    // If no ID is passed, fall back to the global targetId
+    const idToRemove = id || targetId;
 
-    if (confirm(`Delete "${srv.name}"?`)) { // Confirmation dialog to prevent accidents
-        servers = servers.filter(s => s.id !== idToDelete);
-        ipcRenderer.send('save-servers', servers);
-        if (activeId === idToDelete) { activeId = null; showView('manager'); }
-        renderSidebar();
+    console.log(`[RSM-DEBUG] Delete server selected for ID ${idToRemove}`);
+
+    if (confirm("Are you sure you want to delete this server?")) {
+        servers = servers.filter(s => s.id.toString() !== idToRemove.toString());
+        saveServers(); // Function to write to servers.json
+        renderSidebar(); // Refresh the list
     }
+
+    console.log(`[RSM-DEBUG] server with ID ${idToRemove} deleted`);
 };
 
 // Opens the Add Server modal but fills it with existing server data for editing
-window.openEditModal = (targetId) => {
-    // Note: Ensure 'targetId' is being passed or defined globally before this call
-    if (!targetId) return;
-    const srv = servers.find(s => s.id === targetId);
-    if (!srv) return;
+window.openEditModal = (serverId) => {
+    console.log("[RSM-DEBUG] openEditModal triggered with ID:", serverId);
 
-    // 1. Identify the Server Type (Default to 'other' for legacy servers)
-    const type = srv.type || 'other';
-    window.selectedType = type; // Store it for the save function
-
-    // 2. Trigger the Wizard Logic
-    // This hides/shows the correct blocks and updates labels (e.g., "JAVA EXECUTABLE")
-    window.selectServerType(type);
-
-    // 3. Populate Standard Fields
-    document.getElementById('newName').value = srv.name || "";
-    document.getElementById('exePath').value = srv.path || "";
-    document.getElementById('processPriority').value = srv.priority || "32";
-
-    // 4. Populate Platform-Specific Fields
-    // We fill these regardless of type; if the block is hidden, the value just stays in the background
-    if (document.getElementById('customArgs')) {
-        document.getElementById('customArgs').value = srv.args || "";
-    }
-    if (document.getElementById('workingDir')) {
-        document.getElementById('workingDir').value = srv.workingDir || "";
-    }
-    if (document.getElementById('logPath')) {
-        document.getElementById('logPath').value = srv.logPath || "";
+    if (!serverId) {
+        console.error("[RSM-ERROR] No serverId passed to the function!");
+        return;
     }
 
-    // Fill MC/SE specific fields if you added those inputs to your HTML
-    if (document.getElementById('mcRam')) {
-        document.getElementById('mcRam').value = srv.mcRam || "";
-    }
-    if (document.getElementById('seInstance')) {
-        document.getElementById('seInstance').value = srv.seInstance || "";
-    }
+    // 1. Check if the server exists in your array
+    const srv = servers.find(s => s.id.toString() === serverId.toString());
 
-    // 5. Finalize State
+    if (!srv) {
+        console.error("[RSM-ERROR] Could not find server in the list. Available IDs:", servers.map(s => s.id));
+        return;
+    }
+    console.log("[RSM-DEBUG] Server found:", srv.name, "| Type:", srv.type);
+
+    // 2. Set State
     window.editingServerId = srv.id;
+    const type = srv.type || 'other';
+    window.selectedType = type;
+    console.log("[RSM-DEBUG] State set. editingServerId:", window.editingServerId, "type:", type);
 
-    // Ensure we skip Step 1 (the cards) and go straight to the form
-    window.showWizardStep(2);
-    openModal();
+    // 3. Setup Layout
+    console.log("[RSM-DEBUG] Calling selectServerType...");
+    if (typeof window.selectServerType === 'function') {
+        window.selectServerType(type);
+    } else {
+        console.warn("[RSM-WARN] window.selectServerType is not defined!");
+    }
+
+    // 4. Fill Fields
+    try {
+        document.getElementById('newName').value = srv.name || "";
+        document.getElementById('exePath').value = srv.path || "";
+        //document.getElementById('processPriority').value = srv.priority || "32";
+
+        const extraFields = ['customArgs', 'workingDir', 'logPath', 'mcRam', 'seInstance'];
+        extraFields.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                const dataKey = (id === 'customArgs') ? 'args' : id;
+                el.value = srv[dataKey] || "";
+            } else {
+                console.log(`[RSM-DEBUG] Field '${id}' not found in DOM (this may be normal depending on server type)`);
+            }
+        });
+        console.log("[RSM-DEBUG] All form fields populated.");
+    } catch (err) {
+        console.error("[RSM-ERROR] Failed to fill form fields:", err);
+    }
+
+    // 5. Display Logic
+    const modalEl = document.getElementById('modal');
+    if (modalEl) {
+        console.log("[RSM-DEBUG] Modal element found. Setting display to flex...");
+        modalEl.style.display = 'flex';
+
+        if (typeof window.showWizardStep === 'function') {
+            console.log("[RSM-DEBUG] Switching to Wizard Step 2...");
+            window.showWizardStep(2);
+        } else {
+            console.error("[RSM-ERROR] window.showWizardStep is not a function!");
+        }
+    } else {
+        console.error("[RSM-ERROR] CRITICAL: Element with ID 'modal' was not found in the HTML!");
+    }
 };
 
 // Browses for the EXECUTABLE file
@@ -695,12 +734,19 @@ function updateGauge(type, percent, label) {
 
 // Modal Toggle
 window.openModal = () => {
-    // If we aren't editing, default to step 1. 
-    // If editingServerId IS set, openEditModal has already called showWizardStep(2).
-    if (!window.editingServerId) {
-        window.showWizardStep(1);
-    }
     document.getElementById('modal').style.display = 'flex';
+};
+
+window.openAddModal = () => {
+    window.editingServerId = null; // Clear any old edit state
+    window.selectedType = null;
+
+    // Optional: Reset the form fields so old data doesn't stay there
+    const form = document.querySelector('#wizard-step-2 form');
+    if (form) form.reset();
+
+    window.showWizardStep(1); // Start at the game selection cards
+    window.openModal();
 };
 
 window.closeModal = () => {
@@ -801,7 +847,9 @@ window.saveNewServer = () => {
     // 1. Grab Basic Info
     const name = document.getElementById('newName').value;
     const path = document.getElementById('exePath').value;
-    const priority = document.getElementById('processPriority').value;
+
+    // Removed fr now until everything else works
+    //const priority = document.getElementById('processPriority').value;
 
     // 2. Grab Type
     const type = window.selectedType || "other"; // Default to 'other' if null
@@ -826,9 +874,11 @@ window.saveNewServer = () => {
         if (index !== -1) {
             servers[index] = {
                 ...servers[index], // Keep ID, status, logs, pid
-                name, path, args, logPath, workingDir, priority, mcRam, seInstance
+                name, path, args, logPath, workingDir, mcRam, seInstance // Removed priority for now until everything else works
                 // We keep the original 'type' during edits
             };
+            window.logToSystem(`Saving server ${name} with the following settings`);
+            window.logToSystem(`Name: ${name}, Type: ${type} Path: ${path}, LogPath: ${logPath}, Working Directory: ${workingDir}, Args: ${args}`);
         }
     } else {
         servers.push({
@@ -862,7 +912,7 @@ window.saveNewServer = () => {
 
     window.selectedType = null;
     window.editingServerId = null; // Important: Clear the edit ID!
-
+    window.logToSystem(`Saving server ${name} successful`);
     closeModal();
 };
 

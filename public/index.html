@@ -24,7 +24,7 @@
         <nav id="server-list" class="nav-container"></nav>
 
         <div class="sidebar-footer">
-            <button class="btn btn-primary full-width" onclick="openModal()">+ Add New Server</button>
+            <button class="btn btn-primary full-width" onclick="openAddModal()">+ Add New Server</button>
 
             <div class="global-actions">
                 <p class="tiny-label">GLOBAL CONTROLS</p>
@@ -357,10 +357,10 @@
     </div>
 
     <div id="options-dropdown" class="dropdown-content">
-        <a onclick="openEditModal('${srv.id}')">⚙️ Edit Launch Settings</a>
-        <a onclick="openServerFolder('${srv.id}')">📂 Open Server Folder</a>
+        <a id="menu-edit-btn">⚙️ Edit Launch Settings</a>
+        <a id="menu-folder-btn">📂 Open Server Folder</a>
         <div class="dropdown-divider"></div>
-        <a onclick="deleteServer()" class="text-danger">🗑️ Delete Server</a>
+        <a id="menu-delete-btn" class="text-danger">🗑️ Delete Server</a>
     </div>
 
     <script src="renderer.js"></script>
