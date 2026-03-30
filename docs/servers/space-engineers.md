@@ -73,7 +73,7 @@ Before adding the server to RSM, you must perform a "Clean Boot" to stage the en
 
 ---
 
-## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">⚙️ Startup Arguments</p>
+## ⚙️ Startup Arguments {: .rsm-header }
 
 When using the Space Engineers preset in the RSM Wizard, ensure these flags are present in the **Arguments** field to ensure the server starts correctly:
 
