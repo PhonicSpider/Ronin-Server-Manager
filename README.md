@@ -65,3 +65,48 @@ npm install
 
 # Run in development mode
 npm start
+
+---
+
+## 🤝 Contributing to RSM
+
+We love contributions! Whether you're fixing a bug, adding a new game server module, or improving the UI, here is how you can help:
+
+### 1. 🏗️ Setting Up Your Environment
+Before you start coding, ensure you have the following installed:
+* **Node.js** (v18 or higher recommended)
+* **npm** (comes with Node.js)
+* **Python** (Required only for previewing the MkDocs documentation)
+
+### 2. 🌿 Branching Strategy
+* **Fork** the repository to your own GitHub account.
+* Create a feature branch from `main`: 
+  ```bash
+  git checkout -b feature/your-feature-name
+
+* ​Keep your commits concise and descriptive.
+
+### ​3. 💻 Coding Standards
+* ​**JavaScript/Electron:** Follow standard JS naming conventions (camelCase for variables/functions).
+* ​**Local-First:** Ensure any new features maintain the application's local-only architecture—avoid adding cloud or external database requirements.
+* ​**Modularity:** Keep game-specific logic separated so the manager remains a clean orchestrator.
+
+### ​4. 📝 Documentation Contributions
+​The documentation is located in the /docs folder and is built using MkDocs.
+* To preview documentation changes locally:
+```bash
+pip install mkdocs-material
+mkdocs serve
+```
+* Edit the .md files in the docs/ directory to update the live site.
+
+### 5. 🚀 Submitting a Pull Request
+* ​Push your changes to your fork.
+* ​Open a Pull Request (PR) against the main branch.
+* ​Describe your changes in detail: What does this PR solve? Are there any breaking changes?
+* ​We will review your PR as soon as possible!
+
+---
+
+### ​🆘 Need Help?
+​If you're unsure where to start, check the Issues tab or open a new discussion to chat about your ideas.
