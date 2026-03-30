@@ -1,5 +1,5 @@
 ﻿const { ipcRenderer } = require('electron');
-
+const DebugActive = true;
 // --- GLOBAL STATE ---
 let servers = [];             // Stores all server objects (name, path, status, etc.)
 let activeId = null;          // The ID of the server currently being viewed in the Dashboard
@@ -265,18 +265,39 @@ window.toggleSidebarMenu = (event, srvId) => {
 
 // Removes server from list (Requires server to be stopped first)
 window.deleteServer = (id) => {
-    // If no ID is passed, fall back to the global targetId
+    // 1. Fallback to the global targetId if no ID is passed
     const idToRemove = id || targetId;
 
-    console.log(`[RSM-DEBUG] Delete server selected for ID ${idToRemove}`);
-
-    if (confirm("Are you sure you want to delete this server?")) {
-        servers = servers.filter(s => s.id.toString() !== idToRemove.toString());
-        saveServers(); // Function to write to servers.json
-        renderSidebar(); // Refresh the list
+    if (!idToRemove) {
+        console.error("[RSM-ERROR] No ID found to delete.");
+        return;
     }
 
-    console.log(`[RSM-DEBUG] server with ID ${idToRemove} deleted`);
+    console.log(`[RSM-DEBUG] Delete server attempt for ID: ${idToRemove}`);
+
+    // 2. Ask for confirmation
+    if (confirm("Are you sure you want to delete this server? This cannot be undone.")) {
+
+        // 3. Filter the array to remove the server
+        const originalLength = servers.length;
+        servers = servers.filter(s => s.id.toString() !== idToRemove.toString());
+
+        if (servers.length < originalLength) {
+            // 4. Use the IPC call to save the changes to servers.json
+            ipcRenderer.send('save-servers', servers);
+
+            // 5. If the deleted server was the one being viewed, go home
+            if (activeId === idToRemove) {
+                window.showView('home');
+            }
+
+            // 6. Refresh the UI
+            renderSidebar();
+            console.log(`[RSM-DEBUG] Server with ID ${idToRemove} successfully deleted.`);
+        } else {
+            console.warn("[RSM-WARN] No server found with that ID to delete.");
+        }
+    }
 };
 
 // Opens the Add Server modal but fills it with existing server data for editing
@@ -799,6 +820,8 @@ window.selectServerType = (type) => {
             // Show only what SE needs
             document.getElementById('path-label').innerText = "SERVER EXECUTABLE (.exe)";
             document.getElementById('path-block').style.display = 'block';
+            document.getElementById('port-block').style.display = 'block';
+            document.getElementById('portpass-block').style.display = 'block';
             document.getElementById('working-dir-block').style.display = 'block';
             document.getElementById('args-block').style.display = 'block';
             document.getElementById('log-block').style.display = 'block';
@@ -807,6 +830,8 @@ window.selectServerType = (type) => {
             // Examples (Placeholders)
             document.getElementById('newName').placeholder = "e.g. SE - Orion Sector";
             document.getElementById('exePath').placeholder = "...\\DedicatedServer64\\SpaceEngineersDedicated.exe";
+            document.getElementById('portId').value = "8080";
+            document.getElementById('portPass').placeholder = "Server Remote API Password";
             document.getElementById('workingDir').placeholder = "C:\ProgramData\SpaceEngineersDedicated\InstanceFolder";
             document.getElementById('logPath').placeholder = "same\as\instance\folder\normally";
             document.getElementById('customArgs').value = "-console -ignorelastsession -path 'path\to\instance folder' (in double quotes)";
@@ -848,20 +873,19 @@ window.saveNewServer = () => {
     const name = document.getElementById('newName').value;
     const path = document.getElementById('exePath').value;
 
-    // Removed fr now until everything else works
-    //const priority = document.getElementById('processPriority').value;
+    // Removed for now until everything else works
+    //const priority = document.getElementById('processPriority')?.value || "32";
 
     // 2. Grab Type
     const type = window.selectedType || "other"; // Default to 'other' if null
 
     // 3. Grab Values Directly
-    // Instead of checking if a checkbox is 'checked', we just grab the value.
-    // If the box was hidden by the wizard, the value will naturally be empty/null.
+    // If the box was hidden by the manager, the value will naturally be empty/null.
+    const apiPort = document.getElementById('portId').value || "8080";
+    const apiPass = document.getElementById('portPass').value || "";
     const args = document.getElementById('customArgs').value || "";
     const workingDir = document.getElementById('workingDir').value || "";
     const logPath = document.getElementById('logPath').value || "";
-
-    // Minecraft/SE specific (using optional chaining ?. just in case the ID is missing)
     const mcRam = document.getElementById('mcRam')?.value || "";
     const seInstance = document.getElementById('seInstance')?.value || "";
 
@@ -870,28 +894,43 @@ window.saveNewServer = () => {
 
     // 5. Save/Update Logic
     if (window.editingServerId) {
-        const index = servers.findIndex(s => s.id === window.editingServerId);
+        const index = servers.findIndex(s => s.id.toString() === window.editingServerId.toString());
         if (index !== -1) {
+            // 1. Get the existing server data
+            const existing = servers[index];
+
+            // 2. Update the array using the Spread Operator
             servers[index] = {
-                ...servers[index], // Keep ID, status, logs, pid
-                name, path, args, logPath, workingDir, mcRam, seInstance // Removed priority for now until everything else works
-                // We keep the original 'type' during edits
+                ...existing,             // Copy EVERYTHING (id, type, status, logs, pid, etc.)
+                name,                    // Overwrite with the new values from the form
+                path,
+                apiPort,
+                apiPass,
+                args,
+                logPath,
+                workingDir,
+                mcRam,
+                seInstance
             };
-            window.logToSystem(`Saving server ${name} with the following settings`);
-            window.logToSystem(`Name: ${name}, Type: ${type} Path: ${path}, LogPath: ${logPath}, Working Directory: ${workingDir}, Args: ${args}`);
+            if (DebugActive) {
+                window.logToSystem(`---Saving server ${name} with the following settings---`);
+                window.logToSystem(`Name: ${name}\nType: ${type}\nPath: ${path}\nPort: ${apiPort}\nAPI Pass: ${apiPass}\nLogPath: ${logPath}\nWorking Directory: ${workingDir}\nArgs: ${args}`);
+            }
         }
     } else {
         servers.push({
             id: Date.now().toString(),
+            type,
             name,
             path,
-            type,
+            apiPort,
+            apiPass,
             mcRam,
             seInstance,
             args,
             logPath,
             workingDir,
-            priority,
+            //priority, // Removed until everything else works
             status: 'Offline',
             logs: '',
             pid: null
@@ -904,7 +943,7 @@ window.saveNewServer = () => {
 
     // 7. Full Cleanup
     // Clear every possible field so the next 'Add Server' starts fresh
-    const fieldsToClear = ['newName', 'exePath', 'workingDir', 'customArgs', 'logPath', 'mcRam', 'seInstance'];
+    const fieldsToClear = ['newName', 'exePath', 'portId', 'portPass', 'workingDir', 'customArgs', 'logPath', 'mcRam', 'seInstance'];
     fieldsToClear.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = "";

@@ -195,6 +195,7 @@ ipcMain.on('start-server', (event, srv) => {
     const workingDir = srv.workingDir || path.dirname(srv.path);
     const exeName = path.basename(srv.path);
 
+
     const escapedPath = `\"${srv.path}\"`; // This is for logging/debugging purposes. The actual command uses single quotes to avoid Windows escaping issues.
     const escapedWorkingDir = `\"${workingDir}\"`; // Same here for logging.
 
@@ -324,15 +325,21 @@ ipcMain.on('start-server', (event, srv) => {
         // --- Path B: Space Engineers (Remote API Fallback) ---
         else if (srv.path.toLowerCase().includes('spaceengineers')) {
             const port = srv.apiPort || 8080;
-            const password = srv.apiPassword || "";
+            const password = srv.apiPass || "";
+            const url = `http://localhost:${port}/vrageremote/v1/session`;
 
             try {
-                const axios = require('axios'); // Ensure axios is installed: npm install axios
-                await axios.post(`http://localhost:${port}/v1/session/game`,
-                    { Command: command },
-                    { headers: { 'Remote-Control-Http-Password': password } }
+                const axios = require('axios');
+                await axios.post(url,
+                    { "Command": `/${command.replace(/^\//, '')}` },
+                    {
+                        headers: {
+                            'Remote-Control-Http-Password': password,
+                            'Content-Type': 'application/json'
+                        }
+                    }
                 );
-                event.reply('console-out', { id: srvId, msg: `[RSM-API] Sent: ${command}\n` });
+                event.reply('console-out', { id: srvId, msg: `[RSM-API] Sent to port ${port}: ${command}\n` });
             } catch (err) {
                 event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] SE API Call Failed: ${err.message}\n` });
             }

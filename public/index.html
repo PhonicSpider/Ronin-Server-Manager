@@ -313,12 +313,14 @@
                     <h3 id="wizard-title" style="margin: 0;">Configure Server</h3>
                 </div>
 
-                <div class="input-block"> <!--DISPLAY NAME-->
+                <div class="input-block">
+                    <!--DISPLAY NAME-->
                     <label class="tiny-label">DISPLAY NAME</label>
                     <input type="text" id="newName">
                 </div>
 
-                <div id="path-block" class="input-block platform-specific"> <!--EXEC PATH / JAVA PATH-->
+                <div id="path-block" class="input-block platform-specific">
+                    <!--EXEC PATH / JAVA PATH-->
                     <label class="tiny-label" id="path-label">EXECUTABLE PATH</label>
                     <div class="path-group">
                         <input type="text" id="exePath" readonly>
@@ -326,7 +328,8 @@
                     </div>
                 </div>
 
-                <div id="working-dir-block" class="input-block platform-specific"> <!--WORKING DIR / INSTANCE LOCATION-->
+                <div id="working-dir-block" class="input-block platform-specific">
+                    <!--WORKING DIR / INSTANCE LOCATION-->
                     <label class="tiny-label">WORKING DIRECTORY (GAME FOLDER)</label>
                     <div class="path-group">
                         <input type="text" id="workingDir" readonly>
@@ -334,7 +337,8 @@
                     </div>
                 </div>
 
-                <div id="log-block" class="input-block platform-specific"> <!-- LOG PATH FOR GUI SERVERS -->
+                <div id="log-block" class="input-block platform-specific">
+                    <!-- LOG PATH FOR GUI SERVERS -->
                     <label class="tiny-label">LOG FILE / FOLDER PATH</label>
                     <div class="path-group">
                         <input type="text" id="logPath" readonly placeholder="Select log location...">
@@ -343,7 +347,24 @@
                     <p style="font-size: 11px; color: var(--dim); margin-top: 4px;">Point this to your SpaceEngineersDedicated.log file.</p>
                 </div>
 
-                <div id="args-block" class="input-block platform-specific"> <!--ARGS BLOCK-->
+                <div id="port-block" class="input-block platform-specific">
+                    <!-- SERVER PORT -->
+                    <label class="tiny-label">Server Port</label>
+                    <div class="path-group">
+                        <input type="text" id="portId" value="8080" />
+                    </div>
+                </div>
+
+                <div id="portpass-block" class="input-block platform-specific">
+                    <!-- SERVER API PASSWORD-->
+                    <label class="tiny-label">Server API Password</label>
+                    <div class="path-group">
+                        <input type="text" id="portPass" placeholder="Server Remote API Password"/>
+                    </div>
+                </div>
+
+                <div id="args-block" class="input-block platform-specific">
+                    <!--ARGS BLOCK-->
                     <label class="tiny-label">LAUNCH ARGUMENTS</label>
                     <textarea id="customArgs"></textarea>
                 </div>

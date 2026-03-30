@@ -54,6 +54,7 @@ plugins:
       separator: '[\s\-\.]+'
       suggestions: true
       indexing: 'full'
+  - glightbox
 
 repo_url: https://github.com/PhonicSpider/Ronin-Server-Manager
 edit_uri: edit/main/docs/

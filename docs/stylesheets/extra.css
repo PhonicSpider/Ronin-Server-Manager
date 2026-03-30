@@ -51,6 +51,15 @@ body {
     filter: drop-shadow(0 0 5px #ff4500);
 }
 
+/* Image Glow */
+img[alt*="glow"], .rsm-glow {
+    filter: drop-shadow(0 0 12px rgba(255, 69, 0, 0.4));
+    border-radius: 8px;
+    border: 1px solid rgba(255, 69, 0, 0.2);
+    margin: 10px 0;
+    display: block;
+}
+
 /*
                     ______               __    
                    ╱ ____╱___ __________╱ ╱____
@@ -94,6 +103,33 @@ box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
     font-size: 1.15em;
     display: inline-block;
     margin-bottom: 8px;
+}
+
+/* Centering Headers for Sections */
+.rsm-header {
+    text-align: center;
+    text-shadow: 0 0 15px rgba(255, 69, 0, 0.5);
+    font-weight: bold;
+}
+
+/* Glowing Image Wrapper */
+.rsm-screenshot {
+    text-align: center;
+    margin: 20px 0;
+    filter: drop-shadow(0 0 12px rgba(255, 69, 0, 0.4)); /* The orange glow */
+}
+
+.rsm-screenshot img {
+    border-radius: 8px;
+    border: 1px solid rgba(255, 69, 0, 0.2);
+    max-width: 90%;
+}
+
+.rsm-screenshot i {
+    display: block;
+    margin-top: 10px;
+    font-size: 0.9em;
+    opacity: 0.8;
 }
 
 /*
