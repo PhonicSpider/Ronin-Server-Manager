@@ -17,6 +17,8 @@ Before adding the server to RSM, you must perform a "Clean Boot" to stage the en
     1. __Server EXE:__ Usually located at `C:\SteamLibrary\steamapps\common\SpaceEngineersDedicatedServer\DedicatedServer64\SpaceEngineersDedicated.exe`
     2. __Instance Folder:__ Usually located at `C:\ProgramData\SpaceEngineersDedicated\InstanceFolder`
     3. __Log Folder:__ Same as instance usually, but can be different so we grab it anyway `C:\ProgramData\SpaceEngineersDedicated\InstanceFolder`
+    4. __Server IP Port__ This is the port you will end up using for the server. Default is 8080
+    5. __Server API Password__ This is the password to access the API, You will need this to type console commands.  
 
 ---
 
@@ -53,6 +55,20 @@ Before adding the server to RSM, you must perform a "Clean Boot" to stage the en
     **Required.** SE must bind to network ports. Ensure the RSM "Admin Badge" is green before starting.
 
     ![Adding Log Folder - glow](../assets/images/se-steps/se-files-needed-admin.png)
+
+-   :material-import: __Server Port__
+
+    ___
+    **Required For Console Commands** SE uses the axius API to send commands to the server. We will need the port to send commands to the correct server.
+
+    ![Adding Server Port - glow](../assets/images/se-steps/se-files-needed-port.png)
+
+-   :material-export: __Server API Password__
+
+    ___
+    **Required For Console Commands** Since we want to send commands as *Admin*, We need the "*API Security Key*" to send the commands
+
+    ![Adding Server Port - glow](../assets/images/se-steps/se-files-needed-portpass.png)
 </div>
 
 ---
