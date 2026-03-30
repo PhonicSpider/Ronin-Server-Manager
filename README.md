@@ -1,7 +1,7 @@
 # 🏯 Ronin Server Manager (RSM)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/PhonicSpider/Ronin-Server-Manager/icon.png" alt="RSM Logo" width="180">
+  <img src="https://raw.githubusercontent.com/PhonicSpider/Ronin-Server-Manager/master/icon.png" alt="RSM Logo" width="180">
   <br>
   <b>The definitive local desktop orchestrator for dedicated game servers.</b>
   <br><br>
