@@ -64,7 +64,8 @@ git clone [https://github.com/PhonicSpider/Ronin-Server-Manager.git](https://git
 npm install
 
 # Run in development mode
-npm start```
+npm start
+```
 
 ---
 
@@ -82,7 +83,7 @@ Before you start coding, ensure you have the following installed:
 * **Fork** the repository to your own GitHub account.
 * Create a feature branch from `main`: 
   ```bash
-  git checkout -b feature/your-feature-name
+  git checkout -b feature/your-feature-name```
 
 * ​Keep your commits concise and descriptive.
 
