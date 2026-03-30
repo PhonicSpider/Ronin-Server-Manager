@@ -1,7 +1,7 @@
 # 🏯 Ronin Server Manager (RSM)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/PhonicSpider/Ronin-Server-Manager/main/icon.png" alt="RSM Logo" width="180">
+  <img src="https://raw.githubusercontent.com/PhonicSpider/Ronin-Server-Manager/icon.png" alt="RSM Logo" width="180">
   <br>
   <b>The definitive local desktop orchestrator for dedicated game servers.</b>
   <br><br>
@@ -29,9 +29,12 @@
 ### 🌟 Key Features
 
 * **📦 One-Click Management:** Start, stop, and restart server instances from a unified dashboard.
+* **Centralized Server List:** See the status of every server right in the manager, along with their own pages to. checkout their consoles, and resource usage.
+* **🔎 Active Resource Monitoring:** Monitor the CPU and RAM usage of your servers individually and overall right in the GUI.
 * **🏠 Local-First:** High-speed performance with direct filesystem access via Node.js.
-* **🛠️ Automated Configs:** No more digging through `.ini` or `.json` files; edit settings directly in the GUI.
+* **🛠️ Automated Configs (WIP):** No more digging through `.ini` or `.json` files; edit settings directly in the GUI.
 * **📝 Live Logs:** Integrated console output to monitor your server's health and player activity.
+* **🔡 Centralized Command Center(WIP):** Send command to Each server right in their own consoles.
 * **📖 Built-in Wiki:** Comprehensive guides powered by MkDocs and Markdown.
 
 ---
