@@ -1,4 +1,4 @@
-# 🏯 Ronin Server Manager (RSM)
+<p align="center" font-size=14>Ronin Server Manager (RSM)</p>
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/PhonicSpider/Ronin-Server-Manager/master/icon.png" alt="RSM Logo" width="180">
