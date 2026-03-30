@@ -64,7 +64,7 @@ git clone [https://github.com/PhonicSpider/Ronin-Server-Manager.git](https://git
 npm install
 
 # Run in development mode
-npm start
+npm start```
 
 ---
 
