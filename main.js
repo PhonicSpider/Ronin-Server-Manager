@@ -195,10 +195,6 @@ ipcMain.on('start-server', (event, srv) => {
     const workingDir = srv.workingDir || path.dirname(srv.path);
     const exeName = path.basename(srv.path);
 
-
-    const escapedPath = `\"${srv.path}\"`; // This is for logging/debugging purposes. The actual command uses single quotes to avoid Windows escaping issues.
-    const escapedWorkingDir = `\"${workingDir}\"`; // Same here for logging.
-
     const argArray = srv.args ? srv.args.split(' ').filter(a => a.trim() !== "") : []; // Split the arguments into an array, filtering out any empty strings
     const argString = argArray.join(' '); // Join the arguments back into a single string for PowerShell, ensuring we handle any extra spaces correctly
     const psArgs = argString.replace(/'/g, "''"); // Escape single quotes for PowerShell by doubling them

@@ -825,7 +825,6 @@ window.selectServerType = (type) => {
             document.getElementById('working-dir-block').style.display = 'block';
             document.getElementById('args-block').style.display = 'block';
             document.getElementById('log-block').style.display = 'block';
-            // SE might not need working dir override usually, so we keep it hidden
 
             // Examples (Placeholders)
             document.getElementById('newName').placeholder = "e.g. SE - Orion Sector";
