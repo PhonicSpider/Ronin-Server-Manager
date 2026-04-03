@@ -7,6 +7,7 @@ let mainWindow;
 let tray = null;
 const activeProcesses = {};
 const DATA_FILE = path.join(app.getPath('userData'), 'servers.json');
+const DebugActive = true; // Set to false to disable debug logs in the console
 
 // --- 1. Data Persistence ---
 function loadServers() {
@@ -199,7 +200,11 @@ ipcMain.on('start-server', (event, srv) => {
     const argString = argArray.join(' '); // Join the arguments back into a single string for PowerShell, ensuring we handle any extra spaces correctly
     const psArgs = argString.replace(/'/g, "''"); // Escape single quotes for PowerShell by doubling them
 
-    console.log(`DEBUG: Executing Command -> Start-Process -FilePath \"${srv.path}\"`);
+    if (DebugActive) {
+        event.reply('system-info', `[RSM-DEBUG] Path: ${srv.path}`);
+        event.reply('system-info', `[RSM-DEBUG] Args: ${psArgs}`);
+        event.reply('system-info', `[RSM-DEBUG] CWD: ${workingDir}`);
+    }
 
     const child = spawn('powershell.exe', [ // We use -NoProfile and -ExecutionPolicy Bypass to ensure the script runs without interference from user settings or policies.
         '-NoProfile',
@@ -207,7 +212,7 @@ ipcMain.on('start-server', (event, srv) => {
         '-Command',
         // We use -FilePath and -WorkingDirectory with single quotes
         // We use -ArgumentList with a literal single-quoted string
-        `$p = Start-Process -FilePath '${srv.path}' -ArgumentList '${psArgs}' -WorkingDirectory '${workingDir}' -WindowStyle Minimized -PassThru; 
+        `$p = Start-Process -FilePath '${srv.path}' -ArgumentList '${psArgs}' -WorkingDirectory '${workingDir}' -WindowStyle normal -PassThru; 
         Write-Output "PID_MARKER:$($p.Id)"; 
         $p.WaitForExit();`
     ], {
@@ -220,13 +225,14 @@ ipcMain.on('start-server', (event, srv) => {
     let logWatcher = null;
     let monitorInterval = null;
     let isHandingOff = true;
+    let searchRetry = null; // We define this here so we can clear it later if needed.
 
     // This is called only after we have the real PID
     const startLogging = (logFolderPath) => {
-        if (logWatcher) clearInterval(logWatcher); // Ensure no duplicate intervals
+        if (logWatcher) clearInterval(logWatcher);
 
         try {
-            const getNewestLog = () => { // This function finds the newest .log file in the specified folder
+            const getNewestLog = () => {
                 const files = fs.readdirSync(logFolderPath)
                     .filter(f => f.endsWith('.log'))
                     .map(f => ({
@@ -237,19 +243,16 @@ ipcMain.on('start-server', (event, srv) => {
                 return files.length > 0 ? path.join(logFolderPath, files[0].name) : null;
             };
 
-            const newestLog = getNewestLog(); // We find the newest log file at the moment of server start. This is our "tailing target" for the session.
+            const newestLog = getNewestLog();
             if (newestLog) {
                 event.reply('system-info', `[RSM] Tailing: ${path.basename(newestLog)}`);
 
                 let lastSize = fs.statSync(newestLog).size;
 
-                // Using setInterval instead of fs.watch. 
-                // This bypasses many Windows "File in Use" and "Lock" issues.
-                logWatcher = setInterval(() => { // Every second, we check if the file size has increased. If it has, we read only the new content and send it to the UI.
+                logWatcher = setInterval(() => {
                     try {
                         const stats = fs.statSync(newestLog);
                         if (stats.size > lastSize) {
-                            // Open file with 'r' (read) and 'msg' (non-blocking) flags
                             const fd = fs.openSync(newestLog, 'r');
                             const bufferSize = stats.size - lastSize;
                             const buffer = Buffer.alloc(bufferSize);
@@ -257,12 +260,28 @@ ipcMain.on('start-server', (event, srv) => {
                             fs.readSync(fd, buffer, 0, bufferSize, lastSize);
                             fs.closeSync(fd);
 
-                            const newText = buffer.toString();
-                            event.reply('console-out', { id: srv.id, msg: newText });
+                            const incomingText = buffer.toString();
+
+                            // 1. Split into lines and filter out SE telemetry noise
+                            const cleanLines = incomingText.split(/\r?\n/).filter(line => {
+                                const lower = line.toLowerCase();
+                                return !lower.includes('->  statistics') &&
+                                    !lower.includes('->  memory legend') &&
+                                    !lower.includes('->  memory values') &&
+                                    !lower.includes('->  Thread:');
+                            });
+
+                            const cleanOutput = cleanLines.join('\n');
+
+                            // 2. Only send to UI if there is meaningful content left
+                            if (cleanOutput.trim().length > 0) {
+                                event.reply('console-out', { id: srv.id, msg: cleanOutput + '\n' });
+                            }
+
                             lastSize = stats.size;
                         }
                     } catch (e) {
-                        // If file is temporarily locked, we just try again in 1 second
+                        // Log might be locked, skip and try next interval
                     }
                 }, 1000);
             }
@@ -418,15 +437,18 @@ ipcMain.on('start-server', (event, srv) => {
                         event.reply('status-change', { id: srv.id, status: 'Online' });
                     }
                 });
-            }, 30000); // Check every 30 seconds. (1000ms = 1s, so 30000ms = 30 seconds))
+            }, 120000); // Check every 120 seconds. (1000ms = 1s, so 30000ms = 30 seconds))
                         // This is a "heartbeat" to ensure we catch unexpected closures even if the launcher shell is still open.
         // Adjust as needed. Can go higher for loonger times between checks, but 30s is a good balance for responsiveness without being too aggressive.
         };
 
         const finalizeProcess = (pid) => {
-            actualGamePid = pid;
+            if (searchRetry) {
+                clearInterval(searchRetry); // Stop the search loop immediately)
+                searchRetry = null;
+            }
 
-            // SAVE HERE: Storing the shell and the pid so the stop command can use them
+            actualGamePid = pid; // This is the PID we will monitor for the lifecycle of this server session.
             activeProcesses[srv.id] = {
                 pid: pid,
                 shell: child, // This allows stdin.write() to work later
@@ -442,7 +464,7 @@ ipcMain.on('start-server', (event, srv) => {
         };
 
         // Run the search every 3 seconds during the boot window
-        const searchRetry = setInterval(() => {
+        searchRetry = setInterval(() => {
             if (actualGamePid === 0) performSearch();
             else clearInterval(searchRetry);
         }, 3000);
