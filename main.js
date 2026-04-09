@@ -206,37 +206,20 @@ ipcMain.on('start-server', (event, srv) => {
         event.reply('system-info', `[RSM-DEBUG] CWD: ${workingDir}`);
     }
 
-    // --- Replace your current 'const child = spawn(...)' with this ---
-    const isMinecraft = srv.type && srv.type.toLowerCase() === 'minecraft';
-    const isSpaceEngineers = srv.type && srv.type.toLowerCase() === 'spaceengineers';
-    let child;
-
-    if (isMinecraft) {
-        // Start Minecraft directly so Electron can "see" the text stream
-        // Note: ensure srv.path is the actual path to the server .jar
-        child = spawn('java', ['-jar', srv.path, ...argArray], {
-            cwd: workingDir,
-            shell: true,
-            stdio: ['pipe', 'pipe', 'pipe']
-        });
-    } else if (isSpaceEngineers) {
-        // Space Engineers needs the PowerShell bridge to return a PID
-        child = spawn('powershell.exe', [
-            '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
-            `$p = Start-Process -FilePath '${srv.path}' -ArgumentList '${psArgs}' -WorkingDirectory '${workingDir}' -WindowStyle normal -PassThru; 
+    const child = spawn('powershell.exe', [ // We use -NoProfile and -ExecutionPolicy Bypass to ensure the script runs without interference from user settings or policies.
+        '-NoProfile',
+        '-ExecutionPolicy', 'Bypass',
+        '-Command',
+        // We use -FilePath and -WorkingDirectory with single quotes
+        // We use -ArgumentList with a literal single-quoted string
+        `$p = Start-Process -FilePath '${srv.path}' -ArgumentList '${psArgs}' -WorkingDirectory '${workingDir}' -WindowStyle normal -PassThru; 
         Write-Output "PID_MARKER:$($p.Id)"; 
         $p.WaitForExit();`
-        ], {
-            cwd: workingDir, shell: true, stdio: ['pipe', 'pipe', 'pipe']
-        });
-    } else {
-        // Generic Fallback: Useful for simple .exe servers (like Valheim or Terraria)
-        child = spawn(`"${srv.path}"`, argArray, {
-            cwd: workingDir,
-            shell: true,
-            stdio: ['pipe', 'pipe', 'pipe']
-        });
-    }
+    ], {
+        cwd: workingDir,
+        shell: true,
+        stdio: ['pipe', 'pipe', 'pipe']
+    });
 
     let actualGamePid = 0;
     let logWatcher = null;
@@ -385,6 +368,58 @@ ipcMain.on('start-server', (event, srv) => {
     setTimeout(() => {
         if (!child.pid) return;
 
+        const performSearch = () => {
+            // STEP 1: Try the direct approach (Search by Parent ID)
+            exec(`wmic process where ParentProcessId=${child.pid} get ProcessId,CommandLine`, (err, stdout) => {
+                if (!err && stdout && stdout.trim().split('\n').length > 1) {
+                    const lines = stdout.trim().split('\n').slice(1);
+                    const parts = lines[0].trim().split(/\s+/);
+                    const foundPid = parseInt(parts[parts.length - 1]);
+
+                    if (!isNaN(foundPid)) {
+                        event.reply('system-info', `[RSM] Found via Parent-Child link: ${foundPid}`);
+                        finalizeProcess(foundPid);
+                        return;
+                    }
+                }
+
+                // STEP 2: Fallback to Tasklist CSV (Universal Path & Argument Matching)
+                exec(`tasklist /V /FO CSV`, (err, stdout) => {
+                    if (err || !stdout) return;
+
+                    const lines = stdout.trim().split('\n');
+
+                    // Normalize our specific server info for comparison
+                    const searchExe = exeName.toLowerCase().replace(".exe", "");
+                    const searchPath = srv.path.toLowerCase().replace(/\\/g, '/');
+                    const searchDir = workingDir.toLowerCase().replace(/\\/g, '/');
+
+                    for (let i = 1; i < lines.length; i++) { // Skip CSV header
+                        const line = lines[i].toLowerCase().replace(/\\/g, '/');
+
+                        // UNIVERSAL MATCH: 
+                        // We look for the EXE name OR the folder path inside the task info
+                        if (line.includes(searchExe) || line.includes(searchDir)) {
+                            // CSV format: "Image Name","PID","Session Name","Session#","Mem Usage","Status","User Name","CPU Time","Window Title"
+                            const columns = lines[i].split('","').map(c => c.replace(/"/g, ''));
+                            const foundPid = parseInt(columns[1]);
+
+                            if (!isNaN(foundPid) && foundPid !== 0) {
+                                // Double check: Don't accidentally "find" our own launcher shell
+                                if (foundPid !== child.pid) {
+                                    event.reply('system-info', `[RSM] Universal Handover Successful! PID: ${foundPid}`);
+                                    finalizeProcess(foundPid);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+
+                    event.reply('system-info', `[RSM-DEBUG] Deep Scan still searching for ${searchExe}...`);
+                });
+            });
+        };
+
         // Define the heartbeat so it knows which server to monitor
         const startHeartbeat = (pid) => {
             if (monitorInterval) clearInterval(monitorInterval);
@@ -403,8 +438,8 @@ ipcMain.on('start-server', (event, srv) => {
                     }
                 });
             }, 120000); // Check every 120 seconds. (1000ms = 1s, so 30000ms = 30 seconds))
-            // This is a "heartbeat" to ensure we catch unexpected closures even if the launcher shell is still open.
-            // Adjust as needed. Can go higher for loonger times between checks, but 30s is a good balance for responsiveness without being too aggressive.
+                        // This is a "heartbeat" to ensure we catch unexpected closures even if the launcher shell is still open.
+        // Adjust as needed. Can go higher for loonger times between checks, but 30s is a good balance for responsiveness without being too aggressive.
         };
 
         const finalizeProcess = (pid) => {
@@ -428,71 +463,11 @@ ipcMain.on('start-server', (event, srv) => {
             }
         };
 
-        if (isMinecraft || (!isMinecraft && !isSpaceEngineers)) {
-            // If it's Minecraft or Generic, don't search. Just use the PID we already have.
-            event.reply('system-info', `[RSM] Direct process detected. Finalizing PID: ${child.pid}`);
-            finalizeProcess(child.pid);
-            return; // This "return" is important; it skips the SE search logic below.
-        }
-        else {
-            const performSearch = () => {
-                // STEP 1: Try the direct approach (Search by Parent ID)
-                exec(`wmic process where ParentProcessId=${child.pid} get ProcessId,CommandLine`, (err, stdout) => {
-                    if (!err && stdout && stdout.trim().split('\n').length > 1) {
-                        const lines = stdout.trim().split('\n').slice(1);
-                        const parts = lines[0].trim().split(/\s+/);
-                        const foundPid = parseInt(parts[parts.length - 1]);
-
-                        if (!isNaN(foundPid)) {
-                            event.reply('system-info', `[RSM] Found via Parent-Child link: ${foundPid}`);
-                            finalizeProcess(foundPid);
-                            return;
-                        }
-                    }
-
-                    // STEP 2: Fallback to Tasklist CSV (Universal Path & Argument Matching)
-                    exec(`tasklist /V /FO CSV`, (err, stdout) => {
-                        if (err || !stdout) return;
-
-                        const lines = stdout.trim().split('\n');
-
-                        // Normalize our specific server info for comparison
-                        const searchExe = exeName.toLowerCase().replace(".exe", "");
-                        const searchPath = srv.path.toLowerCase().replace(/\\/g, '/');
-                        const searchDir = workingDir.toLowerCase().replace(/\\/g, '/');
-
-                        for (let i = 1; i < lines.length; i++) { // Skip CSV header
-                            const line = lines[i].toLowerCase().replace(/\\/g, '/');
-
-                            // UNIVERSAL MATCH: 
-                            // We look for the EXE name OR the folder path inside the task info
-                            if (line.includes(searchExe) || line.includes(searchDir)) {
-                                // CSV format: "Image Name","PID","Session Name","Session#","Mem Usage","Status","User Name","CPU Time","Window Title"
-                                const columns = lines[i].split('","').map(c => c.replace(/"/g, ''));
-                                const foundPid = parseInt(columns[1]);
-
-                                if (!isNaN(foundPid) && foundPid !== 0) {
-                                    // Double check: Don't accidentally "find" our own launcher shell
-                                    if (foundPid !== child.pid) {
-                                        event.reply('system-info', `[RSM] Universal Handover Successful! PID: ${foundPid}`);
-                                        finalizeProcess(foundPid);
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-
-                        event.reply('system-info', `[RSM-DEBUG] Deep Scan still searching for ${searchExe}...`);
-                    });
-                });
-            };
-
-            // Run the search every 3 seconds during the boot window
-            searchRetry = setInterval(() => {
-                if (actualGamePid === 0) performSearch();
-                else clearInterval(searchRetry);
-            }, 3000);
-        }
+        // Run the search every 3 seconds during the boot window
+        searchRetry = setInterval(() => {
+            if (actualGamePid === 0) performSearch();
+            else clearInterval(searchRetry);
+        }, 3000);
 
         setTimeout(() => clearInterval(searchRetry), 30000);
     }, 2000);
