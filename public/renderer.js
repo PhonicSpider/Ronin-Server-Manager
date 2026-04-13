@@ -693,47 +693,34 @@ ipcRenderer.on('status-change', (event, data) => {
 });
 
 // Receives CPU/RAM data every 2 seconds and updates the circular gauges
-ipcRenderer.on('global-stats', (event, procList) => {
-    let totalCPU = 0;
-    let totalRAM = 0;
-    const summaryList = document.getElementById('status-summary-list');
-    const isHome = document.getElementById('no-selection').style.display === 'flex';
+// 1. Listen for the specific server heartbeat/perf update
+ipcRenderer.on('server-perf-update', (event, data) => {
+    console.log(`Update received for ${data.id}. Current view is ${activeId}`);
+    const srv = servers.find(s => s.id === data.id);
+    if (!srv) return;
 
-    if (isHome && summaryList) summaryList.innerHTML = "";
+    // Update the local object state
+    srv.ramMB = data.ramRaw;
 
-    servers.forEach(srv => {
-        const proc = procList.find(p => p.pid === srv.pid);
-        if (proc) {
-            totalCPU += proc.cpu;
-            totalRAM += (proc.memRss / 1024); // Convert KB to MB
-        }
-
-        // If on home screen, rebuild the quick-status list
-        if (isHome && summaryList) {
-            const row = document.createElement('div');
-            row.className = 'status-summary-row';
-            const statusClass = srv.status === 'Online' ? 'pill-online' : 'pill-offline';
-            row.innerHTML = `<span>${srv.name}</span><span class="pill ${statusClass}">${srv.status}</span>`;
-            summaryList.appendChild(row);
-        }
-    });
-
-    if (isHome) {
-        // Update home screen total gauges
-        updateGauge('total-cpu', totalCPU);
-        updateGauge('total-ram', (totalRAM / 16384) * 100, totalRAM.toFixed(0) + " MB"); // Assuming 16GB max for gauge scale
-    } else {
-        // Update individual server gauges
-        const srv = servers.find(s => s.id === activeId);
-        const proc = (srv && srv.pid) ? procList.find(p => p.pid === srv.pid) : null;
-        if (proc) {
-            updateGauge('cpu', proc.cpu);
-            updateGauge('ram', (proc.memRss / 1024 / 8192) * 100, (proc.memRss / 1024).toFixed(0) + " MB");
-        } else {
-            updateGauge('cpu', 0, "0.0%");
-            updateGauge('ram', 0, "0 MB");
-        }
+    // Only update the gauge if we are actually looking at this server
+    if (activeId === data.id) {
+        // 'cpu' and 'ram' match the IDs in your updateGauge function
+        console.log(`[RSM-DEBUG] Updating gauges for server "${srv.name}": CPU ${data.cpu}% | RAM ${data.ramPercent}% (${data.ramDisplay})`);
+        updateGauge('cpu', data.cpu || 0);
+        updateGauge('ram', data.ramPercent, data.ramDisplay);
     }
+});
+
+// 2. Listen for the Total machine usage (Home Screen)
+ipcRenderer.on('total-performance-update', (event, data) => {
+    // Check if the element is actually visible to the user
+    const homeView = document.getElementById('no-selection');
+    const isVisible = homeView && window.getComputedStyle(homeView).display !== 'none';
+
+    //if (isVisible) {
+        updateGauge('total-cpu', data.cpu);
+        updateGauge('total-ram', data.ram);
+    //}
 });
 
 /**
@@ -742,15 +729,29 @@ ipcRenderer.on('global-stats', (event, procList) => {
  */
 function updateGauge(type, percent, label) {
     const el = document.getElementById(`${type}-gauge`);
-    const valEl = document.getElementById(`${type}-val`) || document.getElementById(type);
+    const valEl = document.getElementById(`${type}-val`);
 
     if (!el) return;
 
-    const val = Math.min(Math.max(percent, 0), 100);
-    const offset = GAUGE_MAX - (val / 100 * GAUGE_MAX); // Calculate stroke-dashoffset
+    // --- SANITIZATION ---
+    // 1. If it's a string like "28%", strip the % and convert to number
+    let cleanPercent = typeof percent === 'string' ? parseFloat(percent.replace('%', '')) : percent;
+
+    // 2. BLOCK BAD DATA: If it's not a number, or if it's exactly 0 
+    // (Total CPU usually shouldn't be exactly 0 unless the PC is off)
+    if (isNaN(cleanPercent) || (type.includes('total') && cleanPercent === 0)) {
+        return; // Just exit. Don't move the gauge at all.
+    }
+
+    const val = Math.min(Math.max(cleanPercent, 0), 100);
+    const GAUGE_LENGTH = 157;
+    const offset = GAUGE_LENGTH - (val / 100 * GAUGE_LENGTH);
 
     el.style.strokeDashoffset = offset;
-    if (valEl) valEl.innerText = label || val.toFixed(1) + "%";
+
+    if (valEl) {
+        valEl.innerText = label ? label : Math.round(val) + "%";
+    }
 }
 
 // Modal Toggle

@@ -473,6 +473,7 @@ input[type="checkbox"] {
 
 .gauge-svg {
     width: 150px;
+    height: auto;
 }
 
 .gauge-bg {
@@ -489,11 +490,17 @@ input[type="checkbox"] {
     stroke-linecap: round;
     stroke-dasharray: 157;
     stroke-dashoffset: 157;
-    transition: 0.8s;
+    transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .ram-color {
-    stroke: var(--success);
+    stroke: var(--success) !important;
+}
+
+.gauge-val {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-top: -10px; /* Pulls the number up into the arc slightly */
 }
 
 /* --- TERMINAL --- */
