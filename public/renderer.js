@@ -215,23 +215,41 @@ function selectServer(id) {
     const srv = servers.find(s => s.id === id);
     if (!srv) return;
 
+    // --- FIX GAUGE BLEEDING ---
+    // Immediately reset the gauges to 0 (or a "loading" state)
+    // This wipes the previous server's data from the screen.
+    updateGauge('cpu', 0, '...');
+    updateGauge('ram', 0, '...');
+
     showView('manager');
     const typeLabel = srv.type ? ` [${srv.type}]` : "";
     document.getElementById('active-name').innerText = srv.name + typeLabel;
+
+    // --- CONSOLE RESET ---
     const consoleEl = document.getElementById('console');
-    consoleEl.innerHTML = `<div>${srv.logs || "Console ready..."}</div>`; // Load existing logs into the console
-    setTimeout(() => { // Delay to ensure logs are rendered before scrolling
+    // Clear and reload logs
+    consoleEl.innerHTML = "";
+    if (srv.logs) {
+        const history = document.createElement('div');
+        history.style.whiteSpace = 'pre-wrap';
+        history.textContent = srv.logs;
+        consoleEl.appendChild(history);
+    } else {
+        consoleEl.innerHTML = "<div>Console ready...</div>";
+    }
+
+    setTimeout(() => {
         consoleEl.scrollTop = consoleEl.scrollHeight;
-    }, 10);
-    consoleEl.scrollTop = consoleEl.scrollHeight; // Keep logs scrolled to bottom
+    }, 50); // Slight increase in delay for stability
 
     const statusEl = document.getElementById('active-status');
     statusEl.innerText = srv.status || 'Offline';
     statusEl.style.color = srv.status === 'Online' ? 'var(--success)' : 'var(--danger)';
+
     renderSidebar();
 
     const showGuiBtn = document.getElementById('show-gui-btn');
-    if (showGuiBtn) showGuiBtn.disabled = (srv.status === 'Online'); // Shows the GUI button only when the server is offline
+    if (showGuiBtn) showGuiBtn.disabled = (srv.status === 'Online');
 }
 
 /**
@@ -635,21 +653,33 @@ function applyPreset(theme, name) {
 // Appends new text from the server's console to the UI
 ipcRenderer.on('console-out', (event, data) => {
     const srv = servers.find(s => s.id === data.id);
-    if (srv) srv.logs += data.msg;
+
+    // 1. Maintain the history object
+    if (srv) {
+        srv.logs = (srv.logs || "") + data.msg;
+        // Keep memory usage low: only store last 50,000 characters in memory
+        if (srv.logs.length > 50000) {
+            srv.logs = srv.logs.substring(srv.logs.length - 50000);
+        }
+    }
+
+    // 2. Update UI only if this is the active server
     if (activeId === data.id) {
         const c = document.getElementById('console');
         if (c) {
-            // Using a div wrapper prevents the text from "stretching" the container
             const logLine = document.createElement('div');
+            // 'pre-wrap' is vital for preserving Minecraft's formatting/newlines
             logLine.style.whiteSpace = 'pre-wrap';
+            logLine.style.wordBreak = 'break-all'; // Prevents horizontal scroll on long strings
             logLine.textContent = data.msg;
+
             c.appendChild(logLine);
 
-            // AUTO-SCROLL FIX
+            // AUTO-SCROLL
             c.scrollTop = c.scrollHeight;
 
-            // PERFORMANCE FIX: Keep only last 1500 lines
-            if (c.childNodes.length > 1500) {
+            // PERFORMANCE: Keep the DOM light
+            if (c.childNodes.length > 500) { // 1500 is a bit high for Electron performance
                 c.removeChild(c.firstChild);
             }
         }
