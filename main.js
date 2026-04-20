@@ -3,12 +3,13 @@ const path = require('path');
 const fs = require('fs');
 const { spawn, exec, execSync } = require('child_process');
 const si = require('systeminformation');
+const os = require('os');
 let mainWindow;
 let tray = null;
 const activeProcesses = {};
 const DATA_FILE = path.join(app.getPath('userData'), 'servers.json');
-const DebugActive = true; // Set to true to enable verbose logging for debugging purposes
 const debugPrefix = "[RSM-DEBUG]";
+const DebugActive = true; // Set to true to enable verbose logging for debugging purposes
 const DebugLogging = false; // Set to true to enable debug logging for all operations (not just critical ones)
 const DebugCPURAM = false; // Set to true to enable detailed CPU/RAM logging in the performance update loop
 
@@ -299,6 +300,7 @@ ipcMain.on('start-server', (event, srv) => {
         if (monitorInterval) clearInterval(monitorInterval);
 
         // Lock these in now so they are never undefined later
+        const totalRamMB = Math.floor(os.totalmem() / 1024 / 1024);
         const srvId = serverObject.id;
         const srvName = serverObject.name;
 
@@ -327,7 +329,7 @@ ipcMain.on('start-server', (event, srv) => {
                     const memRaw = parts[4].replace(/[^\d]/g, '');
                     const memMB = Math.floor(parseInt(memRaw) / 1024);
                     const displayMem = memMB > 1024 ? (memMB / 1024).toFixed(2) + " GB" : memMB + " MB";
-                    const ramPercent = Math.min(Math.floor((memMB / 16384) * 100), 100);
+                    const ramPercent = Math.min(Math.floor((memMB / totalRamMB) * 100), 100);
 
                     // CPU Check
                     exec(`wmic process where processid=${pid} get PercentProcessorTime /value`, (cpuErr, cpuStdout) => {
@@ -353,7 +355,7 @@ ipcMain.on('start-server', (event, srv) => {
                                 ramDisplay: displayMem
                             });
 
-                            DebugCpuRam(`[RSM] Sent Update for ${srvName}: CPU ${finalCpu}%`);
+                            DebugCpuRam(`[RSM] Sent Update for ${srvName}: CPU ${finalCpu}% | RAM ${finalRam}%`);
                         }
                     });
                 }
@@ -910,10 +912,6 @@ function DebugConsoleLogs(message) {
 function DebugCpuRam(message) {
     if (DebugCPURAM) console.log(`${debugPrefix} ${message}`);
 }
-
-// --- GLOBAL STATS BROADCASTER (Sends CPU/RAM usage of active server processes to the UI every 2 seconds) ---
-// This is MUCH faster and uses the native OS module
-const os = require('os');
 
 setInterval(() => {
     DebugCpuRam(`Gathering total system performance data...`);
