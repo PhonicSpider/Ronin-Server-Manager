@@ -195,6 +195,7 @@ const getTypeIcon = (type) => {
     switch (type) {
         case 'minecraft': return '⛏️';
         case 'space-engineers': return '🚀';
+        case 'terraria': return '🌵';
         // Add new types here
         default: return '🖥️'; // Generic server icon
     }
@@ -480,25 +481,30 @@ window.killServer = () => {
  * Captures text from the input box and sends it to the active server.
  */
 window.sendConsoleCommand = (event) => {
-    // Only trigger if the user presses 'Enter'
     if (event.key === 'Enter') {
         const inputEl = document.getElementById('console-input');
         const command = inputEl.value.trim();
 
-        if (command && activeId) {
-            // Find the server object to log it locally first
+        if (command && activeId) { // Only send if there's a command and an active server
             const srv = servers.find(s => s.id === activeId);
+            const consoleEl = document.getElementById('console');
 
-            // Send the command to the Main process
-            ipcRenderer.send('send-command', {
+            if (consoleEl) { // Echo the command in the console with a different style to distinguish it from server output
+                const echoLine = document.createElement('div');
+                echoLine.style.color = '#888';
+                echoLine.style.whiteSpace = 'pre-wrap';
+                echoLine.textContent = `> ${command}`;
+                consoleEl.appendChild(echoLine);
+                consoleEl.scrollTop = consoleEl.scrollHeight;
+            }
+
+            ipcRenderer.send('send-command', { // We send the server ID and the command text to the backend
                 srvId: activeId,
                 command: command
             });
 
-            // Clear the input for the next command
             inputEl.value = '';
-
-            window.logToSystem(`Command sent to ${srv.name}: ${command}`);
+            window.logToSystem(`Command sent to ${srv ? srv.name : 'Unknown'}: ${command}`);
         }
     }
 };
@@ -821,6 +827,20 @@ window.showWizardStep = (step) => {
     }
 };
 
+// =================================================================================================\\
+//                 CONFIGURATION MODAL REFERENCE MAP   (ADD NEW SERVERS HERE)                       \\
+// =================================================================================================\\
+// CONTAINER ID         | DISPLAY OPTIONS  | PLACEHOLDER/VALUE ID | DESCRIPTION                     \\
+// ---------------------|------------------|----------------------|---------------------------------\\
+// (Always Visible)     | block (Static)   | newName              | The UI list display name        \\
+// path-block           | block / none     | exePath              | The main file/app to run        \\
+// working-dir-block    | block / none     | workingDir           | Folder context for the app      \\
+// log-block            | block / none     | logPath              | External file to read logs      \\
+// port-block           | block / none     | portId               | Network port for API/RCON       \\
+// portpass-block       | block / none     | portPass             | Password for API access         \\
+// args-block           | block / none     | customArgs           | Startup flags and switches      \\
+// =================================================================================================\\
+
 // Triggered when a user clicks a "Type Card" (Minecraft, Space Engineers, etc.)
 window.selectServerType = (type) => {
     window.selectedType = type;
@@ -833,48 +853,67 @@ window.selectServerType = (type) => {
     // 2. Use Switch to decide what to show
     switch (type) {
         case 'minecraft':
-            // Show only what Minecraft needs
-            document.getElementById('path-label').innerText = "JAVA EXECUTABLE (javaw.exe)"; // Path for server starting application (i.e. java or server launcher)
-            document.getElementById('path-block').style.display = 'block'; 
-            document.getElementById('working-dir-block').style.display = 'block'; // Workiing directory or server location
-            document.getElementById('args-block').style.display = 'block'; // custom args
-            document.getElementById('log-block').style.display = 'none'; // Location of log files (mainly for servers like Space Engineers that need to tail the log file)
-
-            // Examples (Placeholders)
-            document.getElementById('newName').placeholder = "e.g. Minecraft Survival Hub";
-            document.getElementById('exePath').placeholder = "C:\\Program Files\\Java\\...\\java.exe";
-            document.getElementById('workingDir').placeholder = "C:\\Servers\\Minecraft_1.20";
-            document.getElementById('customArgs').value = "-Xmx4G -Xms2G -jar server.jar nogui";
+            // --- UI Blocks (Containers) ---
+            document.getElementById('path-label').innerText = "JAVA EXECUTABLE (javaw.exe)";    // Minecraft servers run on Java, so we ask the user to point to their Java executable instead of the server .jar file for better compatibility with mods and plugins
+            document.getElementById('path-block').style.display = 'block';         // exePath
+            document.getElementById('working-dir-block').style.display = 'block';  // workingDir
+            document.getElementById('args-block').style.display = 'block';         // customArgs
+            document.getElementById('log-block').style.display = 'none';           // Minecraft uses Stdout
+            document.getElementById('port-block').style.display = 'none';          // Minecraft doesn't have a separate API port
+            document.getElementById('portpass-block').style.display = 'none';      // Same for API password
+            // --- Input Variables (Placeholders/Values) ---
+            document.getElementById('newName').placeholder = "e.g. Minecraft Survival Hub";             // Server Name
+            document.getElementById('exePath').placeholder = "C:\\Program Files\\Java\\...\\java.exe";  // Java Path
+            document.getElementById('workingDir').placeholder = "C:\\Servers\\Minecraft_Server";        // Working Directory
+            document.getElementById('customArgs').value = "-Xmx4G -Xms2G -jar server.jar nogui";        // Custom Arguments
             break;
 
         case 'space-engineers':
-            // Show only what SE needs
-            document.getElementById('path-label').innerText = "SERVER EXECUTABLE (.exe)";
-            document.getElementById('path-block').style.display = 'block';
-            document.getElementById('port-block').style.display = 'block';
-            document.getElementById('portpass-block').style.display = 'block';
-            document.getElementById('working-dir-block').style.display = 'block';
-            document.getElementById('args-block').style.display = 'block';
-            document.getElementById('log-block').style.display = 'block';
+            // --- UI Blocks (Containers) ---
+            document.getElementById('path-label').innerText = "SERVER EXECUTABLE (.exe)";   // Just a label change since the user needs to select the SpaceEngineersDedicated.exe file for it to work properly
+            document.getElementById('path-block').style.display = 'block';         // exePath
+            document.getElementById('working-dir-block').style.display = 'block';  // workingDir
+            document.getElementById('log-block').style.display = 'block';          // logPath
+            document.getElementById('port-block').style.display = 'block';         // portId
+            document.getElementById('portpass-block').style.display = 'block';     // portPass
+            document.getElementById('args-block').style.display = 'block';         // customArgs
 
-            // Examples (Placeholders)
-            document.getElementById('newName').placeholder = "e.g. SE - Orion Sector";
-            document.getElementById('exePath').placeholder = "...\\DedicatedServer64\\SpaceEngineersDedicated.exe";
-            document.getElementById('portId').value = "8080";
-            document.getElementById('portPass').placeholder = "Server Remote API Password";
-            document.getElementById('workingDir').placeholder = "C:\ProgramData\SpaceEngineersDedicated\InstanceFolder";
-            document.getElementById('logPath').placeholder = "same\as\instance\folder\normally";
-            document.getElementById('customArgs').value = "-console -ignorelastsession -path 'path\to\instance folder' (in double quotes)";
+            // --- Input Variables (Placeholders/Values) ---
+            document.getElementById('newName').placeholder = "e.g. SE - Orion Sector";                                  // Server Name
+            document.getElementById('exePath').placeholder = "...\\DedicatedServer64\\SpaceEngineersDedicated.exe";     // Executable Path
+            document.getElementById('workingDir').placeholder = "C:\\ProgramData\\SpaceEngineersDedicated\\Instance";   // Working Directory (Where the world saves and configs go)
+            document.getElementById('logPath').placeholder = "Select SpaceEngineersDedicated.log location...";          // Log Path (SE writes important info to a log file instead of stdout, so we ask the user to point to it)
+            document.getElementById('portId').value = "8080";                                                           // API Port (SE has a built-in API that listens on a port, so we show this by default with a common port filled in)
+            document.getElementById('portPass').placeholder = "API Password";                                           // API Password (SE's API can be password protected, so we show this field by default)
+            document.getElementById('customArgs').value = "-console -ignorelastsession";                                // Custom Arguments (A common set of args for SE servers, but the user can change them as needed)
             break;
 
-        ///// ADD FUTURE GAME OPTIONS HERE WITH VARIABLES \\\\\
+        case 'terraria':
+            // --- UI Blocks (Containers) ---
+            document.getElementById('path-label').innerText = "SERVER EXECUTABLE (TerrariaServer.exe)"; // Just a label change since the user needs to select the TerrariaServer.exe file for it to work properly
+            document.getElementById('path-block').style.display = 'block';         // exePath
+            document.getElementById('working-dir-block').style.display = 'block';  // workingDir
+            document.getElementById('args-block').style.display = 'block';         // customArgs
+            document.getElementById('log-block').style.display = 'none';           // Terraria uses Stdout
+            document.getElementById('port-block').style.display = 'none';          // Terraria doesn't have a separate API port like SE, so we hide it to avoid confusion
+            document.getElementById('portpass-block').style.display = 'none';      // Same for API password, since it's not a built-in feature of Terraria servers
+
+            // --- Input Variables (Placeholders/Values) ---
+            document.getElementById('newName').placeholder = "e.g. Terraria Expert World";                  // Server Name
+            document.getElementById('exePath').placeholder = "C:\\Servers\\Terraria\\TerrariaServer.exe";   // Executable Path
+            document.getElementById('workingDir').placeholder = "C:\\Servers\\Terraria";                    // Working Directory (Terraria saves worlds and configs in the same folder as the executable, so we just point to that folder)
+            document.getElementById('customArgs').value = "-config serverconfig.txt -port 7777 -players 8";                       // Custom Arguments (A common arg to tell the server to use a config file, but the user can change this as needed)
+            break;
 
         case 'other':
-            // Show everything for Generic
+            // Show everything to allow maximum customization for unknown server types
             document.querySelectorAll('.platform-specific').forEach(b => b.style.display = 'block');
             document.getElementById('path-label').innerText = "EXECUTABLE PATH";
 
-            document.getElementById('customArgs').placeholder = "-flag1 -flag2 -config 'path/to/file"
+            // Reset inputs to neutral defaults
+            document.getElementById('portId').value = "";
+            document.getElementById('customArgs').value = "";
+            document.getElementById('customArgs').placeholder = "-flag1 -flag2 -config 'path/to/file'";
             break;
     }
 

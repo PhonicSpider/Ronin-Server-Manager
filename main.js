@@ -757,75 +757,67 @@ const startLogging = (logFolderPath, event, srv) => {
 
 // --- COMMAND INJECTION LOGIC (For servers that support direct console input) ---
 ipcMain.on('send-command', async (event, { srvId, command }) => {
-    // 1. Find the active process info
     const processInfo = activeProcesses[srvId];
-    if (!processInfo) {
+    if (!processInfo || !processInfo.shell) {
         event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] Server is not active. Cannot send command.\n` });
         return;
     }
 
-    // Find the server configuration (to check type/ports)
     const srv = managedServers.find(s => s.id === srvId);
-    if (!srv) {
-        DebugLog(`Command injection failed: No server config found for ID ${srvId}`);
-        return;
-    }
-    DebugLog(`Preparing to send command to ${srv.name}: ${command}`);
+    if (!srv) return;
+
+    // Clean up the command (remove extra spaces)
+    const cleanCmd = command.trim();
+    if (!cleanCmd) return;
 
     const serverCategory = findServType(srv);
 
-    // --- Path A: Direct Input (Minecraft / Java / Vanilla+) ---
+    // --- Path A: Direct Input (Minecraft / Java) ---
     if (serverCategory === 'DIRECT_CONSOLE') {
-        DebugLog(`Attempting direct console injection for ${srv.name}...`);
-        if (processInfo.shell && processInfo.shell.stdin.writable) {
-            DebugLog(`Shell stdin is writable. Sending command: ${command}`);
-            try {
-                // We use \n to simulate hitting "Enter" in the console
-                processInfo.shell.stdin.write(command + "\n");
+        const childProc = processInfo.shell;
 
-                // Mirror the command to the UI so you see what you typed
-                event.reply('console-out', { id: srvId, msg: `> ${command}\n` });
-                DebugLog(`Command sent successfully to ${srv.name}: ${command}`);
+        if (childProc.stdin && childProc.stdin.writable) {
+            try {
+                // Minecraft needs \n or \r\n to execute
+                childProc.stdin.write(cleanCmd + "\n");
+                event.reply('console-out', { id: srvId, msg: `> ${cleanCmd}\n` });
             } catch (err) {
-                event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] Stdin Write Failed: ${err.message}\n` });
-                DebugLog(`Command injection failed for ${srv.name}: ${err.message}`);
+                event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] Failed to write to console: ${err.message}\n` });
             }
+        } else {
+            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] Console input is blocked or not available.\n` });
         }
     }
-    // --- Path B: Space Engineers (Remote API Fallback) ---
+    // --- Path B: Space Engineers (Remote API) ---
     else if (srv.path.toLowerCase().includes('spaceengineers')) {
-        DebugLog(`Attempting RSM API injection for ${srv.name}...`);
         const port = srv.apiPort || 8080;
         const password = srv.apiPass || "";
-        const url = `http://localhost:${port}/vrageremote/v1/session`;
-        DebugLog(`Attempting RSM API call to ${url} with command: ${command}`);
+        // Corrected SE Remote API Endpoint for commands
+        const url = `http://localhost:${port}/vrageremote/v1/server/command`;
 
         try {
             const axios = require('axios');
             await axios.post(url,
-                { "Command": `/${command.replace(/^\//, '')}` },
+                { "Command": cleanCmd },
                 {
                     headers: {
                         'Remote-Control-Http-Password': password,
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    timeout: 2000 // Don't let it hang if the server is frozen
                 }
             );
-            event.reply('console-out', { id: srvId, msg: `[RSM-API] Sent to port ${port}: ${command}\n` });
-            DebugLog(`RSM API call successful for ${srv.name} on port ${port}`);
-
+            event.reply('console-out', { id: srvId, msg: `[RSM-API] Sent: ${cleanCmd}\n` });
         } catch (err) {
-            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] SE API Call Failed: ${err.message}\n` });
-            DebugLog(`RSM API call failed for ${srv.name} on port ${port}: ${err.message}`);
+            const errorMsg = err.response ? `Code ${err.response.status}` : err.message;
+            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] SE API Failed: ${errorMsg}\n` });
         }
-    }
-    else {
-        event.reply('console-out', { id: srvId, msg: `[RSM-WARN] This server type does not support direct console input.\n` });
-        DebugLog(`Command injection attempted for unsupported server type: ${srv.type}`);
     }
 });
 
 // ---SERVER TYPE HELPER FUNCTION---
+// Add New Server Types Here based on their unique requirements. This keeps the main logic cleaner and makes it easier to manage different server behaviors in one place.
+// This determines how we will interact with the server process (direct console input vs. log file tailing) and also helps us know what kind of commands or interactions are possible with that server type.
 function findServType(srv) {
     // Default to 'bridge' if no type is found, to stay safe
     const type = (srv.type || '').toLowerCase();
@@ -838,7 +830,7 @@ function findServType(srv) {
             DebugLog(`Category assigned: DIRECT_CONSOLE, for type: '${type}'`);
             return 'DIRECT_CONSOLE'; // These use the direct Java/EXE pipe
 
-        case 'spaceengineers':
+        case 'space-engineers':
         case 'starfield':
             DebugLog(`Category assigned: POWERSHELL_BRIDGE, for type: '${type}'`);
             return 'POWERSHELL_BRIDGE'; // These need the PID search and Log Tailing
