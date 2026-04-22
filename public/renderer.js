@@ -1,4 +1,5 @@
-﻿const { ipcRenderer } = require('electron');
+﻿import { ServerTypeRegistry } from './configs/index.js';
+
 const DebugActive = true;
 // --- GLOBAL STATE ---
 let servers = [];             // Stores all server objects (name, path, status, etc.)
@@ -13,20 +14,30 @@ const DEFAULT_ACCENT = '#007bff'; // Default Ronin Blue
  * Runs when the app first loads. Fetches data and sets the initial view.
  */
 async function init() {
-    // Fetch the list of servers from the main process (saved in servers.json)
-    servers = await ipcRenderer.invoke('get-servers');
+    // 1. Fetch the list of servers from the main process
+    try {
+        servers = await window.api.invoke('get-servers');
+        if (!Array.isArray(servers)) servers = [];
+    } catch (err) {
+        console.error("Failed to fetch servers:", err);
+        servers = [];
+    }
 
-    if (!Array.isArray(servers)) servers = []; // Safety check in case of corrupted data
+    // 2. Initialize UI Components
+    initTheme();
+    renderSidebar();
+    renderTypeCards();
+    showView('home');
 
-    initTheme();      // Apply saved user colors
-    renderSidebar();  // Build the left-hand list
-    showView('home'); // Start on the "home" (Resource Summary) screen
-
-    // Load startup preferences from browser storage
+    // 4. Load startup preferences
     const startupPref = localStorage.getItem('launch-on-startup') === 'true';
     const startupChk = document.getElementById('launch-startup-chk');
     if (startupChk) startupChk.checked = startupPref;
+
+    window.logToSystem("Ronin Server Manager initialized successfully.");
 }
+
+// Start the app
 init();
 
 // Applies the saved accent color to the CSS --accent variable on startup
@@ -89,10 +100,12 @@ function initTheme() {
     if (textPicker) textPicker.value = savedText;
     if (textHex) textHex.innerText = savedText.toUpperCase();
     window.logToSystem("Synchronized text color pickers and labels with saved preference.");
+
+    window.logToSystem("Initialization complete. Server types rendered and UI is ready.");
 }
 
 // Asks the backend if we have Admin rights; displays the green badge if true
-ipcRenderer.invoke('check-admin').then(isAdmin => {
+window.api.invoke('check-admin').then(isAdmin => {
     if (isAdmin) {
         document.getElementById('admin-badge').style.display = 'inline-block';
         console.log("[RSM] Running with Administrative privileges.");
@@ -101,6 +114,39 @@ ipcRenderer.invoke('check-admin').then(isAdmin => {
         window.logToSystem("Running without Administrative privileges. Some servers may require elevation to start/stop properly.");
     }
 });
+
+// Dynamically builds the server type selection cards on the Add/Edit Server modal
+function renderTypeCards() {
+    const grid = document.getElementById('server-type-grid');
+    if (!grid) return
+
+    grid.innerHTML = ''; // Clear it
+
+    // Loop through our registry and build the HTML
+    Object.keys(ServerTypeRegistry).forEach(key => {
+        const config = ServerTypeRegistry[key];
+        const card = document.createElement('div');
+        card.className = 'type-card';
+        card.onclick = () => window.selectServerType(key);
+
+        const iconHtml = config.meta.icon.includes('/')
+            ? `<img src="${config.meta.icon}" class="type-icon" style="width:40px; height:40px; object-fit:contain;">`
+            : `<span class="type-icon">${config.meta.icon}</span>`;
+
+        card.innerHTML = `
+            ${iconHtml}
+            <span>${config.meta.displayName}</span>
+        `;
+        grid.appendChild(card);
+    });
+
+    // Add the "Other" card manually at the end
+    const otherCard = document.createElement('div');
+    otherCard.className = 'type-card';
+    otherCard.onclick = () => window.selectServerType('other');
+    otherCard.innerHTML = `<span class="type-icon">🛠️</span><span>Custom / Other</span>`;
+    grid.appendChild(otherCard);
+}
 
 /**
  * 2. VIEW MANAGEMENT 
@@ -157,19 +203,20 @@ function renderSidebar() {
 
     servers.forEach((s, index) => {
         const item = document.createElement('div');
-        // Apply 'active' class for the floating elevation effect we added earlier
         item.className = `nav-item ${activeId === s.id ? 'active' : ''}`;
         item.draggable = true;
 
-        const icon = getTypeIcon(s.type);
+        const config = ServerTypeRegistry[s.type];
+        const icon = config ? config.meta.icon : '🖥️';
+        const iconHtml = icon.includes('/') ? `<img src="${icon}" class="nav-type-icon" style="width:25px; height:25px; margin-right:5px; margin-top:5px;">` : `<span class="type-icon" style="margin-right:3px;">${icon}</span>`;
 
         item.innerHTML = `
             <div class="nav-content">
                 <span class="status-dot ${s.status === 'Online' ? 'dot-online' : 'dot-offline'}"></span>
-                <span class="type-icon" style="margin-right: 3px; opacity: 0.8;">${icon}</span>
+                ${iconHtml}
                 <span class="server-name">${s.name}</span>
             </div>
-            <div class="item-options-gear" onclick="toggleSidebarMenu(event, '${s.id}')">
+            <div class="item-options-gear" onclick="toggleSidebarMenu(event, '${s.id}')" style="position:absolute; right:0;">
                 ⚙️
             </div>
         `;
@@ -206,7 +253,7 @@ function handleSort(fromIndex, toIndex) {
     if (fromIndex === toIndex) return;
     const movedItem = servers.splice(fromIndex, 1)[0];
     servers.splice(toIndex, 0, movedItem);
-    ipcRenderer.send('save-servers', servers);
+    window.api.send('save-servers', servers);
     renderSidebar();
 }
 
@@ -303,7 +350,7 @@ window.deleteServer = (id) => {
 
         if (servers.length < originalLength) {
             // 4. Use the IPC call to save the changes to servers.json
-            ipcRenderer.send('save-servers', servers);
+            window.api.send('save-servers', servers);
 
             // 5. If the deleted server was the one being viewed, go home
             if (activeId === idToRemove) {
@@ -391,7 +438,7 @@ window.openEditModal = (serverId) => {
 
 // Browses for the EXECUTABLE file
 window.browse = async () => {
-    const filePath = await ipcRenderer.invoke('open-dialog');
+    const filePath = await window.api.invoke('open-dialog');
     if (filePath) {
         document.getElementById('exePath').value = filePath;
     }
@@ -399,7 +446,7 @@ window.browse = async () => {
 
 // Browses for the LOG FOLDER
 window.browseLogFolder = async () => {
-    const folderPath = await ipcRenderer.invoke('select-folder');
+    const folderPath = await window.api.invoke('select-folder');
     if (folderPath) {
         document.getElementById('logPath').value = folderPath;
     }
@@ -415,12 +462,12 @@ window.openServerFolder = (targetId) => { // Added targetId as a parameter
     // Otherwise, open the folder where the executable lives.
     const folderToOpen = srv.workingDir || srv.path;
 
-    ipcRenderer.send('open-folder', folderToOpen);
+    window.api.send('open-folder', folderToOpen);
 };
 
 window.browseWorkingFolder = async () => {
     // This matches your 'select-folder' handler in main.js
-    const folderPath = await ipcRenderer.invoke('select-folder');
+    const folderPath = await window.api.invoke('select-folder');
     if (folderPath) {
         document.getElementById('workingDir').value = folderPath;
     }
@@ -445,7 +492,7 @@ window.startServer = () => {
         srv.status = 'Online'; // Optimistic UI update
         renderSidebar();
         document.getElementById('crash-alert').style.display = 'none';
-        ipcRenderer.send('start-server', srv);
+        window.api.send('start-server', srv);
     }
 };
 
@@ -459,7 +506,7 @@ window.stopServer = () => {
         window.logToSystem(`Attempting to stop server "${srv.name}"...`);
 
         // IMPORTANT: Send the srv.id, not the srv.pid
-        ipcRenderer.send('stop-server', srv.id);
+        window.api.send('stop-server', srv.id);
     } else {
         console.error("[RSM] Stop failed: No active server selected or found.");
     }
@@ -471,7 +518,7 @@ window.killServer = () => {
     if (srv && srv.pid) {
         if (confirm(`FORCE KILL "${srv.name}"?`)) {
             window.logToSystem(`Force killing server "${srv.name}"...`);
-            ipcRenderer.send('kill-server', srv.pid);
+            window.api.send('kill-server', srv.pid);
         }
     }
 };
@@ -498,7 +545,7 @@ window.sendConsoleCommand = (event) => {
                 consoleEl.scrollTop = consoleEl.scrollHeight;
             }
 
-            ipcRenderer.send('send-command', { // We send the server ID and the command text to the backend
+            window.api.send('send-command', { // We send the server ID and the command text to the backend
                 srvId: activeId,
                 command: command
             });
@@ -657,7 +704,7 @@ function applyPreset(theme, name) {
  */
 
 // Appends new text from the server's console to the UI
-ipcRenderer.on('console-out', (event, data) => {
+window.api.receive('console-out', (data) => {
     const srv = servers.find(s => s.id === data.id);
 
     // 1. Maintain the history object
@@ -693,7 +740,7 @@ ipcRenderer.on('console-out', (event, data) => {
 });
 
 // Updates the UI when a server starts, stops, or crashes
-ipcRenderer.on('status-change', (event, data) => {
+window.api.receive('status-change', (event, data) => {
     const srv = servers.find(s => s.id === data.id);
     if (srv) {
         srv.status = data.status;
@@ -730,7 +777,7 @@ ipcRenderer.on('status-change', (event, data) => {
 
 // Receives CPU/RAM data every 2 seconds and updates the circular gauges
 // 1. Listen for the specific server heartbeat/perf update
-ipcRenderer.on('server-perf-update', (event, data) => {
+window.api.receive('server-perf-update', (event, data) => {
     console.log(`Update received for ${data.id}. Current view is ${activeId}`);
     const srv = servers.find(s => s.id === data.id);
     if (!srv) return;
@@ -748,7 +795,7 @@ ipcRenderer.on('server-perf-update', (event, data) => {
 });
 
 // 2. Listen for the Total machine usage (Home Screen)
-ipcRenderer.on('total-performance-update', (event, data) => {
+window.api.receive('total-performance-update', (event, data) => {
     // Check if the element is actually visible to the user
     const homeView = document.getElementById('no-selection');
     const isVisible = homeView && window.getComputedStyle(homeView).display !== 'none';
@@ -827,96 +874,60 @@ window.showWizardStep = (step) => {
     }
 };
 
-// =================================================================================================\\
-//                 CONFIGURATION MODAL REFERENCE MAP   (ADD NEW SERVERS HERE)                       \\
-// =================================================================================================\\
-// CONTAINER ID         | DISPLAY OPTIONS  | PLACEHOLDER/VALUE ID | DESCRIPTION                     \\
-// ---------------------|------------------|----------------------|---------------------------------\\
-// (Always Visible)     | block (Static)   | newName              | The UI list display name        \\
-// path-block           | block / none     | exePath              | The main file/app to run        \\
-// working-dir-block    | block / none     | workingDir           | Folder context for the app      \\
-// log-block            | block / none     | logPath              | External file to read logs      \\
-// port-block           | block / none     | portId               | Network port for API/RCON       \\
-// portpass-block       | block / none     | portPass             | Password for API access         \\
-// args-block           | block / none     | customArgs           | Startup flags and switches      \\
-// =================================================================================================\\
 
 // Triggered when a user clicks a "Type Card" (Minecraft, Space Engineers, etc.)
+
 window.selectServerType = (type) => {
     window.selectedType = type;
+    const config = ServerTypeRegistry[type];
 
-    // 1. Hide ALL specific blocks first to start with a clean slate
-    document.querySelectorAll('.platform-specific').forEach(b => {
-        b.style.display = 'none'
-    });
+    // 1. Handle "Other" or Missing Configs
+    if (!config) {
+        // Show everything for generic setup
+        document.querySelectorAll('.platform-specific').forEach(b => b.style.display = 'block');
+        document.getElementById('path-label').innerText = "EXECUTABLE PATH";
 
-    // 2. Use Switch to decide what to show
-    switch (type) {
-        case 'minecraft':
-            // --- UI Blocks (Containers) ---
-            document.getElementById('path-label').innerText = "JAVA EXECUTABLE (javaw.exe)";    // Minecraft servers run on Java, so we ask the user to point to their Java executable instead of the server .jar file for better compatibility with mods and plugins
-            document.getElementById('path-block').style.display = 'block';         // exePath
-            document.getElementById('working-dir-block').style.display = 'block';  // workingDir
-            document.getElementById('args-block').style.display = 'block';         // customArgs
-            document.getElementById('log-block').style.display = 'none';           // Minecraft uses Stdout
-            document.getElementById('port-block').style.display = 'none';          // Minecraft doesn't have a separate API port
-            document.getElementById('portpass-block').style.display = 'none';      // Same for API password
-            // --- Input Variables (Placeholders/Values) ---
-            document.getElementById('newName').placeholder = "e.g. Minecraft Survival Hub";             // Server Name
-            document.getElementById('exePath').placeholder = "C:\\Program Files\\Java\\...\\java.exe";  // Java Path
-            document.getElementById('workingDir').placeholder = "C:\\Servers\\Minecraft_Server";        // Working Directory
-            document.getElementById('customArgs').value = "-Xmx4G -Xms2G -jar server.jar nogui";        // Custom Arguments
-            break;
+        // Reset to neutral defaults
+        document.getElementById('portId').value = "";
+        document.getElementById('customArgs').value = "";
+        document.getElementById('customArgs').placeholder = "-flag1 -flag2 -config 'path/to/file'";
 
-        case 'space-engineers':
-            // --- UI Blocks (Containers) ---
-            document.getElementById('path-label').innerText = "SERVER EXECUTABLE (.exe)";   // Just a label change since the user needs to select the SpaceEngineersDedicated.exe file for it to work properly
-            document.getElementById('path-block').style.display = 'block';         // exePath
-            document.getElementById('working-dir-block').style.display = 'block';  // workingDir
-            document.getElementById('log-block').style.display = 'block';          // logPath
-            document.getElementById('port-block').style.display = 'block';         // portId
-            document.getElementById('portpass-block').style.display = 'block';     // portPass
-            document.getElementById('args-block').style.display = 'block';         // customArgs
-
-            // --- Input Variables (Placeholders/Values) ---
-            document.getElementById('newName').placeholder = "e.g. SE - Orion Sector";                                  // Server Name
-            document.getElementById('exePath').placeholder = "...\\DedicatedServer64\\SpaceEngineersDedicated.exe";     // Executable Path
-            document.getElementById('workingDir').placeholder = "C:\\ProgramData\\SpaceEngineersDedicated\\Instance";   // Working Directory (Where the world saves and configs go)
-            document.getElementById('logPath').placeholder = "Select SpaceEngineersDedicated.log location...";          // Log Path (SE writes important info to a log file instead of stdout, so we ask the user to point to it)
-            document.getElementById('portId').value = "8080";                                                           // API Port (SE has a built-in API that listens on a port, so we show this by default with a common port filled in)
-            document.getElementById('portPass').placeholder = "API Password";                                           // API Password (SE's API can be password protected, so we show this field by default)
-            document.getElementById('customArgs').value = "-console -ignorelastsession";                                // Custom Arguments (A common set of args for SE servers, but the user can change them as needed)
-            break;
-
-        case 'terraria':
-            // --- UI Blocks (Containers) ---
-            document.getElementById('path-label').innerText = "SERVER EXECUTABLE (TerrariaServer.exe)"; // Just a label change since the user needs to select the TerrariaServer.exe file for it to work properly
-            document.getElementById('path-block').style.display = 'block';         // exePath
-            document.getElementById('working-dir-block').style.display = 'block';  // workingDir
-            document.getElementById('args-block').style.display = 'block';         // customArgs
-            document.getElementById('log-block').style.display = 'none';           // Terraria uses Stdout
-            document.getElementById('port-block').style.display = 'none';          // Terraria doesn't have a separate API port like SE, so we hide it to avoid confusion
-            document.getElementById('portpass-block').style.display = 'none';      // Same for API password, since it's not a built-in feature of Terraria servers
-
-            // --- Input Variables (Placeholders/Values) ---
-            document.getElementById('newName').placeholder = "e.g. Terraria Expert World";                  // Server Name
-            document.getElementById('exePath').placeholder = "C:\\Servers\\Terraria\\TerrariaServer.exe";   // Executable Path
-            document.getElementById('workingDir').placeholder = "C:\\Servers\\Terraria";                    // Working Directory (Terraria saves worlds and configs in the same folder as the executable, so we just point to that folder)
-            document.getElementById('customArgs').value = "-config serverconfig.txt -port 7777 -players 8";                       // Custom Arguments (A common arg to tell the server to use a config file, but the user can change this as needed)
-            break;
-
-        case 'other':
-            // Show everything to allow maximum customization for unknown server types
-            document.querySelectorAll('.platform-specific').forEach(b => b.style.display = 'block');
-            document.getElementById('path-label').innerText = "EXECUTABLE PATH";
-
-            // Reset inputs to neutral defaults
-            document.getElementById('portId').value = "";
-            document.getElementById('customArgs').value = "";
-            document.getElementById('customArgs').placeholder = "-flag1 -flag2 -config 'path/to/file'";
-            break;
+        window.showWizardStep(2);
+        return;
     }
 
+    // 2. Apply UI Visibility (Blocks)
+    // We map the config object directly to the element styles
+    document.getElementById('path-label').innerText = config.label;
+    document.getElementById('path-block').style.display = config.blocks.path;
+    document.getElementById('working-dir-block').style.display = config.blocks.workingDir;
+    document.getElementById('log-block').style.display = config.blocks.log;
+    document.getElementById('port-block').style.display = config.blocks.port;
+    document.getElementById('portpass-block').style.display = config.blocks.portPass;
+    document.getElementById('args-block').style.display = config.blocks.args;
+
+    // 3. Apply Data Defaults (Placeholders & Values)
+    document.getElementById('newName').placeholder = config.defaults.newName;
+    document.getElementById('exePath').placeholder = config.defaults.exePath;
+    document.getElementById('workingDir').placeholder = config.defaults.workingDir;
+
+    // We use .value for Args and Port so the user doesn't have to re-type common flags
+    document.getElementById('customArgs').value = config.defaults.customArgs;
+
+    // Optional: Only set port value/placeholder if the game actually uses it
+    if (config.blocks.port === 'block') {
+        document.getElementById('portId').value = config.defaults.portId || "";
+    }
+
+    if (config.blocks.log === 'block') {
+        document.getElementById('logPath').placeholder = config.defaults.logPath || "";
+    }
+
+    if (config.blocks.portPass === 'block') {
+        document.getElementById('portPass').placeholder = config.defaults.portPass || "API Password";
+    }
+
+    // 4. Proceed to the configuration screen
     window.showWizardStep(2);
 };
 
@@ -932,23 +943,23 @@ function showServerGUI() {
     if (server && server.path) {
         window.logToSystem(`Opening GUI for ${server.name} with custom instance path...`);
         // CHANGE: Send the whole 'server' object instead of just 'server.path'
-        ipcRenderer.send('show-server-gui', server);
+        window.api.send('show-server-gui', server);
     }
 }
 
 // Adds a new server or updates an existing one in the list
 window.saveNewServer = () => {
-    // 1. Grab Basic Info
+    // Grab Basic Info
     const name = document.getElementById('newName').value;
     const path = document.getElementById('exePath').value;
+    const type = window.selectedType || "other"; // Default to 'other' if null
+    const config = ServerTypeRegistry[type] || {};
+    const category = config ? config.backend.category : "DIRECT_CONSOLE";
 
     // Removed for now until everything else works
     //const priority = document.getElementById('processPriority')?.value || "32";
 
-    // 2. Grab Type
-    const type = window.selectedType || "other"; // Default to 'other' if null
-
-    // 3. Grab Values Directly
+    // Grab Values Directly
     // If the box was hidden by the manager, the value will naturally be empty/null.
     const apiPort = document.getElementById('portId').value || "8080";
     const apiPass = document.getElementById('portPass').value || "";
@@ -958,17 +969,17 @@ window.saveNewServer = () => {
     const mcRam = document.getElementById('mcRam')?.value || "";
     const seInstance = document.getElementById('seInstance')?.value || "";
 
-    // 4. Validation
+    // Validation
     if (!name || !path) return alert("Please provide a name and select an executable.");
 
-    // 5. Save/Update Logic
+    // Save/Update Logic
     if (window.editingServerId) {
         const index = servers.findIndex(s => s.id.toString() === window.editingServerId.toString());
         if (index !== -1) {
-            // 1. Get the existing server data
+            // Get the existing server data
             const existing = servers[index];
 
-            // 2. Update the array using the Spread Operator
+            // Update the array using the Spread Operator
             servers[index] = {
                 ...existing,             // Copy EVERYTHING (id, type, status, logs, pid, etc.)
                 name,                    // Overwrite with the new values from the form
@@ -979,7 +990,9 @@ window.saveNewServer = () => {
                 logPath,
                 workingDir,
                 mcRam,
-                seInstance
+                seInstance,
+                type,
+                category
             };
             if (DebugActive) {
                 window.logToSystem(`---Saving server ${name} with the following settings---`);
@@ -990,6 +1003,7 @@ window.saveNewServer = () => {
         servers.push({
             id: Date.now().toString(),
             type,
+            category,
             name,
             path,
             apiPort,
@@ -1006,11 +1020,11 @@ window.saveNewServer = () => {
         });
     }
 
-    // 6. Persistence & UI
-    ipcRenderer.send('save-servers', servers);
+    // Persistence & UI
+    window.api.send('save-servers', servers);
     renderSidebar();
 
-    // 7. Full Cleanup
+    // Full Cleanup
     // Clear every possible field so the next 'Add Server' starts fresh
     const fieldsToClear = ['newName', 'exePath', 'portId', 'portPass', 'workingDir', 'customArgs', 'logPath', 'mcRam', 'seInstance'];
     fieldsToClear.forEach(id => {
@@ -1020,7 +1034,7 @@ window.saveNewServer = () => {
 
     window.selectedType = null;
     window.editingServerId = null; // Important: Clear the edit ID!
-    window.logToSystem(`Saving server ${name} successful`);
+    window.logToSystem(`Saving server ${name} successful as ${category}`);
     closeModal();
 };
 
@@ -1062,5 +1076,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-ipcRenderer.on('system-error', (event, errorMsg) => window.logToSystem(`ERROR: ${errorMsg}`));
-ipcRenderer.on('system-info', (event, infoMsg) => window.logToSystem(`INFO: ${infoMsg}`));
+window.api.receive('system-error', (event, errorMsg) => window.logToSystem(`ERROR: ${errorMsg}`));
+window.api.receive('system-info', (event, infoMsg) => window.logToSystem(`INFO: ${infoMsg}`));

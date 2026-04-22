@@ -286,23 +286,8 @@
             <div id="wizard-step-1">
                 <h3 style="margin-bottom: 20px;">Select Server Type</h3>
                 <div class="server-type-grid">
-                    <div class="type-card" onclick="selectServerType('minecraft')">  
-                        <span class="type-icon">⛏️</span>
-                        <span>Minecraft</span>
-                    </div>
-                    <div class="type-card" onclick="selectServerType('space-engineers')">
-                        <span class="type-icon">🚀</span>
-                        <span>Space Engineers</span>
-                    </div>
-                    <div class="type-card" onclick="selectServerType('terraria')">
-                        <span class="type-icon">🌳</span>
-                        <span>Terraria</span>
-                    </div>
-                    <!-- ADD SERVERS HERE-->
-                    <div class="type-card" onclick="selectServerType('other')">
-                        <span class="type-icon">🛠️</span>
-                        <span>Custom / Other</span>
-                    </div>
+                    <!--GAME CARDS FOR SELECTING TYPE OF SERVER TO ADD-->
+                    <div id="server-type-grid" class="server-type-grid"></div>
                 </div>
                 <div class="modal-footer" style="margin-top: 20px;">
                     <button class="btn btn-outline full-width" onclick="closeModal()">Cancel</button>
@@ -386,6 +371,6 @@
         <a id="menu-delete-btn" class="text-danger">🗑️ Delete Server</a>
     </div>
 
-    <script src="renderer.js"></script>
+    <script type="module" src="renderer.js"></script>
 </body>
 </html>
