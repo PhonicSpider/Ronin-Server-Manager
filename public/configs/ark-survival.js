@@ -1,7 +1,7 @@
 export const ark = {
     meta: {
         displayName: "Ark: Survival",
-        icon: "assets/logos/arkLogo.png"
+        icon: "logos/arksLogo.png"
     },
     backend: {
         category: "POWERSHELL_BRIDGE"
