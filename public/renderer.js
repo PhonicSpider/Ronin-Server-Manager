@@ -880,7 +880,6 @@ window.showWizardStep = (step) => {
 window.selectServerType = (type) => {
     window.selectedType = type;
     const config = ServerTypeRegistry[type];
-    const 
 
     // Handle "Other" or Missing Configs
     if (!config) {
