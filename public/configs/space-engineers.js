@@ -24,4 +24,13 @@ export const spaceEngineers = {
         portPass: "API Password",
         customArgs: "-console -ignorelastsession"
     }
+    varInputs: { // Determine whether defaults will be placeholders or values
+        newName: "placeholder",
+        exePath: "placeholder",
+        workingDir: "placeholder",
+        logPath: "placeholder",
+        portId: "placeholder",
+        portPass: "placeholder",
+        customArgs: "value"
+    }
 };

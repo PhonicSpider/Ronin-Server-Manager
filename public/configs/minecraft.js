@@ -20,5 +20,11 @@ export const minecraft = {
         exePath: "C:\\Program Files\\Java\\...\\java.exe",
         workingDir: "C:\\Servers\\Minecraft_Server",
         customArgs: "-Xmx4G -Xms2G -jar server.jar nogui"
+    },
+    varInputs: { // Determine whether defaults will be placeholders or values
+        newName: "placeholder",
+        exePath: "placeholder",
+        workingDir: "placeholder",
+        customArgs: "value"
     }
 };

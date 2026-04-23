@@ -16,10 +16,15 @@ export const ark = {
         customArgs: true
     },
     defaults: {
-        args: "TheIsland?listen?SessionName=RoninServer -NoBattlEye",
-        port: "27015",
+        customArgs: "?listen?SessionName=RoninServer -RCONEnabled -RCONPort=27020 -ServerAdminPassword=ronin -NoBattlEye",
         logPath: "C:\\Path\\To\\log\\Folder",
         portID: "RCON Port",
         portPass: "RCON Password"
+    },
+    varInputs: { // Determine whether defaults will be placeholders or values
+        customArgs: "value",
+        logPath: "placeholder",
+        portID: "placeholder",
+        portPass: "placeholder"
     }
 };
