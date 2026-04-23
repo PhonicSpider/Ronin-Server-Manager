@@ -1,9 +1,11 @@
 const { app, BrowserWindow, shell, ipcMain, dialog, Tray, Menu, Notification } = require('electron');
+const { Rcon } = require('rcon-client');
 const path = require('path');
 const fs = require('fs');
 const { spawn, exec, execSync } = require('child_process');
 const si = require('systeminformation');
 const os = require('os');
+const { isNullOrUndefined } = require('util');
 let mainWindow;
 let tray = null;
 const activeProcesses = {};
@@ -774,7 +776,7 @@ ipcMain.on('send-command', async (event, { srvId, command }) => {
 
     const serverCategory = findServType(srv);
 
-    // --- Path A: Direct Input (Minecraft / Java) ---
+    // --- Direct Input (Shell servers {minecraft, 7daystodie, etc}) ---
     if (serverCategory === 'DIRECT_CONSOLE') {
         const childProc = processInfo.shell;
 
@@ -790,11 +792,56 @@ ipcMain.on('send-command', async (event, { srvId, command }) => {
             event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] Console input is blocked or not available.\n` });
         }
     }
-    // --- Path B: Space Engineers (Remote API) ---
-    else if (srv.path.toLowerCase().includes('spaceengineers')) {
+    // --- RCON Protocol (Servers that use RCon for server commands)---
+    else if (serverCategory === 'POWERSHELL_BRIDGE') {
+        // Handle PowerShell Bridge commands here
+        if (srv.apiPort == null || srv.apiPass == "") {
+            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] API Port is not defined.\n` });
+            return;
+        }
+
+        if (srv.apiPass == null || srv.apiPass == "") {
+            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] API Password is not defined.\n` });
+            return;
+        }
+
+        const port = parseInt(srv.apiPort);
+        const password = srv.apiPass || "";
+        const url = `http://localhost:${port}/command`;
+
+        try {
+            const rcon = await Rcon.connect({
+                host: 'localhost',
+                port: port,
+                password: password,
+                timeout: 2000
+            });
+
+            const response = await rcon.send(cleanCmd);
+            event.reply('console-out', { id: srvId, msg: `[RSM-API] Sent: ${cleanCmd}\nResponse: ${response}\n` });
+
+            rcon.end();
+            event.reply('console-out', { id: srvId, msg: `> ${cleanCmd}\n${response ? resonse + '\n' : ''}` });
+
+        } catch (err) {
+            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] RCON Failed: ${err.message}\n` });
+        }
+    }
+    // --- Space Engineers (Remote API) ---
+    else if (srv.type === 'space-engineers') {
+        if (srv.apiPort == null || srv.apiPass == "") {
+            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] API Port is not defined.\n` });
+            return;
+        }
+
+        if (srv.apiPass == null || srv.apiPass == "") {
+            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] API Password is not defined.\n` });
+            return;
+        }
+
         const port = srv.apiPort || 8080;
         const password = srv.apiPass || "";
-        // Corrected SE Remote API Endpoint for commands
+        // SE Remote API Endpoint for commands
         const url = `http://localhost:${port}/vrageremote/v1/server/command`;
 
         try {
@@ -814,7 +861,7 @@ ipcMain.on('send-command', async (event, { srvId, command }) => {
             const errorMsg = err.response ? `Code ${err.response.status}` : err.message;
             event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] SE API Failed: ${errorMsg}\n` });
         }
-    }
+    } 
 });
 
 // ---SERVER TYPE HELPER FUNCTION---
