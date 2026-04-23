@@ -2,7 +2,7 @@
 import { minecraft } from './minecraft.js';
 import { spaceEngineers } from './space-engineers.js';
 import { terraria } from './terraria.js';
-import { ark } from './ark.js';
+import { ark } from './ark-survival.js';
 
 // 2. Export them as a single "Registry" object
 export const ServerTypeRegistry = {
