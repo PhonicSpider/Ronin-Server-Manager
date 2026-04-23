@@ -20,7 +20,7 @@ export const terraria = {
         exePath: "C:\\Servers\\Terraria\\TerrariaServer.exe",
         workingDir: "C:\\Servers\\Terraria",
         customArgs: "-config serverconfig.txt -port 7777 -players 8"
-    }
+    },
     varInputs: { // Determine whether defaults will be placeholders or values
         newName: "placeholder",
         exePath: "placeholder",
