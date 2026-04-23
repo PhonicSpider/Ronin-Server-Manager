@@ -20,7 +20,7 @@ export const spaceEngineers = {
         exePath: "...\\DedicatedServer64\\SpaceEngineersDedicated.exe",
         workingDir: "C:\\ProgramData\\SpaceEngineersDedicated\\Instance",
         logPath: "Select SpaceEngineersDedicated.log location...",
-        portId: "8080",
+        portId: "API Port",
         portPass: "API Password",
         customArgs: "-console -ignorelastsession"
     },
