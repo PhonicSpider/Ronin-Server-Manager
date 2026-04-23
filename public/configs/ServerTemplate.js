@@ -27,6 +27,15 @@
         logPath: "Path to log file...",
         portId: "8080"
     }
+    varInputs: { // Determine whether defaults will be placeholders or values
+        newName: "placeholder", // or can use "value" if you want the default to be pre-filled instead of a placeholder
+        exePath: "placeholder",
+        workingDir: "placeholder",
+        logPath: "placeholder",
+        portId: "placeholder",
+        portPass: "placeholder",
+        customArgs: "placeholder",
+
 };
 
 // --- BE SURE TO  ADD THE GAME TO THE INDEX.JS FILE AFTER CREATING THIS TEMPLATE! ---
