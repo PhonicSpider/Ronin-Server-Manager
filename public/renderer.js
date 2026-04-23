@@ -34,7 +34,7 @@ async function init() {
     const startupChk = document.getElementById('launch-startup-chk');
     if (startupChk) startupChk.checked = startupPref;
 
-    window.logToSystem("Ronin Server Manager initialized successfully.");
+    window.updateSystemLog("Ronin Server Manager initialized successfully.");
 }
 
 // Start the app
@@ -45,63 +45,63 @@ function initTheme() {
     // LOAD ACCENT COLOR
     const savedAccent = localStorage.getItem('preferred-accent') || DEFAULT_ACCENT;
     document.documentElement.style.setProperty('--accent', savedAccent);
-    window.logToSystem(`Applied saved accent color: ${savedAccent}.`);
+    window.updateSystemLog(`Applied saved accent color: ${savedAccent}.`);
 
     // Sync Accent UI Elements
     const accPicker = document.getElementById('accent-picker');
     const accHex = document.getElementById('hex-display');
     if (accPicker) accPicker.value = savedAccent;
     if (accHex) accHex.innerText = savedAccent.toUpperCase();
-    window.logToSystem("Synchronized accent color pickers and labels with saved preference.");
+    window.updateSystemLog("Synchronized accent color pickers and labels with saved preference.");
 
     // LOAD BACKGROUND COLOR
     const savedBg = localStorage.getItem('preferred-bg-color') || '#0f111a';
     // We use hexToRgb here because the CSS variable expects 3 numbers (R, G, B)
     document.documentElement.style.setProperty('--bg-color', hexToRgb(savedBg));
-    window.logToSystem(`Applied saved background color: ${savedBg}.`);
+    window.updateSystemLog(`Applied saved background color: ${savedBg}.`);
 
     // Sync Background UI Elements
     const bgPicker = document.getElementById('bg-color-picker');
     const bgHex = document.getElementById('bg-hex-display');
     if (bgPicker) bgPicker.value = savedBg;
     if (bgHex) bgHex.innerText = savedBg.toUpperCase();
-    window.logToSystem("Synchronized background color pickers and labels with saved preference.");
+    window.updateSystemLog("Synchronized background color pickers and labels with saved preference.");
 
     // LOAD OPACITY (Transparency)
     const savedBgOp = localStorage.getItem('preferred-bg-opacity') || "1.0";
     document.documentElement.style.setProperty('--bg-opacity', savedBgOp);
-    window.logToSystem(`Applied saved background opacity: ${savedBgOp}.`);
+    window.updateSystemLog(`Applied saved background opacity: ${savedBgOp}.`);
 
     // Sync Opacity UI Elements
     const opSlider = document.getElementById('bg-opacity-slider');
     const opLabel = document.getElementById('bg-opacity-label');
     if (opSlider) opSlider.value = savedBgOp;
     if (opLabel) opLabel.innerText = Math.round(savedBgOp * 100) + "%";
-    window.logToSystem("Synchronized background opacity slider and label with saved preference.");
+    window.updateSystemLog("Synchronized background opacity slider and label with saved preference.");
 
     // SYNC ACTIVE VISUAL STATE (The white border on squares)
     // Highlight Accent Grid
     const accentGrid = document.querySelector('.card:nth-child(2) .swatch-grid');
     if (accentGrid) updateActiveSwatches(accentGrid, savedAccent);
-    window.logToSystem("Updated active state on accent color swatches.");
+    window.updateSystemLog("Updated active state on accent color swatches.");
 
     // Highlight Background Grid
     const bgGrid = document.querySelector('.card:nth-child(3) .swatch-grid');
     if (bgGrid) updateActiveSwatches(bgGrid, savedBg);
-    window.logToSystem("Updated active state on background color swatches.");
+    window.updateSystemLog("Updated active state on background color swatches.");
 
     // Load Text Color
     const savedText = localStorage.getItem('preferred-text-color') || '#ffffff';
     document.documentElement.style.setProperty('--text-color', hexToRgb(savedText));
-    window.logToSystem(`Applied saved text color: ${savedText}.`);
+    window.updateSystemLog(`Applied saved text color: ${savedText}.`);
 
     const textPicker = document.getElementById('text-color-picker');
     const textHex = document.getElementById('text-hex-display');
     if (textPicker) textPicker.value = savedText;
     if (textHex) textHex.innerText = savedText.toUpperCase();
-    window.logToSystem("Synchronized text color pickers and labels with saved preference.");
+    window.updateSystemLog("Synchronized text color pickers and labels with saved preference.");
 
-    window.logToSystem("Initialization complete. Server types rendered and UI is ready.");
+    window.updateSystemLog("Initialization complete. Server types rendered and UI is ready.");
 }
 
 // Asks the backend if we have Admin rights; displays the green badge if true
@@ -109,9 +109,9 @@ window.api.invoke('check-admin').then(isAdmin => {
     if (isAdmin) {
         document.getElementById('admin-badge').style.display = 'inline-block';
         console.log("[RSM] Running with Administrative privileges.");
-        window.logToSystem("Running with Administrative privileges. You can manage servers that require elevated permissions.");
+        window.updateSystemLog("Running with Administrative privileges. You can manage servers that require elevated permissions.");
     } else {
-        window.logToSystem("Running without Administrative privileges. Some servers may require elevation to start/stop properly.");
+        window.updateSystemLog("Running without Administrative privileges. Some servers may require elevation to start/stop properly.");
     }
 });
 
@@ -488,7 +488,7 @@ window.addEventListener('mousedown', (event) => {
 window.startServer = () => {
     const srv = servers.find(s => s.id === activeId);
     if (srv && srv.status !== 'Online') {
-        window.logToSystem(`Attempting to start server "${srv.name}"...`);
+        window.updateSystemLog(`Attempting to start server "${srv.name}"...`);
         srv.status = 'Online'; // Optimistic UI update
         renderSidebar();
         document.getElementById('crash-alert').style.display = 'none';
@@ -503,7 +503,7 @@ window.stopServer = () => {
     if (srv) {
         // We check status or ID instead of just PID, 
         // because the backend might know the PID even if the frontend hasn't updated yet.
-        window.logToSystem(`Attempting to stop server "${srv.name}"...`);
+        window.updateSystemLog(`Attempting to stop server "${srv.name}"...`);
 
         // IMPORTANT: Send the srv.id, not the srv.pid
         window.api.send('stop-server', srv.id);
@@ -517,7 +517,7 @@ window.killServer = () => {
     const srv = servers.find(s => s.id === activeId);
     if (srv && srv.pid) {
         if (confirm(`FORCE KILL "${srv.name}"?`)) {
-            window.logToSystem(`Force killing server "${srv.name}"...`);
+            window.updateSystemLog(`Force killing server "${srv.name}"...`);
             window.api.send('kill-server', srv.pid);
         }
     }
@@ -551,7 +551,7 @@ window.sendConsoleCommand = (event) => {
             });
 
             inputEl.value = '';
-            window.logToSystem(`Command sent to ${srv ? srv.name : 'Unknown'}: ${command}`);
+            window.updateSystemLog(`Command sent to ${srv ? srv.name : 'Unknown'}: ${command}`);
         }
     }
 };
@@ -635,7 +635,7 @@ window.updateOpacity = (type, value) => {
         // 3. Save to LocalStorage
         localStorage.setItem('preferred-bg-opacity', value);
 
-        window.logToSystem(`Opacity adjusted to ${Math.round(value * 100)}%`);
+        window.updateSystemLog(`Opacity adjusted to ${Math.round(value * 100)}%`);
     }
 };
 
@@ -661,14 +661,14 @@ function rgbToHex(rgb) {
 
 // Preset 1: Internal Fire
 window.applyFireTheme = () => {
-    window.logToSystem(`Applying "Internal Fire" theme preset with Accent: #ff4500, Background: #0a0a0a, Text: #ffffff.`);
+    window.updateSystemLog(`Applying "Internal Fire" theme preset with Accent: #ff4500, Background: #0a0a0a, Text: #ffffff.`);
     applyPreset({ accent: "#ff4500", bg: "#0a0a0a", text: "#ffffff" }, "Internal Fire");
 };
 
 // Preset 2: Ronin Classic
 window.applyDefaultTheme = () => {
     applyPreset({ accent: "#007bff", bg: "#0f111a", text: "#ffffff" }, "Ronin Classic");
-    window.logToSystem(`Applying "Ronin Classic" theme preset with Accent: #007bff, Background: #0f111a, Text: #ffffff.`);
+    window.updateSystemLog(`Applying "Ronin Classic" theme preset with Accent: #007bff, Background: #0f111a, Text: #ffffff.`);
 };
 
 // The "Master" Function that does the work
@@ -677,7 +677,7 @@ function applyPreset(theme, name) {
     if (window.updateAccent) window.updateAccent(theme.accent);
     if (window.updateBgColor) window.updateBgColor(theme.bg);
     if (window.updateTextColor) window.updateTextColor(theme.text);
-    window.logToSystem(`Applying theme preset: "${name}" with Accent: ${theme.accent}, Background: ${theme.bg}, Text: ${theme.text}.`);
+    window.updateSystemLog(`Applying theme preset: "${name}" with Accent: ${theme.accent}, Background: ${theme.bg}, Text: ${theme.text}.`);
    
     // Sync the actual color picker inputs so they don't stay the old color
     const pickerMap = {
@@ -685,7 +685,7 @@ function applyPreset(theme, name) {
         'bg-color-picker': theme.bg,
         'text-color-picker': theme.text
     };
-    window.logToSystem(`Updating color pickers to match the new theme preset values.`);
+    window.updateSystemLog(`Updating color pickers to match the new theme preset values.`);
 
     for (const [id, value] of Object.entries(pickerMap)) {
         const input = document.getElementById(id);
@@ -693,8 +693,8 @@ function applyPreset(theme, name) {
     }
 
     // Log to your cool new boot console
-    if (window.logToSystem) {
-        window.logToSystem(`[Theme] Preset "${name}" applied.`);
+    if (window.updateSystemLog) {
+        window.updateSystemLog(`[Theme] Preset "${name}" applied.`);
     }
 }
 
@@ -745,7 +745,7 @@ window.api.receive('status-change', (event, data) => {
     if (srv) {
         srv.status = data.status;
         srv.pid = data.pid || null;
-        window.logToSystem(`Server "${srv.name}" is now ${data.status}.`);
+        window.updateSystemLog(`Server "${srv.name}" is now ${data.status}.`);
         renderSidebar();
     }
 
@@ -764,11 +764,11 @@ window.api.receive('status-change', (event, data) => {
         if (data.crash) {
             document.getElementById('crash-alert').style.display = 'block';
             document.getElementById('crash-msg').innerText = `Crash at ${data.crash.time}`;
-            window.logToSystem(`Server "${srv.name}" crashed at ${data.crash.time}.`);
+            window.updateSystemLog(`Server "${srv.name}" crashed at ${data.crash.time}.`);
 
             // Check if auto-restart is enabled in settings and attempt to restart after a delay
             if (document.getElementById('auto-restart-chk').checked) {
-                window.logToSystem(`Auto-restart is enabled. Attempting to restart "${srv.name}" in 5 seconds...`);
+                window.updateSystemLog(`Auto-restart is enabled. Attempting to restart "${srv.name}" in 5 seconds...`);
                 setTimeout(window.startServer, 5000);
             }
         }
@@ -960,7 +960,7 @@ function showServerGUI() {
     const server = servers.find(s => s.id === activeId);
 
     if (server && server.path) {
-        window.logToSystem(`Opening GUI for ${server.name} with custom instance path...`);
+        window.updateSystemLog(`Opening GUI for ${server.name} with custom instance path...`);
         // CHANGE: Send the whole 'server' object instead of just 'server.path'
         window.api.send('show-server-gui', server);
     }
@@ -1014,8 +1014,8 @@ window.saveNewServer = () => {
                 category
             };
             if (DebugActive) {
-                window.logToSystem(`---Saving server ${name} with the following settings---`);
-                window.logToSystem(`Name: ${name}\nType: ${type}\nPath: ${path}\nPort: ${apiPort}\nAPI Pass: ${apiPass}\nLogPath: ${logPath}\nWorking Directory: ${workingDir}\nArgs: ${args}`);
+                window.updateSystemLog(`---Saving server ${name} with the following settings---`);
+                window.updateSystemLog(`Name: ${name}\nType: ${type}\nPath: ${path}\nPort: ${apiPort}\nAPI Pass: ${apiPass}\nLogPath: ${logPath}\nWorking Directory: ${workingDir}\nArgs: ${args}`);
             }
         }
     } else {
@@ -1053,12 +1053,12 @@ window.saveNewServer = () => {
 
     window.selectedType = null;
     window.editingServerId = null; // Important: Clear the edit ID!
-    window.logToSystem(`Saving server ${name} successful as ${category}`);
+    window.updateSystemLog(`Saving server ${name} successful as ${category}`);
     closeModal();
 };
 
 // Internal Log System for Manager Errors/Info
-window.logToSystem = (msg) => {
+window.updateSystemLog = (msg) => {
     const homeConsole = document.getElementById('system-console');
     if (!homeConsole) return;
 
@@ -1095,5 +1095,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-window.api.receive('system-error', (event, errorMsg) => window.logToSystem(`ERROR: ${errorMsg}`));
-window.api.receive('system-info', (event, infoMsg) => window.logToSystem(`INFO: ${infoMsg}`));
+window.api.receive('system-error', (event, errorMsg) => window.updateSystemLog(`ERROR: ${errorMsg}`));
+window.api.receive('system-info', (event, infoMsg) => window.updateSystemLog(`INFO: ${infoMsg}`));
