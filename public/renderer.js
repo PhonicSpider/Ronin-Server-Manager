@@ -880,39 +880,59 @@ window.showWizardStep = (step) => {
 window.selectServerType = (type) => {
     window.selectedType = type;
     const config = ServerTypeRegistry[type];
+    const 
 
-    // 1. Handle "Other" or Missing Configs
+    // Handle "Other" or Missing Configs
     if (!config) {
         // Show everything for generic setup
         document.querySelectorAll('.platform-specific').forEach(b => b.style.display = 'block');
         document.getElementById('path-label').innerText = "EXECUTABLE PATH";
 
         // Reset to neutral defaults
-        document.getElementById('portId').value = "";
-        document.getElementById('customArgs').value = "";
-        document.getElementById('customArgs').placeholder = "-flag1 -flag2 -config 'path/to/file'";
+        const neutralFields = ['newName', 'exePath', 'workingDir', 'customArgs', 'portId', 'logPath', 'portPass'];
+        neutralFields.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.value = ""; el.placeholder = ""; }
+        });
 
+        document.getElementById('customArgs').placeholder = "-flag1 -flag2 -config 'path/to/file'";
         window.showWizardStep(2);
         return;
     }
 
-    // 2. Apply UI Visibility (Blocks)
+    
+    // Apply UI Visibility (Blocks)
     // We map the config object directly to the element styles
-    document.getElementById('path-label').innerText = config.label;
-    document.getElementById('path-block').style.display = config.blocks.path;
-    document.getElementById('working-dir-block').style.display = config.blocks.workingDir;
-    document.getElementById('log-block').style.display = config.blocks.log;
-    document.getElementById('port-block').style.display = config.blocks.port;
-    document.getElementById('portpass-block').style.display = config.blocks.portPass;
-    document.getElementById('args-block').style.display = config.blocks.args;
+    const blockMap = {
+        'path-label': config.label || "EXECUTABLE PATH", 
+        'path-block': config.blocks.path, 
+        'working-dir-block': config.blocks.workingDir,
+        'log-block': config.blocks.log,
+        'port-block': config.blocks.port,
+        'portpass-block': config.blocks.portPass,
+        'args-block': config.blocks.args
+    };
 
-    // 3. Apply Data Defaults (Placeholders & Values)
-    document.getElementById('newName').placeholder = config.defaults.newName;
-    document.getElementById('exePath').placeholder = config.defaults.exePath;
-    document.getElementById('workingDir').placeholder = config.defaults.workingDir;
+    Object.entries(blockMap).forEach(([id, display]) => {
+        const el = document.getElementById(id).style.display = display;
+    });
 
-    // We use .value for Args and Port so the user doesn't have to re-type common flags
-    document.getElementById('customArgs').value = config.defaults.customArgs;
+    // Apply Data Defaults (Placeholders & Values)
+    const fieldsToUpdate = ['newName', 'exePath', 'workingDir', 'logPath', 'portID', 'portPass', 'customArgs'];
+
+    fieldsToUpdate.forEach(field => {
+        const inputEl = document.getElementById(field);
+        if (!inputEl) return;
+
+        inputEl.value = ""; // Clear any existing value
+        inputEl.placeholder = ""; // Clear any existing placeholder
+
+        const mode = config.varInputs?.[field] || "placeholder";
+        const defaultValue = config.defaults?.[field] || "";
+        if (defaultValue) {
+            inputEl[mode] = defaultValue;
+        }
+    });
 
     // Optional: Only set port value/placeholder if the game actually uses it
     if (config.blocks.port === 'block') {
