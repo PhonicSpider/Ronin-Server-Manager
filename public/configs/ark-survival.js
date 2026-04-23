@@ -8,14 +8,14 @@ export const ark = {
     },
     label: "ARK SERVER EXECUTABLE (ShooterGameServer.exe)",
     blocks: {
-        executable: true,
-        workingDir: true,
-        logPath: true,    // Essential for POWERSHELL_BRIDGE
-        apiPort: true,    // Usually for RCON
-        apiPass: true,    // be sure there is one
-        customArgs: true
+        executable: 'block',
+        workingDir: 'block',
+        logPath: 'block',    // Essential for POWERSHELL_BRIDGE
+        apiPort: 'block',    // Usually for RCON
+        apiPass: 'block',    // be sure there is one
+        customArgs: 'block'
     },
-    defaults: {
+    defaults: { // Optional placeholders if blocks are enabled, can set any block placeholder or value here
         customArgs: "?listen?SessionName=RoninServer -RCONEnabled -RCONPort=27020 -ServerAdminPassword=ronin -NoBattlEye",
         logPath: "C:\\Path\\To\\log\\Folder",
         portID: "RCON Port",

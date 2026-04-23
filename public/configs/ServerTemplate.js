@@ -19,7 +19,7 @@
         portPass: 'none'      // portPass container
     },
     defaults: {
-        // Optional placeholders if blocks are enabled:
+        // Optional placeholders if blocks are enabled, can set any block placeholder or value here
         newName: "Server Display Name",
         exePath: "C:\\Path\\To\\Executable",
         workingDir: "C:\\Path\\To\\Folder",
@@ -28,13 +28,13 @@
         portId: "8080"
     },
     varInputs: { // Determine whether defaults will be placeholders or values
-        newName: "placeholder", // or can use "value" if you want the default to be pre-filled instead of a placeholder
+        // or can use "value" if you want the default to be pre-filled instead of a placeholder
         exePath: "placeholder",
-        workingDir: "placeholder",
+        workingDir: "placeholder",  
         logPath: "placeholder",
         portId: "placeholder",
         portPass: "placeholder",
-        customArgs: "placeholder",
+        customArgs: "value",
     }
 };
 
