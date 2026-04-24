@@ -460,9 +460,14 @@ window.openServerFolder = (targetId) => { // Added targetId as a parameter
 
     // Logic: If there is a Working Directory saved, open that. 
     // Otherwise, open the folder where the executable lives.
-    const folderToOpen = srv.workingDir || srv.path;
+    const folderToOpen = srv.workingDir || srv.exePath || srv.path;
 
-    window.api.send('open-folder', folderToOpen);
+    if (folderToOpen) {
+        window.updateSystemLog(`Opening folder for server "${srv.name}": ${folderToOpen}`);
+        window.api.send('open-folder', folderToOpen);
+    } else {
+        window.updateSystemLog(`No valid folder path found for server "${srv.name}".`);
+    }
 };
 
 window.browseWorkingFolder = async () => {

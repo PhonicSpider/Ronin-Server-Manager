@@ -588,26 +588,27 @@ ipcMain.handle('select-folder', async () => {
 });
 
 // --- OPEN FOLDER IN EXPLORER (For the "Open Folder" button in the UI) ---
-ipcMain.on('open-folder', (event, srv) => {
-    if (!srv) return;
+ipcMain.on('open-folder', (event, rawData) => {
+    let targetPath = (typeof rawData === 'object') ? (rawData.workingDir || rawData.exePath || rawData.path) : rawData;
 
-    // Logic: 
-    // 1. If we received an object with a workingDir, use that.
-    // 2. Otherwise, if it's a string (old style), use the string.
-    let targetPath = (typeof srv === 'object') ? (srv.workingDir || srv.path) : srv;
+    if (!targetPath) return;
+    targetPath = path.resolve(targetPath.replace(/["]+/g, '').trim());
 
-    try {
-        if (fs.existsSync(targetPath)) {
-            // If the path is a file (like the EXE), get its directory
-            if (fs.lstatSync(targetPath).isFile()) {
-                targetPath = path.dirname(targetPath);
-            }
-            shell.openPath(targetPath);
-        } else {
-            event.reply('system-error', `Folder does not exist: ${targetPath}`);
-        }
-    } catch (e) {
-        event.reply('system-error', "Error accessing folder path.");
+    if (fs.existsSync(targetPath)) {
+        const isFile = fs.lstatSync(targetPath).isFile();
+
+        // Use spawn instead of exec for 'fire and forget' processes
+        // If it's a file, we use /select to highlight it
+        const args = isFile ? ['/select,', targetPath] : [targetPath];
+
+        spawn('explorer.exe', args, {
+            detached: true,
+            stdio: 'ignore'
+        }).unref(); // This tells Node to let the process live independently
+
+        event.reply('system-info', `[RSM] Explorer opened at: ${targetPath}`);
+    } else {
+        event.reply('system-error', `Path not found: ${targetPath}`);
     }
 });
 

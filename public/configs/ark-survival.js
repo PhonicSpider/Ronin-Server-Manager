@@ -16,7 +16,7 @@ export const ark = {
         customArgs: 'block'
     },
     defaults: { // Optional placeholders if blocks are enabled, can set any block placeholder or value here
-        customArgs: "?listen?SessionName=RoninServer -RCONEnabled -RCONPort=27020 -ServerAdminPassword=ronin -NoBattlEye",
+        customArgs: "?listen?SessionName=RoninServer -RCONEnabled -RCONPort=27020 -ServerAdminPassword=ronin -NoBattlEye -servergamelog",
         logPath: "C:\\Path\\To\\log\\Folder",
         portID: "RCON Port",
         portPass: "RCON Password"
