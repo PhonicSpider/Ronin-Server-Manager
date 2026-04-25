@@ -237,17 +237,6 @@ function renderSidebar() {
     });
 }
 
-// Gets icon of server type
-const getTypeIcon = (type) => {
-    switch (type) {
-        case 'minecraft': return '⛏️';
-        case 'space-engineers': return '🚀';
-        case 'terraria': return '🌵';
-        // Add new types here
-        default: return '🖥️'; // Generic server icon
-    }
-};
-
 // Saves the new order of servers to the backend after a drag-drop
 function handleSort(fromIndex, toIndex) {
     if (fromIndex === toIndex) return;
@@ -907,51 +896,46 @@ window.selectServerType = (type) => {
     
     // Apply UI Visibility (Blocks)
     // We map the config object directly to the element styles
+    // 1. Handle the Label separately (it's text, not a display style)
+    const labelEl = document.getElementById('path-label');
+    if (labelEl) labelEl.innerText = config.label || "EXECUTABLE PATH";
+
+    // 2. Map Config Blocks to UI Block IDs
     const blockMap = {
-        'path-label': config.label || "EXECUTABLE PATH", 
-        'path-block': config.blocks.path, 
+        'path-block': config.blocks.path,
         'working-dir-block': config.blocks.workingDir,
-        'log-block': config.blocks.log,
-        'port-block': config.blocks.port,
+        'log-block': config.blocks.log, // Matches config.blocks.log
+        'port-block': config.blocks.port, // Matches config.blocks.port
         'portpass-block': config.blocks.portPass,
         'args-block': config.blocks.args
     };
 
-    Object.entries(blockMap).forEach(([id, display]) => {
-        const el = document.getElementById(id).style.display = display;
+    // Corrected loop
+    Object.entries(blockMap).forEach(([id, displayValue]) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.style.display = displayValue || 'none';
+        }
     });
 
-    // Apply Data Defaults (Placeholders & Values)
-    const fieldsToUpdate = ['newName', 'exePath', 'workingDir', 'logPath', 'portID', 'portPass', 'customArgs'];
+    // 3. Update Data Fields
+    const fieldsToUpdate = ['newName', 'exePath', 'workingDir', 'logPath', 'portId', 'portPass', 'customArgs'];
 
     fieldsToUpdate.forEach(field => {
         const inputEl = document.getElementById(field);
         if (!inputEl) return;
 
-        inputEl.value = ""; // Clear any existing value
-        inputEl.placeholder = ""; // Clear any existing placeholder
+        inputEl.value = "";
+        inputEl.placeholder = "";
 
         const mode = config.varInputs?.[field] || "placeholder";
         const defaultValue = config.defaults?.[field] || "";
+
         if (defaultValue) {
             inputEl[mode] = defaultValue;
         }
     });
 
-    // Optional: Only set port value/placeholder if the game actually uses it
-    if (config.blocks.port === 'block') {
-        document.getElementById('portId').value = config.defaults.portId || "";
-    }
-
-    if (config.blocks.log === 'block') {
-        document.getElementById('logPath').placeholder = config.defaults.logPath || "";
-    }
-
-    if (config.blocks.portPass === 'block') {
-        document.getElementById('portPass').placeholder = config.defaults.portPass || "API Password";
-    }
-
-    // 4. Proceed to the configuration screen
     window.showWizardStep(2);
 };
 
