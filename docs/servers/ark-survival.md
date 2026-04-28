@@ -9,14 +9,14 @@
 
 Ark requires specific launch flags to be active before RSM can communicate with it via RCON.
 
-1.  **RCON Activation:** You must ensure `-RCONEnabled` is in your startup arguments. Without this, the Console tab in RSM will be "Read-Only."
+1.  **RCON Activation:** You must ensure `-RCONEnabled` is in your startup arguments when entering the server into the RSM (*Shown Below**). Without this, the Console tab in RSM will be "Read-Only."
 2.  **Firewall Rules:** Ensure your RCON Port (Default: `27020`) is open in your Windows Firewall. RSM connects to this port locally to execute commands.
-3.  **Log Generation:** By default, Ark might not save logs to the disk. Ensure `-servergamelog` is added to your arguments so RSM has a file to "tail."
+3.  **Log Generation:** By default, Ark might not save logs to the disk. Ensure `-servergamelog` is added to your arguments so RSM has a file to "tail". You will also have to run the server at least once outside of the RSM to ensure it creates the save folder where the logs are stored
 4.  **File Location:** Locate these paths before starting the RSM Wizard:
     1.  __Server EXE:__ Usually located at `...\ShooterGame\Binaries\Win64\ShooterGameServer.exe`
     2.  __Working Directory:__ The `Win64` folder containing the executable.
-    3.  __Log Folder:__ Usually located at `...\ShooterGame\Saved\Logs`
-    4.  __RCON Port:__ Default is `27015` or `27020`.
+    3.  __Log Folder:__ Usually located at `...\ShooterGame\Saved\Logs`. (will see this folder after running the server once by itself)
+    4.  __RCON Port:__ Default is `27020`, set by using `-RCONPort=27020` in the custom arguments field.
     5.  __Admin Password:__ The password set via `-ServerAdminPassword`.
 
 ---
@@ -66,10 +66,22 @@ The most common locations are shown below, but they may differ based on your ins
 
     ---
 
-    **Required for Commands.** This must match your `-ServerAdminPassword=`. RSM uses this to authenticate RCON sessions.
+    **Required for Commands.** This must match your `-ServerAdminPassword=` that you put into the custom arguments. RSM uses this to authenticate RCON sessions.
 
     ![Adding Admin Pass - glow](../assets/images/ark-steps/ark-files-needed-portpass.png)
+
+---
+
 </div>
+
+---
+
+!!! abstract "More Custom Arguments"
+    <div align="center" markdown>
+    For a full list of custom arguments, click the button below:
+
+    [![Ark Wiki Link](../../assets/images/ark-steps/arksLogo.png){: style="width: 75px;"}](https://ark.fandom.com/wiki/Server_configuration){:target="_blank" .md-button}
+    </div>
 
 ---
 
@@ -85,9 +97,7 @@ When using the Ark preset in RSM, your **Arguments** field should look similar t
 | `-RCONPort=27020` | Defines the port RSM uses to send commands. |
 | `-ServerAdminPassword=...` | Sets the credentials for RSM to log in. |
 
----
-
-## <p style="text-align: center; text-shadow: 0 0 15px rgba(0,123,255,0.5);">🚀 Adding to RSM</p>
+## 🚀 Adding to RSM {: .rsm-header }
 
 1.  **Open Manager:** Click **Add Server** and select the **Ark: Survival** card.
 <div class="rsm-screenshot" markdown>
