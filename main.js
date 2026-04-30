@@ -892,50 +892,59 @@ function findServType(srv) {
 // --- UNIVERSAL PROCESS SEARCH FUNCTION (Used for finding the actual game process when using the PowerShell bridge method) ---
 function performSearch(parentPid, exeName, workingDir, finalizeCallback, event) {
     const { exec } = require('child_process');
+    const searchExe = exeName.toLowerCase();
+    const searchDir = workingDir.toLowerCase().replace(/\\/g, '/');
 
-    // STEP 1: Search by Parent-Child link using WMIC.
-    // This is the cleanest way: looking for any process that was born from our PowerShell bridge.
-    exec(`wmic process where ParentProcessId=${parentPid} get ProcessId,CommandLine`, (err, stdout) => {
-        if (!err && stdout && stdout.trim().split('\n').length > 1) {
-            const lines = stdout.trim().split('\n').slice(1);
-            // We grab the last column which is usually the ProcessId
-            const foundPid = parseInt(lines[0].trim().split(/\s+/).pop());
+    // STEP 1: Search children of our PowerShell bridge, filtered by EXE name.
+    // Using CSV format for reliable parsing. Filters by EXE name in CommandLine
+    // so we don't latch onto conhost.exe or other PS child processes.
+    exec(`wmic process where "ParentProcessId=${parentPid}" get CommandLine,ProcessId /format:csv`, (err, stdout) => {
+        if (!err && stdout) {
+            const lines = stdout.trim().split('\n').filter(l => l.trim());
+            for (const line of lines) {
+                if (!line.toLowerCase().includes(searchExe)) continue;
 
-            if (!isNaN(foundPid) && foundPid !== 0) {
-                DebugLog(`Deep Search: Found via Parent Link: ${foundPid}`);
-                finalizeCallback(foundPid);
-                return;
-            }
-        }
-
-        // STEP 2: Universal Fallback using Tasklist.
-        // If the Parent-Child link is broken (common with some game launchers), 
-        // we look for an EXE name matching our server in the correct working directory.
-        exec(`tasklist /V /FO CSV`, (err, stdout) => {
-            if (err || !stdout) return;
-
-            const lines = stdout.trim().split('\n');
-            const searchExe = exeName.toLowerCase().replace(".exe", "");
-            const searchDir = workingDir.toLowerCase().replace(/\\/g, '/');
-            DebugLog(`Performing universal fallback search for EXE: '${searchExe}' in DIR: '${searchDir}'`);
-
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].toLowerCase().replace(/\\/g, '/');
-                DebugLog(`Checking line: ${line}`);
-
-                // We check if the line contains either the EXE name or the working directory
-                if (line.includes(searchExe) || line.includes(searchDir)) {
-                    const columns = lines[i].split('","').map(c => c.replace(/"/g, ''));
-                    const foundPid = parseInt(columns[1]);
-                    DebugLog(`Potential match found in tasklist: PID ${foundPid} | Line: ${line}`);
-
-                    // Verify it's a valid PID and not just the PowerShell bridge itself
-                    if (!isNaN(foundPid) && foundPid !== parentPid && foundPid !== 0) {
-                        DebugLog(`Deep Search: Found via Universal Fallback: ${foundPid}`);
+                // CSV: Node,CommandLine,ProcessId — ProcessId is always the last field
+                const lastComma = line.lastIndexOf(',');
+                if (lastComma !== -1) {
+                    const foundPid = parseInt(line.substring(lastComma + 1).trim());
+                    if (!isNaN(foundPid) && foundPid !== 0) {
+                        DebugLog(`Deep Search: Found via Parent Link: ${foundPid}`);
                         finalizeCallback(foundPid);
                         return;
                     }
                 }
+            }
+        }
+
+        // STEP 2: Search all processes matching the EXE name, then filter by instance
+        // working directory in the CommandLine. This handles broken parent-child links
+        // and correctly distinguishes between multiple running instances of the same server.
+        exec(`wmic process where "Name='${exeName}'" get CommandLine,ProcessId /format:csv`, (err2, stdout2) => {
+            if (err2 || !stdout2) return;
+
+            DebugLog(`Performing instance search for EXE: '${searchExe}' in DIR: '${searchDir}'`);
+
+            const lines = stdout2.trim().split('\n').filter(l => l.trim());
+            for (const line of lines) {
+                const lineLow = line.toLowerCase().replace(/\\/g, '/');
+                if (!lineLow.includes(searchExe)) continue;
+
+                // Check if the CommandLine references the correct instance working directory
+                const dirMatch = lineLow.includes(searchDir);
+                const lastComma = line.lastIndexOf(',');
+                if (lastComma === -1) continue;
+
+                const foundPid = parseInt(line.substring(lastComma + 1).trim());
+                if (isNaN(foundPid) || foundPid === 0 || foundPid === parentPid) continue;
+
+                if (dirMatch) {
+                    DebugLog(`Deep Search: Found via Instance Match (EXE + dir): ${foundPid}`);
+                } else {
+                    DebugLog(`Deep Search: Found via EXE Name only (no dir match): ${foundPid}`);
+                }
+                finalizeCallback(foundPid);
+                return;
             }
         });
     });
