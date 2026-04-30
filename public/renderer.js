@@ -779,7 +779,7 @@ window.api.receive('console-out', (data) => {
 });
 
 // Updates the UI when a server starts, stops, or crashes
-window.api.receive('status-change', (event, data) => {
+window.api.receive('status-change', (data) => {
     const srv = servers.find(s => s.id === data.id);
     if (srv) {
         srv.status = data.status;
@@ -816,7 +816,7 @@ window.api.receive('status-change', (event, data) => {
 
 // Receives CPU/RAM data every 2 seconds and updates the circular gauges
 // 1. Listen for the specific server heartbeat/perf update
-window.api.receive('server-perf-update', (event, data) => {
+window.api.receive('server-perf-update', (data) => {
     console.log(`Update received for ${data.id}. Current view is ${activeId}`);
     const srv = servers.find(s => s.id === data.id);
     if (!srv) return;
@@ -834,7 +834,7 @@ window.api.receive('server-perf-update', (event, data) => {
 });
 
 // 2. Listen for the Total machine usage (Home Screen)
-window.api.receive('total-performance-update', (event, data) => {
+window.api.receive('total-performance-update', (data) => {
     // Check if the element is actually visible to the user
     const homeView = document.getElementById('no-selection');
     const isVisible = homeView && window.getComputedStyle(homeView).display !== 'none';
@@ -1129,5 +1129,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-window.api.receive('system-error', (event, errorMsg) => window.updateSystemLog(`ERROR: ${errorMsg}`));
-window.api.receive('system-info', (event, infoMsg) => window.updateSystemLog(`INFO: ${infoMsg}`));
+window.api.receive('system-error', (errorMsg) => window.updateSystemLog(`ERROR: ${errorMsg}`));
+window.api.receive('system-info', (infoMsg) => window.updateSystemLog(`INFO: ${infoMsg}`));

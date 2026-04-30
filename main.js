@@ -516,32 +516,14 @@ ipcMain.on('stop-server', (event, srvId) => {
         } else {
             event.reply('system-info', `[RSM] Windows OS has acknowledged the stop request for PID ${pid}.`);
         }
+        // Trigger cleanup immediately after the stop command completes rather than
+        // waiting for the 10-second verification timeout — the heartbeat is a safety net.
+        if (typeof cleanup === 'function') {
+            cleanup();
+        }
     });
 
     event.reply('system-info', `[RSM] Shutdown signals sent. Monitoring for exit...`);
-
-
-    // --- Track C: Post-Shutdown Verification ---
-    // We check after 10s. If it's gone, we trigger the UI cleanup.
-    setTimeout(() => {
-        exec(`tasklist /fi "PID eq ${pid}"`, (err, stdout) => {
-            const isStillAlive = stdout && stdout.includes(pid.toString());
-
-            if (!isStillAlive) {
-                event.reply('system-info', `[RSM] Shutdown verified. Cleaning up registry...`);
-                DebugLog(`PID ${pid} no longer in tasklist. Proceeding with cleanup.`);
-                // This ensures the Heartbeat stops and the UI flips to Offline
-                if (typeof cleanup === 'function') {
-                    cleanup();
-                }
-            } else {
-                event.reply('console-out', {
-                    id: srvId,
-                    msg: `\n[RSM-WARN] PID ${pid} is still active. It may be finalizing a large save file.\n`
-                });
-            }
-        });
-    }, 10000);
 });
 
 // --- FORCE KILL LOGIC (For Unresponsive Servers) ---
