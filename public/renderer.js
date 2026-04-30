@@ -925,6 +925,8 @@ window.selectServerType = (type) => {
         // Show everything for generic setup
         document.querySelectorAll('.platform-specific').forEach(b => b.style.display = 'block');
         document.getElementById('path-label').innerText = "EXECUTABLE PATH";
+        document.getElementById('port-label').innerText = "PORT";
+        document.getElementById('portpass-label').innerText = "PASSWORD";
 
         // Reset to neutral defaults
         const neutralFields = ['newName', 'exePath', 'workingDir', 'customArgs', 'portId', 'logPath', 'portPass'];
@@ -941,9 +943,15 @@ window.selectServerType = (type) => {
     
     // Apply UI Visibility (Blocks)
     // We map the config object directly to the element styles
-    // 1. Handle the Label separately (it's text, not a display style)
+    // 1. Handle labels separately (they're text, not display styles)
     const labelEl = document.getElementById('path-label');
     if (labelEl) labelEl.innerText = config.label || "EXECUTABLE PATH";
+
+    const portLabelEl = document.getElementById('port-label');
+    if (portLabelEl) portLabelEl.innerText = (config.defaults?.portId || "PORT").toUpperCase();
+
+    const portPassLabelEl = document.getElementById('portpass-label');
+    if (portPassLabelEl) portPassLabelEl.innerText = (config.defaults?.portPass || "PASSWORD").toUpperCase();
 
     // 2. Map Config Blocks to UI Block IDs
     const blockMap = {
