@@ -183,15 +183,6 @@ ipcMain.on('update-startup-settings', (event, isEnabled) => {
     console.log(`[RSM] Launch on startup set to: ${isEnabled}`);
 });
 
-// --- Global Total Usage (Runs once, not per server) ---
-setInterval(() => {
-    const totalRamUsage = ((os.totalmem() - os.freemem()) / os.totalmem() * 100).toFixed(0);
-    // Note: CPU usage in Node is best handled with a library or a quick os.loadavg()
-    mainWindow.webContents.send('total-performance-update', {
-        cpu: (os.loadavg()[0] * 10).toFixed(0), // Rough estimate for Windows
-        ram: `${totalRamUsage}%`
-    });
-}, 5000);
 
 //      _        _   _   _ _   _  ____ _   _   ____  _____ ______     _______ ____
 //     | |      / \ | | | | \ | |/ ___| | | | / ___|| ____|  _ \ \   / / ____|  _ \
@@ -256,7 +247,7 @@ ipcMain.on('start-server', (event, srv) => {
             DebugLog(`[RSM-DEBUG] ${srv.name} is a UI based server. Using shell pipe instead of file watcher.`);
         }
 
-        activeProcesses[srv.id] = { pid: pid, shell: child };
+        activeProcesses[srv.id] = { pid: pid, shell: child, cleanup: stopServerCleanup };
         DebugLog(`Registered ${srv.name} in activeProcesses.`);
 
         // 3. Start your Heartbeat monitor
@@ -477,7 +468,7 @@ ipcMain.on('stop-server', (event, srvId) => {
         return;
     }
 
-    const { pid, shell } = processInfo;
+    const { pid, shell, cleanup } = processInfo;
     event.reply('system-info', `[RSM] Identifying PID ${pid}. Sending graceful shutdown sequence...`);
     DebugLog(`Preparing to stop PID ${pid} with shell:`, !!shell);
 
@@ -530,8 +521,8 @@ ipcMain.on('stop-server', (event, srvId) => {
                 event.reply('system-info', `[RSM] Shutdown verified. Cleaning up registry...`);
                 DebugLog(`PID ${pid} no longer in tasklist. Proceeding with cleanup.`);
                 // This ensures the Heartbeat stops and the UI flips to Offline
-                if (typeof stopServerCleanup === 'function') {
-                    stopServerCleanup();
+                if (typeof cleanup === 'function') {
+                    cleanup();
                 }
             } else {
                 event.reply('console-out', {
@@ -822,7 +813,7 @@ ipcMain.on('send-command', async (event, { srvId, command }) => {
             event.reply('console-out', { id: srvId, msg: `[RSM-API] Sent: ${cleanCmd}\nResponse: ${response}\n` });
 
             rcon.end();
-            event.reply('console-out', { id: srvId, msg: `> ${cleanCmd}\n${response ? resonse + '\n' : ''}` });
+            event.reply('console-out', { id: srvId, msg: `> ${cleanCmd}\n${response ? response + '\n' : ''}` });
 
         } catch (err) {
             event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] RCON Failed: ${err.message}\n` });
