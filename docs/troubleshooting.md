@@ -13,7 +13,7 @@ These issues can occur with any game type regardless of server software.
 
 ---
 
-### :material-play-circle-outline: Server Starts Then Immediately Goes Offline {: .rsm-header }
+### ▶️ Server Starts Then Immediately Goes Offline {: .rsm-header }
 
 The server process launched but exited before RSM could attach to it.
 
@@ -36,7 +36,7 @@ The server process launched but exited before RSM could attach to it.
 
 ---
 
-### :material-console-off: Console is Blank — No Output Appearing {: .rsm-header }
+### 🖥️ Console is Blank — No Output Appearing {: .rsm-header }
 
 The server is running but RSM shows no text in the console panel.
 
@@ -59,7 +59,7 @@ The server is running but RSM shows no text in the console panel.
 
 ---
 
-### :material-circle-half-full: Status Dot Not Updating After Shutdown {: .rsm-header }
+### 🔴 Status Dot Not Updating After Shutdown {: .rsm-header }
 
 The green pulse stays green for several seconds after clicking **Shutdown**, or never turns red at all.
 
@@ -73,7 +73,7 @@ The green pulse stays green for several seconds after clicking **Shutdown**, or 
 
 ---
 
-### :material-folder-search-outline: Browse Buttons Don't Open File Explorer {: .rsm-header }
+### 📂 Browse Buttons Don't Open File Explorer {: .rsm-header }
 
 Clicking a **Browse** button in the Add Server wizard does nothing.
 
@@ -85,7 +85,7 @@ Clicking a **Browse** button in the Add Server wizard does nothing.
 
 ---
 
-### :material-swap-horizontal: Two Servers Sharing the Same PID / Wrong Server Goes Online {: .rsm-header }
+### 🔄 Two Servers Sharing the Same PID / Wrong Server Goes Online {: .rsm-header }
 
 You start a second instance of the same game and RSM assigns the same PID to both, or marks the wrong server as Online.
 
@@ -102,7 +102,7 @@ You start a second instance of the same game and RSM assigns the same PID to bot
 
 ---
 
-### :material-ghost-outline: Server Shows "Online" Immediately After RSM Restarts {: .rsm-header }
+### 👻 Server Shows "Online" Immediately After RSM Restarts {: .rsm-header }
 
 RSM was restarted (or the PC was rebooted) and a server that was previously stopped is incorrectly shown as Online.
 
@@ -115,7 +115,7 @@ RSM was restarted (or the PC was rebooted) and a server that was previously stop
 
 ---
 
-### :material-lightning-bolt-circle: Quick Actions / Console Commands Do Nothing {: .rsm-header }
+### ⚡ Quick Actions / Console Commands Do Nothing {: .rsm-header }
 
 You click a Quick Action button or type a command and nothing happens on the server.
 
@@ -138,7 +138,7 @@ You click a Quick Action button or type a command and nothing happens on the ser
 
 ---
 
-### :material-shield-account: Admin Badge is Red / Missing {: .rsm-header }
+### 🛡️ Admin Badge is Red / Missing {: .rsm-header }
 
 The shield icon in the RSM header is red, indicating RSM is not running with Administrator privileges.
 
@@ -152,7 +152,7 @@ The shield icon in the RSM header is red, indicating RSM is not running with Adm
 
 ---
 
-### :material-memory: RSM Itself Is Using High CPU or RAM {: .rsm-header }
+### 💾 RSM Itself Is Using High CPU or RAM {: .rsm-header }
 
 The manager's own process is consuming significant resources, separate from the game servers.
 
@@ -172,7 +172,7 @@ Select your game below.
 
 === ":material-minecraft: Minecraft"
 
-    ### :material-gavel: Server Exits Immediately — EULA Not Accepted {: .rsm-header }
+    ### ⚠️ Server Exits Immediately — EULA Not Accepted {: .rsm-header }
 
     ??? failure "Server closes with 'You need to agree to the EULA'"
 
@@ -185,7 +185,7 @@ Select your game below.
 
     ---
 
-    ### :material-coffee: Java Not Found or Wrong Version {: .rsm-header }
+    ### ☕ Java Not Found or Wrong Version {: .rsm-header }
 
     ??? failure "RSM can't find java.exe or server starts with errors"
 
@@ -198,7 +198,7 @@ Select your game below.
 
     ---
 
-    ### :material-window-close: Server Window Opens but Console is Blank {: .rsm-header }
+    ### ❌ Server Window Opens but Console is Blank {: .rsm-header }
 
     ??? warning "Output visible in the Java window but not in RSM"
 
@@ -209,7 +209,7 @@ Select your game below.
 
     ---
 
-    ### :material-memory: Server Lags Badly or Runs Out of Memory {: .rsm-header }
+    ### 💾 Server Lags Badly or Runs Out of Memory {: .rsm-header }
 
     ??? warning "RAM allocation issues"
 
@@ -221,7 +221,7 @@ Select your game below.
 
     ---
 
-    ### :material-file-question: `server.jar` Not Found {: .rsm-header }
+    ### ❓ `server.jar` Not Found {: .rsm-header }
 
     ??? failure "Error: unable to access jarfile server.jar"
 
@@ -233,7 +233,7 @@ Select your game below.
 
 === ":material-rocket-launch: Space Engineers"
 
-    ### :material-ethernet-off: Second Instance Fails — Port Already In Use {: .rsm-header }
+    ### 🔌 Second Instance Fails — Port Already In Use {: .rsm-header }
 
     ??? failure "Error binding server endpoint: Only one usage of each socket address"
 
@@ -250,7 +250,7 @@ Select your game below.
 
     ---
 
-    ### :material-clock-outline: Console Output is Delayed by 1–2 Seconds {: .rsm-header }
+    ### 🕐 Console Output is Delayed by 1–2 Seconds {: .rsm-header }
 
     ??? info "Slight delay in SE log output — this is normal"
 
@@ -258,7 +258,7 @@ Select your game below.
 
     ---
 
-    ### :material-console-line: Commands Return No Response {: .rsm-header }
+    ### 💻 Commands Return No Response {: .rsm-header }
 
     ??? warning "Quick Actions or console commands do nothing in SE"
 
@@ -270,7 +270,7 @@ Select your game below.
 
     ---
 
-    ### :material-folder-arrow-right: `-path` Argument Must Match Working Directory {: .rsm-header }
+    ### 📁 `-path` Argument Must Match Working Directory {: .rsm-header }
 
     ??? warning "SE loads the wrong instance or wrong world"
 
@@ -286,7 +286,7 @@ Select your game below.
 
     ---
 
-    ### :material-shield-account: SE Crashes Immediately — Admin Rights Required {: .rsm-header }
+    ### 🛡️ SE Crashes Immediately — Admin Rights Required {: .rsm-header }
 
     ??? failure "Access denied or network binding errors on start"
 
@@ -297,7 +297,7 @@ Select your game below.
 
 === ":material-paw: Ark: Survival"
 
-    ### :material-console-off: Console is Empty After Server Starts {: .rsm-header }
+    ### 🖥️ Console is Empty After Server Starts {: .rsm-header }
 
     ??? warning "No log output in RSM for an Ark server"
 
@@ -313,7 +313,7 @@ Select your game below.
 
     ---
 
-    ### :material-key-alert: RCON Commands Fail or Return Errors {: .rsm-header }
+    ### 🔑 RCON Commands Fail or Return Errors {: .rsm-header }
 
     ??? failure "Commands do nothing or RSM shows an RCON connection error"
 
@@ -326,7 +326,7 @@ Select your game below.
 
     ---
 
-    ### :material-crash: Server Crashes Immediately After Launch {: .rsm-header }
+    ### 💥 Server Crashes Immediately After Launch {: .rsm-header }
 
     ??? failure "ShooterGameServer.exe exits within seconds"
 
@@ -337,7 +337,7 @@ Select your game below.
 
     ---
 
-    ### :material-server-network: Multiple Instances Conflict {: .rsm-header }
+    ### 🌐 Multiple Instances Conflict {: .rsm-header }
 
     ??? warning "Second Ark server crashes or can't be found by players"
 
@@ -353,7 +353,7 @@ Select your game below.
 
     ---
 
-    ### :material-timer-sand: Console is Blank for the First Minute {: .rsm-header }
+    ### ⏳ Console is Blank for the First Minute {: .rsm-header }
 
     ??? info "No output during initial Ark startup — this is normal"
 
@@ -362,7 +362,7 @@ Select your game below.
 
 === ":material-leaf: Terraria"
 
-    ### :material-console-network-outline: Quick Actions Are Not Available {: .rsm-header }
+    ### ⚡ Quick Actions Are Not Available {: .rsm-header }
 
     ??? info "No Quick Action buttons appear for Terraria"
 
@@ -372,7 +372,7 @@ Select your game below.
 
     ---
 
-    ### :material-file-cog: Server Ignores Config or Starts With Wrong World {: .rsm-header }
+    ### ⚙️ Server Ignores Config or Starts With Wrong World {: .rsm-header }
 
     ??? warning "Terraria loads the wrong world or ignores config file"
 
@@ -384,7 +384,7 @@ Select your game below.
 
     ---
 
-    ### :material-ethernet-alert: Port Conflict With Multiple Terraria Instances {: .rsm-header }
+    ### ⚠️ Port Conflict With Multiple Terraria Instances {: .rsm-header }
 
     ??? warning "Second Terraria server crashes or is unreachable"
 
@@ -398,7 +398,7 @@ Select your game below.
 
     ---
 
-    ### :material-clock-fast: Server Starts Slowly — World Generation Takes Time {: .rsm-header }
+    ### ⏱️ Server Starts Slowly — World Generation Takes Time {: .rsm-header }
 
     ??? info "RSM shows 'Starting' for a long time — this is normal for new worlds"
 
