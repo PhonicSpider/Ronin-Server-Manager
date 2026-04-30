@@ -213,8 +213,15 @@ ipcMain.on('start-server', (event, srv) => {
 
     // --- LIFECYCLE ---
     function finalizeProcess(pid) {
-        if (srv.status === 'Online' && srv.pid === pid && logWatcher) return;
+        if (srv.status === 'Online' && srv.pid === pid) return;
         DebugLog(`Finalizing process for ${srv.name}: PID ${pid}`);
+
+        // Stop the search interval immediately — don't wait for the next tick
+        if (searchRetry) {
+            clearInterval(searchRetry);
+            searchRetry = null;
+            DebugLog(`Stopped search retry interval after finding PID ${pid}.`);
+        }
 
         actualGamePid = pid;
         srv.pid = pid;
@@ -232,7 +239,7 @@ ipcMain.on('start-server', (event, srv) => {
         }
 
         // 1. Update the UI state
-        event.reply('server-status-update', { id: srv.id, status: 'Online', pid: pid });
+        event.reply('status-change', { id: srv.id, status: 'Online', pid: pid });
 
         // 2. Hybrid Log Logic: if (DebugActive) console.log(`[RSM-DEBUG] 
         // Direct Consoles already have child.stdout active.
