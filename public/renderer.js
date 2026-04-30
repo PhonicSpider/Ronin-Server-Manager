@@ -287,6 +287,29 @@ function selectServer(id) {
 
     const showGuiBtn = document.getElementById('show-gui-btn');
     if (showGuiBtn) showGuiBtn.disabled = (srv.status === 'Online');
+
+    // --- QUICK ACTIONS ---
+    const config = ServerTypeRegistry[srv.type];
+    const actions = config?.quickActions || [];
+    const qaCard = document.getElementById('quick-actions-card');
+    const qaBar = document.getElementById('quick-actions-bar');
+
+    if (qaCard && qaBar) {
+        if (actions.length > 0) {
+            qaBar.innerHTML = '';
+            actions.forEach(({ label, command }) => {
+                const btn = document.createElement('button');
+                btn.className = 'quick-action-btn';
+                btn.textContent = label;
+                btn.disabled = (srv.status !== 'Online');
+                btn.onclick = () => window.sendQuickAction(command);
+                qaBar.appendChild(btn);
+            });
+            qaCard.style.display = 'block';
+        } else {
+            qaCard.style.display = 'none';
+        }
+    }
 }
 
 /**
@@ -548,6 +571,28 @@ window.sendConsoleCommand = (event) => {
             window.updateSystemLog(`Command sent to ${srv ? srv.name : 'Unknown'}: ${command}`);
         }
     }
+};
+
+/**
+ * QUICK ACTION BUTTONS
+ * Fires a predefined command for the active server without needing the console input.
+ */
+window.sendQuickAction = (command) => {
+    if (!activeId) return;
+    const srv = servers.find(s => s.id === activeId);
+    const consoleEl = document.getElementById('console');
+
+    if (consoleEl) {
+        const echoLine = document.createElement('div');
+        echoLine.style.color = '#888';
+        echoLine.style.whiteSpace = 'pre-wrap';
+        echoLine.textContent = `> ${command}`;
+        consoleEl.appendChild(echoLine);
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    window.api.send('send-command', { srvId: activeId, command });
+    window.updateSystemLog(`Quick action sent to ${srv ? srv.name : 'Unknown'}: ${command}`);
 };
 
 /**

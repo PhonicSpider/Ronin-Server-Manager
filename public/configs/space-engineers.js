@@ -32,5 +32,10 @@ export const spaceEngineers = {
         portId: "placeholder",
         portPass: "placeholder",
         customArgs: "value"
-    }
+    },
+    quickActions: [
+        { label: 'Save World',     command: '\\save' },
+        { label: 'Server Status',  command: '\\status' },
+        { label: 'List Players',   command: '\\players' },
+    ]
 };

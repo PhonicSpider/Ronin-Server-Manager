@@ -26,5 +26,11 @@ export const minecraft = {
         exePath: "placeholder",
         workingDir: "placeholder",
         customArgs: "value"
-    }
+    },
+    quickActions: [
+        { label: 'List Players', command: 'list' },
+        { label: 'Save World',   command: 'save-all' },
+        { label: 'Set Day',      command: 'time set day' },
+        { label: 'Clear Weather', command: 'weather clear' },
+    ]
 };
