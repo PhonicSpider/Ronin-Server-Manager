@@ -16,13 +16,18 @@ export const ark = {
         args: 'block'      // Changed from customArgs to args
     },
     defaults: { // Optional placeholders if blocks are enabled, can set any block placeholder or value here
-        exePath: "C:\\Path\\To\\Executable",
-        customArgs: "?listen?SessionName=RoninServer -RCONEnabled -RCONPort=27020 -ServerAdminPassword=ronin -NoBattlEye -servergamelog",
+        newName: "e.g. Ark - Island Survival",
+        exePath: "C:\\Servers\\Ark\\ShooterGame\\Binaries\\Win64\\ShooterGameServer.exe",
+        workingDir: "C:\\Servers\\Ark",
+        customArgs: "?listen?SessionName=RoninServer -RCONEnabled -RCONPort=27020 -ServerAdminPassword= -NoBattlEye -servergamelog",
         logPath: "C:\\Path\\To\\log\\Folder",
         portId: "RCON Port",
         portPass: "RCON Password"
     },
     varInputs: { // Determine whether defaults will be placeholders or values
+        newName: "placeholder",
+        exePath: "placeholder",
+        workingDir: "placeholder",
         customArgs: "value",
         logPath: "placeholder",
         portId: "placeholder",
