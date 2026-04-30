@@ -898,6 +898,11 @@ function performSearch(parentPid, exeName, workingDir, finalizeCallback, event) 
     const searchExe = exeName.toLowerCase();
     const searchDir = workingDir.toLowerCase().replace(/\\/g, '/');
 
+    // PIDs already assigned to other servers — never steal them for a second instance
+    const claimedPids = new Set(
+        Object.values(activeProcesses).map(p => p.pid).filter(Boolean)
+    );
+
     // STEP 1: Search children of our PowerShell bridge, filtered by EXE name.
     // Using CSV format for reliable parsing. Filters by EXE name in CommandLine
     // so we don't latch onto conhost.exe or other PS child processes.
@@ -911,7 +916,7 @@ function performSearch(parentPid, exeName, workingDir, finalizeCallback, event) 
                 const lastComma = line.lastIndexOf(',');
                 if (lastComma !== -1) {
                     const foundPid = parseInt(line.substring(lastComma + 1).trim());
-                    if (!isNaN(foundPid) && foundPid !== 0) {
+                    if (!isNaN(foundPid) && foundPid !== 0 && !claimedPids.has(foundPid)) {
                         DebugLog(`Deep Search: Found via Parent Link: ${foundPid}`);
                         finalizeCallback(foundPid);
                         return;
@@ -920,9 +925,9 @@ function performSearch(parentPid, exeName, workingDir, finalizeCallback, event) 
             }
         }
 
-        // STEP 2: Search all processes matching the EXE name, then filter by instance
-        // working directory in the CommandLine. This handles broken parent-child links
-        // and correctly distinguishes between multiple running instances of the same server.
+        // STEP 2: Search all processes matching the EXE name, filtered by instance
+        // working directory. No dir match = no claim. If the process hasn't appeared
+        // yet the retry interval will try again in 3 seconds.
         exec(`wmic process where "Name='${exeName}'" get CommandLine,ProcessId /format:csv`, (err2, stdout2) => {
             if (err2 || !stdout2) return;
 
@@ -933,22 +938,20 @@ function performSearch(parentPid, exeName, workingDir, finalizeCallback, event) 
                 const lineLow = line.toLowerCase().replace(/\\/g, '/');
                 if (!lineLow.includes(searchExe)) continue;
 
-                // Check if the CommandLine references the correct instance working directory
-                const dirMatch = lineLow.includes(searchDir);
                 const lastComma = line.lastIndexOf(',');
                 if (lastComma === -1) continue;
 
                 const foundPid = parseInt(line.substring(lastComma + 1).trim());
-                if (isNaN(foundPid) || foundPid === 0 || foundPid === parentPid) continue;
+                if (isNaN(foundPid) || foundPid === 0 || foundPid === parentPid || claimedPids.has(foundPid)) continue;
 
-                if (dirMatch) {
+                if (lineLow.includes(searchDir)) {
                     DebugLog(`Deep Search: Found via Instance Match (EXE + dir): ${foundPid}`);
-                } else {
-                    DebugLog(`Deep Search: Found via EXE Name only (no dir match): ${foundPid}`);
+                    finalizeCallback(foundPid);
+                    return;
                 }
-                finalizeCallback(foundPid);
-                return;
             }
+
+            DebugLog(`Deep Search: No unclaimed instance found yet, will retry...`);
         });
     });
 }
