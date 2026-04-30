@@ -26,7 +26,10 @@ const DebugCPURAM = false; // Set to true to enable detailed CPU/RAM logging in 
 function loadServers() {
     if (fs.existsSync(DATA_FILE)) {
         try {
-            return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+            const servers = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+            // Always start with every server Offline — syncActiveServers() will
+            // re-link any that are genuinely still running after the app loads.
+            return servers.map(s => ({ ...s, status: 'Offline', pid: null }));
         } catch (e) {
             console.error("[RSM] Failed to load servers.json:", e);
             return [];
