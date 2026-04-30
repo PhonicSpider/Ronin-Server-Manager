@@ -111,3 +111,10 @@ mkdocs serve
 
 ### ​🆘 Need Help?
 ​If you're unsure where to start, check the Issues tab or open a new discussion to chat about your ideas.
+
+---
+
+## ⚖️ License
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. 
+This ensures the software remains free and open-source, and any derivative works 
+must also be shared under the same protective terms.
