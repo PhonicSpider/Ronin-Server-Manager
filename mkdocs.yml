@@ -34,6 +34,7 @@ nav:
       - ☢️ Rust: servers/rust.md
       - 👹 PalWorld: servers/palworld.md
   - 🛠️ Support: troubleshooting.md
+  - 🔥 Contributing: contributing.md
 
 markdown_extensions:
   - admonition
