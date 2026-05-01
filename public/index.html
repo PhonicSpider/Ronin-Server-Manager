@@ -128,6 +128,11 @@
                 </div>
             </div>
 
+            <div id="quick-actions-card" class="card quick-actions-card" style="display:none;">
+                <span class="stat-label">QUICK ACTIONS</span>
+                <div id="quick-actions-bar" class="quick-actions-bar"></div>
+            </div>
+
             <div id="crash-alert" class="alert-banner" style="display:none;">
                 <span id="crash-msg">Crash detected</span>
             </div>
@@ -331,12 +336,12 @@
                         <input type="text" id="logPath" readonly placeholder="Select log location...">
                         <button class="btn btn-outline" onclick="browseLogFolder()">Browse</button>
                     </div>
-                    <p style="font-size: 11px; color: var(--dim); margin-top: 4px;">Point this to your SpaceEngineersDedicated.log file.</p>
+                    <p style="font-size: 11px; color: var(--dim); margin-top: 4px;">Point this to the folder containing your server's log files.</p>
                 </div>
 
                 <div id="port-block" class="input-block platform-specific">
                     <!-- RCON PORT -->
-                    <label class="tiny-label">RCON Port</label>
+                    <label class="tiny-label" id="port-label">PORT</label>
                     <div class="path-group">
                         <input type="text" id="portId" value="8080" />
                     </div>
@@ -344,7 +349,7 @@
 
                 <div id="portpass-block" class="input-block platform-specific">
                     <!-- RCON PASSWORD-->
-                    <label class="tiny-label">RCON Password</label>
+                    <label class="tiny-label" id="portpass-label">PASSWORD</label>
                     <div class="path-group">
                         <input type="text" id="portPass" placeholder="Server Remote API Password"/>
                     </div>

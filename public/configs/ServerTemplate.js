@@ -5,7 +5,16 @@
         icon: "logos/gameLogo.png" // or a regular emoji will work as well (e.g. "🎮")
     }
     backend: {
-        category: "DIRECT_CONSOLE" // or "POWERSHELL_BRIDGE" Mainly for determining how to send commands to the server process.
+        // DIRECT_CONSOLE  — process is spawned directly; PID is captured immediately, no deep search needed.
+        //                   Use for Java/script-based servers (Minecraft, etc.).
+        // POWERSHELL_BRIDGE — process is launched hidden via PowerShell; PID is found via deep search.
+        //                   Use for native .exe servers (SE, Ark, Terraria, etc.).
+        //                   Multi-instance note: the deep search first tries parent-child (reliable for most
+        //                   games). If the game self-relaunches and breaks that link (like Space Engineers),
+        //                   it falls back to matching the workingDir path inside the process CommandLine.
+        //                   For self-relaunching games, make sure workingDir also appears in customArgs
+        //                   (e.g. SE uses -path "<workingDir>") so each instance can be told apart.
+        category: "DIRECT_CONSOLE"
     },
 
     // --- Fields for configuring how the server setup modal should look and function for this game. ---

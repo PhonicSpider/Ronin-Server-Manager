@@ -26,7 +26,10 @@ const DebugCPURAM = false; // Set to true to enable detailed CPU/RAM logging in 
 function loadServers() {
     if (fs.existsSync(DATA_FILE)) {
         try {
-            return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+            const servers = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+            // Always start with every server Offline — syncActiveServers() will
+            // re-link any that are genuinely still running after the app loads.
+            return servers.map(s => ({ ...s, status: 'Offline', pid: null }));
         } catch (e) {
             console.error("[RSM] Failed to load servers.json:", e);
             return [];
@@ -213,8 +216,15 @@ ipcMain.on('start-server', (event, srv) => {
 
     // --- LIFECYCLE ---
     function finalizeProcess(pid) {
-        if (srv.status === 'Online' && srv.pid === pid && logWatcher) return;
+        if (srv.status === 'Online' && srv.pid === pid) return;
         DebugLog(`Finalizing process for ${srv.name}: PID ${pid}`);
+
+        // Stop the search interval immediately — don't wait for the next tick
+        if (searchRetry) {
+            clearInterval(searchRetry);
+            searchRetry = null;
+            DebugLog(`Stopped search retry interval after finding PID ${pid}.`);
+        }
 
         actualGamePid = pid;
         srv.pid = pid;
@@ -232,7 +242,7 @@ ipcMain.on('start-server', (event, srv) => {
         }
 
         // 1. Update the UI state
-        event.reply('server-status-update', { id: srv.id, status: 'Online', pid: pid });
+        event.reply('status-change', { id: srv.id, status: 'Online', pid: pid });
 
         // 2. Hybrid Log Logic: if (DebugActive) console.log(`[RSM-DEBUG] 
         // Direct Consoles already have child.stdout active.
@@ -506,32 +516,14 @@ ipcMain.on('stop-server', (event, srvId) => {
         } else {
             event.reply('system-info', `[RSM] Windows OS has acknowledged the stop request for PID ${pid}.`);
         }
+        // Trigger cleanup immediately after the stop command completes rather than
+        // waiting for the 10-second verification timeout — the heartbeat is a safety net.
+        if (typeof cleanup === 'function') {
+            cleanup();
+        }
     });
 
     event.reply('system-info', `[RSM] Shutdown signals sent. Monitoring for exit...`);
-
-
-    // --- Track C: Post-Shutdown Verification ---
-    // We check after 10s. If it's gone, we trigger the UI cleanup.
-    setTimeout(() => {
-        exec(`tasklist /fi "PID eq ${pid}"`, (err, stdout) => {
-            const isStillAlive = stdout && stdout.includes(pid.toString());
-
-            if (!isStillAlive) {
-                event.reply('system-info', `[RSM] Shutdown verified. Cleaning up registry...`);
-                DebugLog(`PID ${pid} no longer in tasklist. Proceeding with cleanup.`);
-                // This ensures the Heartbeat stops and the UI flips to Offline
-                if (typeof cleanup === 'function') {
-                    cleanup();
-                }
-            } else {
-                event.reply('console-out', {
-                    id: srvId,
-                    msg: `\n[RSM-WARN] PID ${pid} is still active. It may be finalizing a large save file.\n`
-                });
-            }
-        });
-    }, 10000);
 });
 
 // --- FORCE KILL LOGIC (For Unresponsive Servers) ---
@@ -885,51 +877,63 @@ function findServType(srv) {
 // --- UNIVERSAL PROCESS SEARCH FUNCTION (Used for finding the actual game process when using the PowerShell bridge method) ---
 function performSearch(parentPid, exeName, workingDir, finalizeCallback, event) {
     const { exec } = require('child_process');
+    const searchExe = exeName.toLowerCase();
+    const searchDir = workingDir.toLowerCase().replace(/\\/g, '/');
 
-    // STEP 1: Search by Parent-Child link using WMIC.
-    // This is the cleanest way: looking for any process that was born from our PowerShell bridge.
-    exec(`wmic process where ParentProcessId=${parentPid} get ProcessId,CommandLine`, (err, stdout) => {
-        if (!err && stdout && stdout.trim().split('\n').length > 1) {
-            const lines = stdout.trim().split('\n').slice(1);
-            // We grab the last column which is usually the ProcessId
-            const foundPid = parseInt(lines[0].trim().split(/\s+/).pop());
+    // PIDs already assigned to other servers — never steal them for a second instance
+    const claimedPids = new Set(
+        Object.values(activeProcesses).map(p => p.pid).filter(Boolean)
+    );
 
-            if (!isNaN(foundPid) && foundPid !== 0) {
-                DebugLog(`Deep Search: Found via Parent Link: ${foundPid}`);
-                finalizeCallback(foundPid);
-                return;
-            }
-        }
+    // STEP 1: Search children of our PowerShell bridge, filtered by EXE name.
+    // Using CSV format for reliable parsing. Filters by EXE name in CommandLine
+    // so we don't latch onto conhost.exe or other PS child processes.
+    exec(`wmic process where "ParentProcessId=${parentPid}" get CommandLine,ProcessId /format:csv`, (err, stdout) => {
+        if (!err && stdout) {
+            const lines = stdout.trim().split('\n').filter(l => l.trim());
+            for (const line of lines) {
+                if (!line.toLowerCase().includes(searchExe)) continue;
 
-        // STEP 2: Universal Fallback using Tasklist.
-        // If the Parent-Child link is broken (common with some game launchers), 
-        // we look for an EXE name matching our server in the correct working directory.
-        exec(`tasklist /V /FO CSV`, (err, stdout) => {
-            if (err || !stdout) return;
-
-            const lines = stdout.trim().split('\n');
-            const searchExe = exeName.toLowerCase().replace(".exe", "");
-            const searchDir = workingDir.toLowerCase().replace(/\\/g, '/');
-            DebugLog(`Performing universal fallback search for EXE: '${searchExe}' in DIR: '${searchDir}'`);
-
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].toLowerCase().replace(/\\/g, '/');
-                DebugLog(`Checking line: ${line}`);
-
-                // We check if the line contains either the EXE name or the working directory
-                if (line.includes(searchExe) || line.includes(searchDir)) {
-                    const columns = lines[i].split('","').map(c => c.replace(/"/g, ''));
-                    const foundPid = parseInt(columns[1]);
-                    DebugLog(`Potential match found in tasklist: PID ${foundPid} | Line: ${line}`);
-
-                    // Verify it's a valid PID and not just the PowerShell bridge itself
-                    if (!isNaN(foundPid) && foundPid !== parentPid && foundPid !== 0) {
-                        DebugLog(`Deep Search: Found via Universal Fallback: ${foundPid}`);
+                // CSV: Node,CommandLine,ProcessId — ProcessId is always the last field
+                const lastComma = line.lastIndexOf(',');
+                if (lastComma !== -1) {
+                    const foundPid = parseInt(line.substring(lastComma + 1).trim());
+                    if (!isNaN(foundPid) && foundPid !== 0 && !claimedPids.has(foundPid)) {
+                        DebugLog(`Deep Search: Found via Parent Link: ${foundPid}`);
                         finalizeCallback(foundPid);
                         return;
                     }
                 }
             }
+        }
+
+        // STEP 2: Search all processes matching the EXE name, filtered by instance
+        // working directory. No dir match = no claim. If the process hasn't appeared
+        // yet the retry interval will try again in 3 seconds.
+        exec(`wmic process where "Name='${exeName}'" get CommandLine,ProcessId /format:csv`, (err2, stdout2) => {
+            if (err2 || !stdout2) return;
+
+            DebugLog(`Performing instance search for EXE: '${searchExe}' in DIR: '${searchDir}'`);
+
+            const lines = stdout2.trim().split('\n').filter(l => l.trim());
+            for (const line of lines) {
+                const lineLow = line.toLowerCase().replace(/\\/g, '/');
+                if (!lineLow.includes(searchExe)) continue;
+
+                const lastComma = line.lastIndexOf(',');
+                if (lastComma === -1) continue;
+
+                const foundPid = parseInt(line.substring(lastComma + 1).trim());
+                if (isNaN(foundPid) || foundPid === 0 || foundPid === parentPid || claimedPids.has(foundPid)) continue;
+
+                if (lineLow.includes(searchDir)) {
+                    DebugLog(`Deep Search: Found via Instance Match (EXE + dir): ${foundPid}`);
+                    finalizeCallback(foundPid);
+                    return;
+                }
+            }
+
+            DebugLog(`Deep Search: No unclaimed instance found yet, will retry...`);
         });
     });
 }

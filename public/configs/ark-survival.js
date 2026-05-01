@@ -32,5 +32,10 @@ export const ark = {
         logPath: "placeholder",
         portId: "placeholder",
         portPass: "placeholder"
-    }
+    },
+    quickActions: [
+        { label: 'List Players',       command: 'ListPlayers' },
+        { label: 'Save World',         command: 'SaveWorld' },
+        { label: 'Destroy Wild Dinos', command: 'DestroyWildDinos' },
+    ]
 };

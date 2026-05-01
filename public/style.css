@@ -909,3 +909,39 @@ textarea:focus {
     background: rgba(239, 68, 68, 0.2);
     color: var(--danger);
 }
+
+/* --- QUICK ACTIONS --- */
+.quick-actions-card {
+    padding: 14px 20px;
+    margin-bottom: 0;
+}
+
+.quick-actions-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.quick-action-btn {
+    padding: 6px 14px;
+    font-size: 12px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.quick-action-btn:hover:not(:disabled) {
+    background: var(--accent);
+    color: white;
+}
+
+.quick-action-btn:disabled {
+    border-color: var(--border);
+    color: var(--dim);
+    cursor: not-allowed;
+    opacity: 0.5;
+}
