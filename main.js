@@ -1074,13 +1074,6 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
 });
 
-// --- Ensure the app starts on login (This is also toggled by the UI, but we set it here by default) ---
-app.setLoginItemSettings({
-    openAtLogin: true,
-    path: app.getPath('exe')
-});
-
-// --- Re-create the window if the dock icon is clicked and there are no other windows open (macOS behavior) ---
-app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
-});
+// Clear any previously registered startup entry so the app only launches on
+// boot when the user explicitly enables it in Settings.
+app.setLoginItemSettings({ openAtLogin: false });
