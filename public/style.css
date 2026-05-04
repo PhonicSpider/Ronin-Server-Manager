@@ -1078,7 +1078,7 @@ textarea:focus {
 .config-modal-content {
     background: rgb(var(--bg-color));
     width: min(820px, 92vw);
-    max-height: 90vh;
+    height: min(720px, 90vh);
     border-radius: 16px;
     border: 1px solid var(--border);
     box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.7);
@@ -1174,13 +1174,13 @@ textarea:focus {
 .editor-wrap {
     display: flex;
     flex: 1;
-    min-height: 380px;
+    min-height: 0;
     overflow: hidden;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: 13px;
     line-height: 1.6;
     min-height: 0;
-    background: #080a0f;
+    background: #212327;
 }
 
 .cfg-line-numbers {
@@ -1201,6 +1201,7 @@ textarea:focus {
 
 .cfg-textarea {
     flex: 1;
+    height: 100%;
     padding: 14px 16px;
     background: transparent;
     border: none;
