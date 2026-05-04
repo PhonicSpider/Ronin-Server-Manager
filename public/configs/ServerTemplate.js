@@ -3,7 +3,7 @@
     meta: {
         displayName: "Game Name",
         icon: "logos/gameLogo.png" // or a regular emoji will work as well (e.g. "🎮")
-    }
+    },
     backend: {
         // DIRECT_CONSOLE  — process is spawned directly; PID is captured immediately, no deep search needed.
         //                   Use for Java/script-based servers (Minecraft, etc.).
