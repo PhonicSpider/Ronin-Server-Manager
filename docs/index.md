@@ -24,11 +24,11 @@
 
     ---
 
-    Stay ahead of lag. Each server in your list shows live **CPU and RAM usage** metrics.
+    Stay ahead of lag. Every server view shows live metrics updated every 2 seconds.
 
-    * Monitor Minecraft memory spikes.
-    * Track Space Engineers' performance impact in real-time.
-    * Visual progress bars help you see exactly how much "breathing room" your hardware has left.
+    * **Arc gauges** display per-server CPU and RAM usage at a glance.
+    * A **status dashboard** below the gauges shows active player count, server uptime, and the process ID — visible even when offline so nothing is hidden.
+    * The **Network Home** screen shows combined CPU and RAM consumed by all your managed servers, not system-wide noise.
 
 
 -   :material-console: **Smart Console Integration**
@@ -50,6 +50,16 @@
 
     * **Graceful Exit:** For supported games, RSM sends the "stop" command to the console before closing the process, preventing world corruption.
     * **Force Kill:** If a server hangs or freezes, you can terminate the process tree instantly from the UI.
+
+-   :material-cursor-default-click: __Game-Specific Quick Actions__
+
+    ---
+
+    Trigger common server commands with a single click — no console required.
+
+    * **Save world**, adjust time of day, manage players, and more depending on the game.
+    * Buttons appear automatically based on the server type and are disabled when the server is offline.
+    * Contributors can add new actions per game type in a single config file.
 
 </div>
 

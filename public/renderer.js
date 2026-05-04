@@ -6,8 +6,13 @@ let servers = [];             // Stores all server objects (name, path, status, 
 let activeId = null;          // The ID of the server currently being viewed in the Dashboard
 let targetId = null;          // The ID of the server targeted by the Gear icon menu
 let draggedItemIndex = null;  // Used for reordering the sidebar list
-const GAUGE_MAX = 157;        // The SVG stroke-dasharray value for a full circle gauge
+const GAUGE_MAX = 173;        // The SVG stroke-dasharray value for a full semicircle gauge (π × r55)
 const DEFAULT_ACCENT = '#007bff'; // Default Ronin Blue
+
+// --- STATUS DASHBOARD STATE ---
+let uptimeStart = null;        // Timestamp (ms) when the active server went Online
+let uptimeInterval = null;     // setInterval handle for the uptime clock
+let playerPollInterval = null; // setInterval handle for player count polling
 
 /**
  * 1. INITIALIZATION 
@@ -171,11 +176,10 @@ window.showView = (viewName) => {
     // Show the requested view
     const activeView = views[viewName];
     if (activeView) {
-        // CRITICAL: Home needs 'flex' to keep the terminal and gauges visible
-        const displayType = (viewName === 'home') ? 'flex' : 'block';
+        const displayType = (viewName === 'settings') ? 'block' : 'flex';
         activeView.style.setProperty('display', displayType, 'important');
         activeView.style.pointerEvents = 'auto';
-        activeView.style.height = 'auto';
+        activeView.style.height = viewName === 'manager' ? '100%' : 'auto';
     }
 
     // If we leave the manager, deselect the active server
@@ -283,10 +287,10 @@ function selectServer(id) {
     statusEl.innerText = srv.status || 'Offline';
     statusEl.style.color = srv.status === 'Online' ? 'var(--success)' : 'var(--danger)';
 
-    renderSidebar();
+    const pidEl = document.getElementById('stat-pid');
+    if (pidEl) pidEl.innerText = srv.pid || '—';
 
-    const showGuiBtn = document.getElementById('show-gui-btn');
-    if (showGuiBtn) showGuiBtn.disabled = (srv.status === 'Online');
+    renderSidebar();
 
     // --- QUICK ACTIONS ---
     const config = ServerTypeRegistry[srv.type];
@@ -775,8 +779,55 @@ window.api.receive('console-out', (data) => {
                 c.removeChild(c.firstChild);
             }
         }
+
+        // Parse Minecraft 'list' response to update the player count pill
+        const srv = servers.find(s => s.id === data.id);
+        if (srv?.type === 'minecraft') {
+            const match = data.msg.match(/There are (\d+) of a max of (\d+) players/i);
+            if (match) document.getElementById('stat-players').innerText = `${match[1]} / ${match[2]}`;
+        }
     }
 });
+
+/**
+ * STATUS DASHBOARD HELPERS
+ */
+function formatUptime(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    if (h > 0) return `${h}h ${m}m ${s}s`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+}
+
+function startStatusDashboard(srvId) {
+    // Start uptime clock — ticks every second
+    uptimeStart = Date.now();
+    if (uptimeInterval) clearInterval(uptimeInterval);
+    uptimeInterval = setInterval(() => {
+        document.getElementById('stat-uptime').innerText = formatUptime(Date.now() - uptimeStart);
+    }, 1000);
+
+    // Request player count immediately, then every 30 seconds
+    window.api.send('get-player-count', srvId);
+    if (playerPollInterval) clearInterval(playerPollInterval);
+    playerPollInterval = setInterval(() => {
+        window.api.send('get-player-count', srvId);
+    }, 30000);
+}
+
+function stopStatusDashboard() {
+    // Clear both intervals
+    if (uptimeInterval) { clearInterval(uptimeInterval); uptimeInterval = null; }
+    if (playerPollInterval) { clearInterval(playerPollInterval); playerPollInterval = null; }
+    uptimeStart = null;
+
+    // Reset runtime pills — port stays since it's from config, not server state
+    document.getElementById('stat-players').innerText = '— / —';
+    document.getElementById('stat-uptime').innerText = '—';
+}
 
 // Updates the UI when a server starts, stops, or crashes
 window.api.receive('status-change', (data) => {
@@ -789,13 +840,11 @@ window.api.receive('status-change', (data) => {
     }
 
     if (activeId === data.id) {
-        const showGuiBtn = document.getElementById('show-gui-btn');
-
         if (data.status === 'Online') {
             document.getElementById('crash-alert').style.display = 'none';
-            if (showGuiBtn) showGuiBtn.disabled = false;
+            startStatusDashboard(data.id);
         } else {
-            if (showGuiBtn) showGuiBtn.disabled = true;
+            stopStatusDashboard();
         }
         selectServer(activeId);
 
@@ -812,6 +861,12 @@ window.api.receive('status-change', (data) => {
             }
         }
     }
+});
+
+// Receives player count + session name from main and updates the status bar pills
+window.api.receive('player-count-update', (data) => {
+    if (data.id !== activeId) return;
+    if (data.players !== null) document.getElementById('stat-players').innerText = data.players;
 });
 
 // Receives CPU/RAM data every 2 seconds and updates the circular gauges
@@ -859,20 +914,16 @@ function updateGauge(type, percent, label) {
     // 1. If it's a string like "28%", strip the % and convert to number
     let cleanPercent = typeof percent === 'string' ? parseFloat(percent.replace('%', '')) : percent;
 
-    // 2. BLOCK BAD DATA: If it's not a number, or if it's exactly 0 
-    // (Total CPU usually shouldn't be exactly 0 unless the PC is off)
-    if (isNaN(cleanPercent) || (type.includes('total') && cleanPercent === 0)) {
-        return; // Just exit. Don't move the gauge at all.
-    }
+    if (isNaN(cleanPercent)) return;
 
     const val = Math.min(Math.max(cleanPercent, 0), 100);
-    const GAUGE_LENGTH = 157;
+    const GAUGE_LENGTH = 173;
     const offset = GAUGE_LENGTH - (val / 100 * GAUGE_LENGTH);
 
     el.style.strokeDashoffset = offset;
 
     if (valEl) {
-        valEl.innerText = label ? label : Math.round(val) + "%";
+        valEl.textContent = label ? label : Math.round(val) + "%";
     }
 }
 
@@ -997,16 +1048,9 @@ window.goBackToStep1 = () => {
     window.showWizardStep(1);
 };
 
-// Opens the server's custom GUI if available (Some games have a separate .exe for the GUI, this sends the path to the backend to open it)
-function showServerGUI() {
-    const server = servers.find(s => s.id === activeId);
-
-    if (server && server.path) {
-        window.updateSystemLog(`Opening GUI for ${server.name} with custom instance path...`);
-        // CHANGE: Send the whole 'server' object instead of just 'server.path'
-        window.api.send('show-server-gui', server);
-    }
-}
+window.openActiveFolder = () => {
+    window.openServerFolder(activeId);
+};
 
 // Adds a new server or updates an existing one in the list
 window.saveNewServer = () => {

@@ -9,6 +9,7 @@ const { isNullOrUndefined } = require('util');
 let mainWindow;
 let tray = null;
 const activeProcesses = {};
+const serverStats = {}; // { [srvId]: { cpu, ramMB } } — updated each heartbeat tick
 const DATA_FILE = path.join(app.getPath('userData'), 'servers.json');
 const debugPrefix = "[RSM-DEBUG]";
 const DebugActive = true; // Set to true to enable verbose logging for debugging purposes
@@ -293,6 +294,7 @@ ipcMain.on('start-server', (event, srv) => {
 
         // 4. Update the Global State and UI
         delete activeProcesses[srv.id];
+        delete serverStats[srv.id];
         event.reply('status-change', { id: srv.id, status: 'Offline' });
         event.reply('system-info', `[RSM] ${srv.name} has been cleaned up and set to Offline.`);
 
@@ -306,8 +308,14 @@ ipcMain.on('start-server', (event, srv) => {
 
         // Lock these in now so they are never undefined later
         const totalRamMB = Math.floor(os.totalmem() / 1024 / 1024);
+        const numCores = os.cpus().length;
         const srvId = serverObject.id;
         const srvName = serverObject.name;
+
+        // CPU delta state — KernelModeTime+UserModeTime are 100-ns counters;
+        // we diff two readings across the heartbeat interval to get real %
+        let prevCpuTime = 0;
+        let prevCpuSample = 0;
 
         if (!pid || pid === 0) return;
 
@@ -336,21 +344,35 @@ ipcMain.on('start-server', (event, srv) => {
                     const displayMem = memMB > 1024 ? (memMB / 1024).toFixed(2) + " GB" : memMB + " MB";
                     const ramPercent = Math.min(Math.floor((memMB / totalRamMB) * 100), 100);
 
-                    // CPU Check
-                    exec(`wmic process where processid=${pid} get PercentProcessorTime /value`, (cpuErr, cpuStdout) => {
+                    // CPU Check — diff KernelModeTime+UserModeTime between ticks
+                    exec(`wmic process where processid=${pid} get KernelModeTime,UserModeTime /value`, (cpuErr, cpuStdout) => {
                         let cpuPercent = 0;
 
                         if (!cpuErr && cpuStdout) {
-                            const match = cpuStdout.replace(/\s/g, '').match(/PercentProcessorTime=(\d+)/);
-                            if (match && match[1]) {
-                                // Use Math.round and ensure we have a base-10 integer
-                                cpuPercent = Math.round(parseInt(match[1], 10));
+                            const kMatch = cpuStdout.replace(/\s/g, '').match(/KernelModeTime=(\d+)/);
+                            const uMatch = cpuStdout.replace(/\s/g, '').match(/UserModeTime=(\d+)/);
+
+                            if (kMatch && uMatch) {
+                                const currentTotal = parseInt(kMatch[1]) + parseInt(uMatch[1]);
+                                const now = Date.now();
+
+                                if (prevCpuTime > 0) {
+                                    const elapsed100ns = (now - prevCpuSample) * 10000;
+                                    const delta = currentTotal - prevCpuTime;
+                                    cpuPercent = Math.min(Math.round((delta / elapsed100ns / numCores) * 100), 100);
+                                }
+
+                                prevCpuTime = currentTotal;
+                                prevCpuSample = now;
                             }
                         }
 
                         // DATA SAFETY: Ensure we are only sending numbers
                         const finalCpu = isNaN(cpuPercent) ? 0 : cpuPercent;
                         const finalRam = isNaN(ramPercent) ? 0 : ramPercent;
+
+                        // Update aggregate map for the home screen totals
+                        serverStats[srvId] = { cpu: finalCpu, ramMB: memMB };
 
                         if (mainWindow && !mainWindow.isDestroyed()) {
                             mainWindow.webContents.send('server-perf-update', {
@@ -365,7 +387,7 @@ ipcMain.on('start-server', (event, srv) => {
                     });
                 }
             });
-        }, 5000); // 5 seconds is a good balance between "alive" and "low overhead"
+        }, 2000);
     };
 
     if (DebugActive) console.log("[RSM-DEBUG] Category identified as:", serverCategory);
@@ -776,22 +798,43 @@ ipcMain.on('send-command', async (event, { srvId, command }) => {
             event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] Console input is blocked or not available.\n` });
         }
     }
-    // --- RCON Protocol (Servers that use RCon for server commands)---
-    else if (serverCategory === 'POWERSHELL_BRIDGE') {
-        // Handle PowerShell Bridge commands here
-        if (srv.apiPort == null || srv.apiPass == "") {
-            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] API Port is not defined.\n` });
+    // --- Space Engineers (VRage Remote HTTP API) ---
+    else if (srv.type === 'space-engineers') {
+        if (!srv.apiPort || !srv.apiPass) {
+            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] API Port and Password are required for Space Engineers commands.\n` });
             return;
         }
 
-        if (srv.apiPass == null || srv.apiPass == "") {
-            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] API Password is not defined.\n` });
+        const port = srv.apiPort || 8080;
+        const password = srv.apiPass || "";
+        const url = `http://localhost:${port}/vrageremote/v1/server/command`;
+
+        try {
+            await axios.post(url,
+                { "Command": cleanCmd },
+                {
+                    headers: {
+                        'Remote-Control-Http-Password': password,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 2000
+                }
+            );
+            event.reply('console-out', { id: srvId, msg: `> ${cleanCmd}\n` });
+        } catch (err) {
+            const errorMsg = err.response ? `Code ${err.response.status}` : err.message;
+            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] SE API Failed: ${errorMsg}\n` });
+        }
+    }
+    // --- RCON Protocol (Ark and other POWERSHELL_BRIDGE servers) ---
+    else if (serverCategory === 'POWERSHELL_BRIDGE') {
+        if (!srv.apiPort || !srv.apiPass) {
+            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] RCON Port and Password are required to send commands.\n` });
             return;
         }
 
         const port = parseInt(srv.apiPort);
         const password = srv.apiPass || "";
-        const url = `http://localhost:${port}/command`;
 
         try {
             const rcon = await Rcon.connect({
@@ -802,8 +845,6 @@ ipcMain.on('send-command', async (event, { srvId, command }) => {
             });
 
             const response = await rcon.send(cleanCmd);
-            event.reply('console-out', { id: srvId, msg: `[RSM-API] Sent: ${cleanCmd}\nResponse: ${response}\n` });
-
             rcon.end();
             event.reply('console-out', { id: srvId, msg: `> ${cleanCmd}\n${response ? response + '\n' : ''}` });
 
@@ -811,41 +852,67 @@ ipcMain.on('send-command', async (event, { srvId, command }) => {
             event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] RCON Failed: ${err.message}\n` });
         }
     }
-    // --- Space Engineers (Remote API) ---
-    else if (srv.type === 'space-engineers') {
-        if (srv.apiPort == null || srv.apiPass == "") {
-            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] API Port is not defined.\n` });
-            return;
-        }
+});
 
-        if (srv.apiPass == null || srv.apiPass == "") {
-            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] API Password is not defined.\n` });
-            return;
-        }
+// --- PLAYER COUNT & SESSION INFO ---
+ipcMain.on('get-player-count', async (event, srvId) => {
+    const srv = managedServers.find(s => s.id === srvId);
+    const processInfo = activeProcesses[srvId];
+    if (!srv || !processInfo) return;
 
-        const port = srv.apiPort || 8080;
-        const password = srv.apiPass || "";
-        // SE Remote API Endpoint for commands
-        const url = `http://localhost:${port}/vrageremote/v1/server/command`;
+    const type = (srv.type || '').toLowerCase();
 
+    // --- Minecraft: write 'list' to stdin; the response travels through the normal
+    //     console-out pipeline and is parsed in the renderer's console-out handler ---
+    if (type === 'minecraft') {
+        const shell = processInfo.shell;
+        if (shell?.stdin?.writable) shell.stdin.write('list\n');
+        return;
+    }
+
+    // --- Space Engineers: HTTP API returns session info + player list in one call ---
+    if (type === 'space-engineers') {
         try {
-            const axios = require('axios');
-            await axios.post(url,
-                { "Command": cleanCmd },
-                {
-                    headers: {
-                        'Remote-Control-Http-Password': password,
-                        'Content-Type': 'application/json'
-                    },
-                    timeout: 2000 // Don't let it hang if the server is frozen
-                }
-            );
-            event.reply('console-out', { id: srvId, msg: `[RSM-API] Sent: ${cleanCmd}\n` });
-        } catch (err) {
-            const errorMsg = err.response ? `Code ${err.response.status}` : err.message;
-            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] SE API Failed: ${errorMsg}\n` });
+            const port = srv.apiPort || 8080;
+            const pass = srv.apiPass || '';
+            const headers = pass ? { Authorization: `Basic ${Buffer.from(`:${pass}`).toString('base64')}` } : {};
+            const res = await axios.get(`http://localhost:${port}/v1/session`, { headers, timeout: 3000 });
+            const session = res.data?.data || res.data || {};
+            const playerCount = session.Players ?? null;
+            const worldName = session.WorldName || session.Name || null;
+            event.reply('player-count-update', {
+                id: srvId,
+                players: playerCount !== null ? `${playerCount} / ${session.MaxPlayers ?? '?'}` : null,
+                world: worldName
+            });
+        } catch (_) {
+            event.reply('player-count-update', { id: srvId, players: null, world: null });
         }
-    } 
+        return;
+    }
+
+    // --- Ark: RCON 'ListPlayers' returns a plain-text list, one player per line ---
+    if (type === 'ark') {
+        try {
+            const rcon = new Rcon({ host: 'localhost', port: parseInt(srv.apiPort) || 27020, password: srv.apiPass || '' });
+            await rcon.connect();
+            const response = await rcon.send('ListPlayers');
+            await rcon.end();
+            // Response is "No Players Connected" or a numbered list of players
+            const lines = response.trim().split('\n').filter(l => l.match(/^\d+\./));
+            event.reply('player-count-update', {
+                id: srvId,
+                players: `${lines.length} connected`,
+                world: null
+            });
+        } catch (_) {
+            event.reply('player-count-update', { id: srvId, players: null, world: null });
+        }
+        return;
+    }
+
+    // --- Fallback: no data available for this game type ---
+    event.reply('player-count-update', { id: srvId, players: null, world: null });
 });
 
 // ---SERVER TYPE HELPER FUNCTION---
@@ -864,6 +931,7 @@ function findServType(srv) {
             return 'DIRECT_CONSOLE'; // These use the direct Java/EXE pipe
 
         case 'space-engineers':
+        case 'ark':
         case 'starfield':
             DebugLog(`Category assigned: POWERSHELL_BRIDGE, for type: '${type}'`);
             return 'POWERSHELL_BRIDGE'; // These need the PID search and Log Tailing
@@ -951,28 +1019,25 @@ function DebugCpuRam(message) {
 }
 
 setInterval(() => {
-    DebugCpuRam(`Gathering total system performance data...`);
     if (mainWindow && !mainWindow.isDestroyed()) {
-        // 1. Calculate Total RAM %
-        const totalMem = os.totalmem();
-        const freeMem = os.freemem();
-        const ramPercent = Math.floor(((totalMem - freeMem) / totalMem) * 100);
+        const entries = Object.values(serverStats);
 
-        // 2. Calculate Total CPU %
-        const cpus = os.cpus();
-        let idle = 0, total = 0;
-        cpus.forEach(cpu => {
-            for (let type in cpu.times) total += cpu.times[type];
-            idle += cpu.times.idle;
-        });
-        const cpuPercent = 100 - Math.floor((idle / total) * 100);
+        // Sum CPU across active servers, cap at 100
+        const cpuTotal = Math.min(
+            entries.reduce((sum, s) => sum + (s.cpu || 0), 0),
+            100
+        );
 
-        // 3. Send to the NEW listener
+        // Sum RAM across active servers as % of total system RAM
+        const totalSystemRamMB = Math.floor(os.totalmem() / 1024 / 1024);
+        const serverRamMB = entries.reduce((sum, s) => sum + (s.ramMB || 0), 0);
+        const ramTotal = Math.min(Math.round((serverRamMB / totalSystemRamMB) * 100), 100);
+
         mainWindow.webContents.send('total-performance-update', {
-            cpu: cpuPercent,
-            ram: ramPercent
+            cpu: cpuTotal,
+            ram: ramTotal
         });
-        DebugCpuRam(`Broadcasted Total Performance: CPU ${cpuPercent}% | RAM ${ramPercent}%`); // This will show in the console every 2 seconds
+        DebugCpuRam(`Server Totals: CPU ${cpuTotal}% | RAM ${serverRamMB} MB (${ramTotal}%)`);
     }
 }, 2000);
 

@@ -256,6 +256,15 @@ sidebar-footer {
 /* Specific fix for the Manager UI to ensure it's "on top" when visible */
 #manager-ui {
     display: none; /* Controlled by JS */
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+#manager-ui .terminal-container {
+    flex: 1;
+    max-height: none;
+    min-height: 200px;
 }
 
 #settings-ui {
@@ -476,6 +485,15 @@ input[type="checkbox"] {
     height: auto;
 }
 
+#manager-ui .gauge-svg {
+    width: 200px;
+}
+
+#no-selection .gauge-svg {
+    width: 80%;
+    max-width: 280px;
+}
+
 .gauge-bg {
     fill: none;
     stroke: #2a2d3e;
@@ -488,8 +506,8 @@ input[type="checkbox"] {
     stroke: var(--accent);
     stroke-width: 8;
     stroke-linecap: round;
-    stroke-dasharray: 157;
-    stroke-dashoffset: 157;
+    stroke-dasharray: 173;
+    stroke-dashoffset: 173;
     transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -497,10 +515,23 @@ input[type="checkbox"] {
     stroke: var(--success) !important;
 }
 
-.gauge-val {
-    font-size: 1.2rem;
-    font-weight: bold;
-    margin-top: -10px; /* Pulls the number up into the arc slightly */
+.gauge-label-text {
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.07em;
+    fill: rgba(255, 255, 255, 0.45);
+    text-transform: uppercase;
+}
+
+.gauge-val-text {
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--accent);
+}
+
+.gauge-val-ram {
+    fill: var(--success);
 }
 
 /* --- TERMINAL --- */
@@ -632,31 +663,54 @@ input[type="checkbox"] {
     color: #fff;
 }
 
+/* --- SERVER CONTROL BUTTON VARIANTS --- */
+.btn-launch {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #10b981;
+}
+.btn-launch:hover {
+    background: rgba(16, 185, 129, 0.25);
+    border-color: rgba(16, 185, 129, 0.7);
+}
+
+.btn-folder {
+    background: rgba(148, 163, 184, 0.08);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    color: #94a3b8;
+}
+.btn-folder:hover {
+    background: rgba(148, 163, 184, 0.18);
+    border-color: rgba(148, 163, 184, 0.5);
+    color: #cbd5e1;
+}
+
+.btn-stop {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    color: #f59e0b;
+}
+.btn-stop:hover {
+    background: rgba(245, 158, 11, 0.25);
+    border-color: rgba(245, 158, 11, 0.7);
+}
+
+.btn-kill {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #ef4444;
+}
+.btn-kill:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: rgba(239, 68, 68, 0.7);
+}
+
 .btn-settings:hover {
     background: rgba(0, 123, 255, 0.15);
     border-width: 1px;
     border-color: var(--accent);
 }
 
-#show-gui-btn {
-    border: 1px solid var(--accent);
-    color: var(--accent);
-    background: transparent;
-}
-
-#show-gui-btn:hover {
-    background: rgba(0, 123, 255, 0.1);
-    color: #fff;
-}
-
-#show-gui-btn:disabled {
-    border-color: var(--border);
-    color: var(--dim);
-    background: rgba(255, 255, 255, 0.05);
-    cursor: not-allowed;
-    opacity: 0.5;
-    transform: none !important; /* Prevents hover animations */
-}
 
 .full-width {
     width: 100%;
@@ -676,12 +730,28 @@ input[type="checkbox"] {
 
 .action-bar {
     position: relative;
-    z-index: 10; /* Lifts the buttons above any background containers */
+    z-index: 10;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 12px 20px;
     margin-bottom: 25px;
-    pointer-events: auto; /* Ensures clicks are captured */
+    pointer-events: auto;
+    text-align: center;
+}
+
+.action-bar .btn-group {
+    display: flex;
+    justify-content: space-evenly;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.toggle-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 /* --- MODAL --- */
@@ -914,11 +984,13 @@ textarea:focus {
 .quick-actions-card {
     padding: 14px 20px;
     margin-bottom: 0;
+    text-align: center;
 }
 
 .quick-actions-bar {
     display: flex;
     flex-wrap: wrap;
+    justify-content: space-evenly;
     gap: 8px;
     margin-top: 10px;
 }
@@ -944,4 +1016,49 @@ textarea:focus {
     color: var(--dim);
     cursor: not-allowed;
     opacity: 0.5;
+}
+
+/* --- COMBINED STATS CARD (manager view) --- */
+.stats-combined-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 16px 24px 10px;
+    margin-bottom: 20px;
+}
+
+.stats-gauges-row {
+    display: flex;
+    justify-content: space-evenly;
+}
+
+.stats-pills-row {
+    display: flex;
+    justify-content: space-evenly;
+    margin-top: auto;
+    padding-top: 10px;
+}
+
+.stat-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 16px;
+}
+
+.stat-pill-label {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    color: var(--dim);
+    text-transform: uppercase;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+}
+
+.stat-pill-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.5);
 }
