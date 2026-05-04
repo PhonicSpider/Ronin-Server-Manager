@@ -1,10 +1,14 @@
+/* ══════════════════════════════════════════════════════════════════
+    CSS VARIABLES & ROOT
+   ══════════════════════════════════════════════════════════════════ */
+
 :root {
     /* These will be controlled by the color pickers */
-    --bg-color: 15, 17, 26; /* RGB values for #0f111a */
-    --card-color: 255, 255, 255; /* RGB values for cards */
-    --bg-opacity: 1; /* Entire App Opacity */
-    --card-opacity: 0.03; /* Card-specific Opacity */
-    --text-color: 255, 255, 255; /* RGB for text color */
+    --bg-color: 15, 17, 26;       /* RGB values for #0f111a */
+    --card-color: 255, 255, 255;  /* RGB values for cards */
+    --bg-opacity: 1;              /* Entire App Opacity */
+    --card-opacity: 0.03;         /* Card-specific Opacity */
+    --text-color: 255, 255, 255;  /* RGB for text color */
     --text: rgb(var(--text-color));
     --dim: rgba(var(--text-color), 0.6);
     /* Keep these as they are */
@@ -14,6 +18,11 @@
     --border: rgba(255, 255, 255, 0.1);
 }
 
+
+/* ══════════════════════════════════════════════════════════════════
+    GLOBAL & BASE STYLES
+   ══════════════════════════════════════════════════════════════════ */
+
 /* Ensures all global elements use this text color */
 body, input, textarea, select, button, .setting-info h4 {
     color: var(--text) !important;
@@ -22,7 +31,7 @@ body, input, textarea, select, button, .setting-info h4 {
 body {
     font-family: 'Segoe UI', sans-serif;
     background-color: rgb(15, 17, 26);
-    background: rgba(var(--bg-color), var(--bg-opacity)) !important; /* This combines the color and opacity variables */
+    background: rgba(var(--bg-color), var(--bg-opacity)) !important;
     color: var(--text);
     margin: 0;
     display: flex;
@@ -32,17 +41,31 @@ body {
 }
 
 .card {
-    /* This allows cards to have their own transparency level */
     background: rgba(var(--card-color), calc(var(--bg-opacity) * 0.1));
-    backdrop-filter: blur(10px); /* The "Glass" effect */
-    -webkit-backdrop-filter: blur(10px); /* For compatibility */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 24px;
     box-shadow: 1px 4px 8px rgb(47, 46, 46, 0.54);
 }
 
-/* --- SIDEBAR --- */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+    0%   { opacity: 0.5; }
+    50%  { opacity: 1; }
+    100% { opacity: 0.5; }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+    SIDEBAR
+   ══════════════════════════════════════════════════════════════════ */
+
 .sidebar {
     width: 280px;
     background: var(--sidebar);
@@ -76,6 +99,7 @@ sidebar-footer {
     padding: 10px;
 }
 
+/* --- Nav Items --- */
 .nav-item {
     position: relative;
     padding: 12px;
@@ -93,24 +117,25 @@ sidebar-footer {
     background: rgba(255, 255, 255, 0.05);
     transform: translateY(-1px);
 }
+
 .nav-item.active {
     background: rgba(0, 123, 255, 0.15);
     border-width: 1px;
     border-color: var(--accent);
     color: #fff;
-    transform: translate(-3px, -3px); /* Moves it up and left */
-    box-shadow: 4px 4px 10px rgb(94, 94, 94, 0.76), 0 0 15px rgb(233, 233, 233, 0.10); /* 1st shadow: tight and dark | 2nd shadow: wide and soft */
-    z-index: 10; /* Pulls it to the front so the shadow overlaps others */
+    transform: translate(-3px, -3px);
+    box-shadow: 4px 4px 10px rgb(94, 94, 94, 0.76), 0 0 15px rgb(233, 233, 233, 0.10);
+    z-index: 10;
 }
 
-/* --- STATUS DOTS --- */
+/* --- Status Dots --- */
 .status-dot {
-    display: inline-block; /* CRITICAL: Allows width/height to work */
-    width: 10px; /* Slightly larger for visibility */
+    display: inline-block;
+    width: 10px;
     height: 10px;
     border-radius: 50%;
     margin-right: 12px;
-    flex-shrink: 0; /* Prevents the dot from squishing */
+    flex-shrink: 0;
     vertical-align: middle;
 }
 
@@ -118,7 +143,7 @@ sidebar-footer {
     background-color: var(--success);
     box-shadow: 0 0 10px var(--success);
     animation: pulse 2s infinite;
-    border: none; 
+    border: none;
 }
 
 .dot-offline {
@@ -128,21 +153,7 @@ sidebar-footer {
     animation: none;
 }
 
-@keyframes pulse {
-    0% {
-
-        opacity: 0.5;
-
-    }
-    50% {
-        opacity: 1;
-    }
-    100% {
-        opacity: 0.5;
-    }
-}
-
-/* --- OPTIONS GEAR --- */
+/* --- Options Gear Icon --- */
 .item-options-gear {
     opacity: 0;
     font-size: 14px;
@@ -162,7 +173,7 @@ sidebar-footer {
     color: var(--accent);
 }
 
-/* The floating container */
+/* --- Gear Dropdown Menu --- */
 #options-dropdown {
     display: none !important;
     position: fixed;
@@ -172,10 +183,9 @@ sidebar-footer {
     border-radius: 8px;
     box-shadow: 0 8px 16px rgba(0,0,0,0.5);
     z-index: 10000;
-    overflow: hidden; /* Keeps corners rounded */
+    overflow: hidden;
 }
 
-/* Individual links/buttons in the menu */
 #options-dropdown a {
     color: #ddd;
     padding: 12px 16px;
@@ -188,28 +198,25 @@ sidebar-footer {
 }
 
 #options-dropdown a:hover {
-    background-color: var(--accent); 
+    background-color: var(--accent);
     color: white;
 }
 
-/* The divider line */
 .dropdown-divider {
     height: 1px;
     background-color: #333;
     margin: 4px 0;
 }
 
-/* Red text for Delete */
 .text-danger:hover {
     background-color: #cf6679 !important;
 }
 
-/* The toggle class */
 #options-dropdown.show {
     display: block !important;
 }
 
-/* --- DELETE BUTTON --- */
+/* --- Delete Button (legacy inline use) --- */
 .delete-btn {
     position: absolute;
     right: 10px;
@@ -226,13 +233,17 @@ sidebar-footer {
     color: var(--danger);
 }
 
-/* --- VIEWS --- */
+
+/* ══════════════════════════════════════════════════════════════════
+    VIEWS & LAYOUT
+   ══════════════════════════════════════════════════════════════════ */
+
 .main-content {
     flex: 1;
     display: flex;
     flex-direction: column;
     padding: 40px;
-    overflow: hidden; /* This keeps the outer sidebar/frame from scrolling */
+    overflow: hidden;
     height: 100vh;
 }
 
@@ -243,19 +254,17 @@ sidebar-footer {
     color: var(--dim);
 }
 
-/* Ensure the views don't overlap each other's click space */
 #no-selection, #manager-ui, #settings-ui {
     width: 100%;
-    position: relative; /* Keep them in their own stack */
+    position: relative;
     z-index: 1;
-    overflow-y: auto; /* Allows each view to scroll independently if content exceeds height */
-    padding-bottom: 20px; /* Adjust this value for more/less gap */
-    box-sizing: border-box; /* Ensures padding doesn't push the width out */
+    overflow-y: auto;
+    padding-bottom: 20px;
+    box-sizing: border-box;
 }
 
-/* Specific fix for the Manager UI to ensure it's "on top" when visible */
 #manager-ui {
-    display: none; /* Controlled by JS */
+    display: none;
     flex-direction: column;
     flex: 1;
     min-height: 0;
@@ -278,22 +287,11 @@ sidebar-footer {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    gap: 15px; /* Adds consistent spacing between your cards automatically */
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(5px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    gap: 15px;
 }
 
 #no-selection {
-    display: none; /* Controlled by JS */
+    display: none;
     flex-direction: column;
     width: 100%;
     max-width: 1000px;
@@ -304,11 +302,7 @@ sidebar-footer {
     gap: 20px;
 }
 
-/* Make the dashboard scrollbar subtle to match the glass look */
-#no-selection::-webkit-scrollbar {
-    width: 8px;
-}
-
+#no-selection::-webkit-scrollbar { width: 8px; }
 #no-selection::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
@@ -319,24 +313,24 @@ sidebar-footer {
     background: rgba(0,0,0,0.2);
     border-radius: 8px;
     padding: 10px 20px;
-    min-height: 180px; 
-    max-height: 400px; 
-    flex-shrink: 0; 
+    min-height: 180px;
+    max-height: 400px;
+    flex-shrink: 0;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
 }
 
-#status-summary-list::-webkit-scrollbar {
-    width: 6px;
-}
-
+#status-summary-list::-webkit-scrollbar { width: 6px; }
 #status-summary-list::-webkit-scrollbar-thumb {
     background: var(--border);
     border-radius: 10px;
 }
 
-/* --- THEME STYLES --- */
+
+/* ══════════════════════════════════════════════════════════════════
+    THEME CONTROLS & SETTINGS
+   ══════════════════════════════════════════════════════════════════ */
 
 .setting-info h4 {
     margin: 0;
@@ -350,10 +344,10 @@ sidebar-footer {
     font-size: 13px;
 }
 
-/* --- THE PRESET GRID (16 COLORS) --- */
+/* Preset Grid (16 color swatches) */
 .swatch-grid {
     display: grid;
-    grid-template-columns: repeat(8, 1fr); /* 8 items per row */
+    grid-template-columns: repeat(8, 1fr);
     gap: 12px;
     margin-top: 20px;
 }
@@ -379,7 +373,6 @@ sidebar-footer {
     box-shadow: 0 0 12px var(--accent);
 }
 
-/* --- THE DIVIDER LINE --- */
 .divider {
     height: 1px;
     background: var(--border);
@@ -387,7 +380,6 @@ sidebar-footer {
     opacity: 0.3;
 }
 
-/* --- CUSTOM COLOR ROW --- */
 .custom-theme-row {
     display: flex;
     justify-content: space-between;
@@ -410,8 +402,7 @@ sidebar-footer {
     border: 1px solid var(--border);
 }
 
-/* --- CUSTOM PICKER BUTTON --- */
-/* The Box containing the picker */
+/* Custom color picker wrapper */
 .custom-picker-wrapper {
     position: relative;
     width: 32px;
@@ -420,35 +411,27 @@ sidebar-footer {
     border: 2px solid rgba(255, 255, 255, 0.1);
     cursor: pointer;
     overflow: hidden;
-    /* This allows the wrapper to show the color! */
     background-color: var(--accent);
     transition: transform 0.2s;
 }
 
-/* Specific background for the other pickers */
-#bg-color-picker-wrapper {
-    background-color: rgb(var(--bg-color));
-}
-
-#text-color-picker-wrapper {
-    background-color: rgb(var(--text-color));
-}
+#bg-color-picker-wrapper  { background-color: rgb(var(--bg-color)); }
+#text-color-picker-wrapper { background-color: rgb(var(--text-color)); }
 
 .custom-picker-wrapper:hover {
     transform: scale(1.1);
     border-color: var(--accent);
 }
 
-/* The invisible input that sits on top */
+/* Invisible input overlaid on the wrapper */
 #accent-picker, #bg-color-picker, #text-color-picker {
     position: absolute;
     top: -10px;
     left: -10px;
     width: 60px;
     height: 60px;
-    opacity: 0; /* Fully invisible */
+    opacity: 0;
     cursor: pointer;
-    /* Removes the browser "large border" or shadow */
     border: none;
     outline: none;
 }
@@ -462,13 +445,17 @@ sidebar-footer {
 }
 
 input[type="checkbox"] {
-    accent-color: var(--accent); /* Makes the checkmark match your theme! */
+    accent-color: var(--accent);
     width: 18px;
     height: 18px;
     cursor: pointer;
 }
 
-/* --- GAUGES --- */
+
+/* ══════════════════════════════════════════════════════════════════
+    GAUGES
+   ══════════════════════════════════════════════════════════════════ */
+
 .stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -480,19 +467,9 @@ input[type="checkbox"] {
     text-align: center;
 }
 
-.gauge-svg {
-    width: 150px;
-    height: auto;
-}
-
-#manager-ui .gauge-svg {
-    width: 200px;
-}
-
-#no-selection .gauge-svg {
-    width: 80%;
-    max-width: 280px;
-}
+.gauge-svg { width: 150px; height: auto; }
+#manager-ui .gauge-svg { width: 200px; }
+#no-selection .gauge-svg { width: 80%; max-width: 280px; }
 
 .gauge-bg {
     fill: none;
@@ -511,9 +488,7 @@ input[type="checkbox"] {
     transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.ram-color {
-    stroke: var(--success) !important;
-}
+.ram-color { stroke: var(--success) !important; }
 
 .gauge-label-text {
     font-family: 'Segoe UI', sans-serif;
@@ -530,11 +505,58 @@ input[type="checkbox"] {
     fill: var(--accent);
 }
 
-.gauge-val-ram {
-    fill: var(--success);
+.gauge-val-ram { fill: var(--success); }
+
+/* Combined stats card (manager view) */
+.stats-combined-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 16px 24px 10px;
+    margin-bottom: 20px;
 }
 
-/* --- TERMINAL --- */
+.stats-gauges-row {
+    display: flex;
+    justify-content: space-evenly;
+}
+
+.stats-pills-row {
+    display: flex;
+    justify-content: space-evenly;
+    margin-top: auto;
+    padding-top: 10px;
+}
+
+.stat-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 16px;
+}
+
+.stat-pill-label {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    color: var(--dim);
+    text-transform: uppercase;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+}
+
+.stat-pill-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.5);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+    TERMINAL & CONSOLE
+   ══════════════════════════════════════════════════════════════════ */
+
 .terminal-container {
     display: flex;
     flex-direction: column;
@@ -575,11 +597,10 @@ input[type="checkbox"] {
     text-align: left;
 }
 
-/* --- CONSOLE INPUT --- */
 .console-input-wrapper {
     display: flex;
     align-items: center;
-    background: #000; /* Matches terminal body */
+    background: #000;
     border-top: 1px solid var(--border);
     padding: 10px 15px;
     border-bottom-left-radius: 8px;
@@ -612,13 +633,21 @@ input[type="checkbox"] {
     font-size: 12px;
 }
 
-/* Optional: Highlight the input area when terminal is focused */
 .terminal-container:focus-within {
     border-color: var(--accent);
     box-shadow: 0 0 10px rgba(0, 123, 255, 0.1);
 }
 
-/* --- COLORS AND GLOBAL ACTIONS --- */
+.log-error {
+    color: var(--danger);
+    font-weight: bold;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+    BUTTONS
+   ══════════════════════════════════════════════════════════════════ */
+
 .danger-hover:hover {
     background-color: var(--danger) !important;
     border-color: var(--danger) !important;
@@ -631,12 +660,6 @@ input[type="checkbox"] {
     color: white !important;
 }
 
-.log-error {
-    color: var(--danger);
-    font-weight: bold;
-}
-
-/* --- BUTTONS -- */
 .btn {
     position: relative;
     padding: 10px 15px;
@@ -663,7 +686,7 @@ input[type="checkbox"] {
     color: #fff;
 }
 
-/* --- SERVER CONTROL BUTTON VARIANTS --- */
+/* Server control button variants */
 .btn-launch {
     background: rgba(16, 185, 129, 0.12);
     border: 1px solid rgba(16, 185, 129, 0.4);
@@ -722,22 +745,33 @@ input[type="checkbox"] {
     border-color: var(--accent);
 }
 
-
-.full-width {
-    width: 100%;
-}
-
-.global-actions .btn-group {
-    display: flex;
-    gap: 8px;
-    width: 100%;
-}
+.full-width { width: 100%; }
 
 .btn.small {
-    flex: 1; /* This forces both buttons to take up 50% of the space */
+    flex: 1;
     padding: 6px 2px;
     font-size: 11px;
 }
+
+/* Back button (wizard step 2) */
+.btn-back {
+    margin-bottom: 10px;
+    padding: 5px 10px;
+    font-size: 11px;
+    text-transform: uppercase;
+    border-color: var(--border);
+    opacity: 0.7;
+}
+
+.btn-back:hover {
+    opacity: 1;
+    border-color: var(--accent);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+    ACTION BAR
+   ══════════════════════════════════════════════════════════════════ */
 
 .action-bar {
     position: relative;
@@ -765,17 +799,27 @@ input[type="checkbox"] {
     gap: 8px;
 }
 
-/* --- MODAL --- */
+.global-actions .btn-group {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+    MODALS
+   ══════════════════════════════════════════════════════════════════ */
+
 .modal {
-    display: none; /* Controlled by JS */
+    display: none;
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
     background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(5px); /* Adds a modern frosted glass effect */
-    z-index: 9999; /* Ensures it sits above EVERYTHING */
+    backdrop-filter: blur(5px);
+    z-index: 9999;
     align-items: center;
     justify-content: center;
 }
@@ -789,7 +833,7 @@ input[type="checkbox"] {
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
-    gap: 15px; /* Creates uniform spacing between inputs */
+    gap: 15px;
 }
 
 .modal-content h3 {
@@ -806,7 +850,7 @@ input[type="checkbox"] {
     color: #fff;
     border-radius: 6px;
     font-size: 14px;
-    box-sizing: border-box; /* Critical: prevents padding from growing the width */
+    box-sizing: border-box;
 }
 
 .path-group {
@@ -814,14 +858,9 @@ input[type="checkbox"] {
     gap: 10px;
 }
 
-.path-group input {
-    flex: 1; /* Path input takes most space */
-}
+.path-group input { flex: 1; }
 
-/* --- MODAL INPUT REFINEMENTS --- */
-.input-block {
-    margin-bottom: 15px;
-}
+.input-block { margin-bottom: 15px; }
 
 .checkbox-row {
     display: flex;
@@ -863,18 +902,19 @@ textarea:focus {
     font-size: 13px;
     cursor: pointer;
     outline: none;
-    appearance: none; /* Removes default arrow */
+    appearance: none;
     background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27292.4%27%20height%3D%27292.4%27%3E%3Cpath%20fill%3D%27%2394a3b8%27%20d%3D%27M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%27/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 12px top 50%;
     background-size: 10px auto;
 }
 
-.custom-select:focus {
-    border-color: var(--accent);
-}
+.custom-select:focus { border-color: var(--accent); }
 
-/* --- WIZARD STEP STYLES --- */
+
+/* ══════════════════════════════════════════════════════════════════
+    ADD SERVER WIZARD
+   ══════════════════════════════════════════════════════════════════ */
 
 .server-type-grid {
     display: grid;
@@ -898,7 +938,7 @@ textarea:focus {
 }
 
 .type-card:hover {
-    background: rgba(0, 123, 255, 0.1); /* Using your accent color with transparency */
+    background: rgba(0, 123, 255, 0.1);
     border-color: var(--accent);
     transform: translateY(-4px);
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
@@ -917,27 +957,9 @@ textarea:focus {
     letter-spacing: 0.5px;
 }
 
-/* For the Back button in Step 2 */
-.btn-back {
-    margin-bottom: 10px;
-    padding: 5px 10px;
-    font-size: 11px;
-    text-transform: uppercase;
-    border-color: var(--border);
-    opacity: 0.7;
-}
+/* Hide platform-specific blocks by default; JS shows them per game type */
+.platform-specific { display: none; }
 
-.btn-back:hover {
-    opacity: 1;
-    border-color: var(--accent);
-}
-
-/* 1. Hide all platform-specific blocks by default */
-.platform-specific {
-    display: none;
-}
-
-/* 2. Platform Grid Styling (Ensures the cards look correct) */
 .platform-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -951,7 +973,11 @@ textarea:focus {
     gap: 12px;
 }
 
-/* --- STATUS SCREENS --- */
+
+/* ══════════════════════════════════════════════════════════════════
+    STATUS SCREENS & PILLS
+   ══════════════════════════════════════════════════════════════════ */
+
 .status-summary-row {
     display: flex;
     justify-content: space-between;
@@ -969,9 +995,7 @@ textarea:focus {
     margin-right: 10px;
 }
 
-.status-summary-row:last-child {
-    border-bottom: none;
-}
+.status-summary-row:last-child { border-bottom: none; }
 
 .pill {
     padding: 4px 10px;
@@ -991,7 +1015,11 @@ textarea:focus {
     color: var(--danger);
 }
 
-/* --- QUICK ACTIONS --- */
+
+/* ══════════════════════════════════════════════════════════════════
+    QUICK ACTIONS
+   ══════════════════════════════════════════════════════════════════ */
+
 .quick-actions-card {
     padding: 14px 20px;
     margin-bottom: 0;
@@ -1029,52 +1057,11 @@ textarea:focus {
     opacity: 0.5;
 }
 
-/* --- COMBINED STATS CARD (manager view) --- */
-.stats-combined-card {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    padding: 16px 24px 10px;
-    margin-bottom: 20px;
-}
 
-.stats-gauges-row {
-    display: flex;
-    justify-content: space-evenly;
-}
+/* ══════════════════════════════════════════════════════════════════
+    CONFIG EDITOR MODAL
+   ══════════════════════════════════════════════════════════════════ */
 
-.stats-pills-row {
-    display: flex;
-    justify-content: space-evenly;
-    margin-top: auto;
-    padding-top: 10px;
-}
-
-.stat-pill {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    padding: 4px 16px;
-}
-
-.stat-pill-label {
-    font-size: 9px;
-    letter-spacing: 0.08em;
-    color: var(--dim);
-    text-transform: uppercase;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
-}
-
-.stat-pill-value {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--accent);
-    white-space: nowrap;
-    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.5);
-}
-
-/* --- CONFIG EDITOR MODAL --- */
 .config-modal-content {
     background: rgb(var(--bg-color));
     width: min(820px, 92vw);
@@ -1136,6 +1123,7 @@ textarea:focus {
     letter-spacing: 0.02em;
 }
 
+/* Tab bar */
 .cfg-tabs {
     display: flex;
     gap: 2px;
@@ -1171,6 +1159,7 @@ textarea:focus {
     background: rgb(var(--bg-color));
 }
 
+/* Editor area */
 .editor-wrap {
     display: flex;
     flex: 1;
@@ -1179,7 +1168,6 @@ textarea:focus {
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: 13px;
     line-height: 1.6;
-    min-height: 0;
     background: #212327;
 }
 
@@ -1221,6 +1209,7 @@ textarea:focus {
     box-shadow: inset 3px 0 0 rgba(139, 92, 246, 0.5);
 }
 
+/* Footer row */
 .cfg-file-path-row {
     padding: 6px 24px;
     border-top: 1px solid var(--border);
@@ -1249,6 +1238,4 @@ textarea:focus {
     opacity: 0;
     transition: opacity 0.3s;
 }
-.cfg-save-status.visible {
-    opacity: 1;
-}
+.cfg-save-status.visible { opacity: 1; }
