@@ -592,6 +592,25 @@ ipcMain.handle('select-folder', async () => {
     return result.canceled ? null : result.filePaths[0];
 });
 
+// --- CONFIG FILE READ/WRITE ---
+ipcMain.handle('read-config-file', async (event, filePath) => {
+    try {
+        const content = fs.readFileSync(filePath, 'utf8');
+        return { success: true, content };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('write-config-file', async (event, { filePath, content }) => {
+    try {
+        fs.writeFileSync(filePath, content, 'utf8');
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
 // --- OPEN FOLDER IN EXPLORER (For the "Open Folder" button in the UI) ---
 ipcMain.on('open-folder', (event, rawData) => {
     let targetPath = (typeof rawData === 'object') ? (rawData.workingDir || rawData.exePath || rawData.path) : rawData;

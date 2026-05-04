@@ -6,6 +6,12 @@ export const minecraft = {
     backend: {
         category: "DIRECT_CONSOLE"
     },
+    gameFiles: {
+        configs: [
+            { label: "Server Properties", file: "server.properties" },
+            { label: "Ops List",          file: "ops.json" },
+        ]
+    },
     label: "JAVA EXECUTABLE (javaw.exe)",
     blocks: {
         path: 'block',

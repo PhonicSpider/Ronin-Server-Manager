@@ -6,6 +6,13 @@ export const ark = {
     backend: {
         category: "POWERSHELL_BRIDGE"
     },
+    gameFiles: {
+        configPath: "ShooterGame/Saved/Config/WindowsServer",
+        configs: [
+            { label: "Game User Settings", file: "GameUserSettings.ini" },
+            { label: "Game Settings",      file: "Game.ini" },
+        ]
+    },
     label: "ARK SERVER EXECUTABLE (ShooterGameServer.exe)",
     blocks: {
         path: 'block',

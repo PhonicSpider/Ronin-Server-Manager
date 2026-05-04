@@ -292,8 +292,14 @@ function selectServer(id) {
 
     renderSidebar();
 
-    // --- QUICK ACTIONS ---
+    // --- EDIT CONFIG BUTTON ---
     const config = ServerTypeRegistry[srv.type];
+    const editCfgBtn = document.getElementById('btn-edit-config');
+    if (editCfgBtn) {
+        editCfgBtn.style.display = config?.gameFiles?.configs?.length ? 'inline-flex' : 'none';
+    }
+
+    // --- QUICK ACTIONS ---
     const actions = config?.quickActions || [];
     const qaCard = document.getElementById('quick-actions-card');
     const qaBar = document.getElementById('quick-actions-bar');
@@ -1182,4 +1188,147 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.api.receive('system-error', (errorMsg) => window.updateSystemLog(`ERROR: ${errorMsg}`));
+
+// ─── CONFIG EDITOR ────────────────────────────────────────────────────────────
+
+let cfgActiveTabIndex = 0;
+let cfgOriginalContent = '';
+let cfgCurrentFilePath = '';
+
+function resolveCfgPath(srv, fileEntry) {
+    const workingDir = (srv.workingDir || '').replace(/[/\\]+$/, '');
+    const config = ServerTypeRegistry[srv.type];
+    const subDir = config?.gameFiles?.configPath || '';
+    const base = subDir
+        ? workingDir + '\\' + subDir.replace(/[/\\]/g, '\\').replace(/^\\+|\\+$/g, '')
+        : workingDir;
+    return base + '\\' + fileEntry.file;
+}
+
+window.openConfigEditor = async () => {
+    const srv = servers.find(s => s.id === activeId);
+    if (!srv) return;
+    const config = ServerTypeRegistry[srv.type];
+    const configs = config?.gameFiles?.configs;
+    if (!configs?.length) return;
+
+    // Populate header
+    document.getElementById('cfg-modal-icon').textContent = config.meta?.icon?.startsWith('logos/') ? '' : (config.meta?.icon || '');
+    document.getElementById('cfg-modal-server-name').textContent = srv.name;
+
+    // Warning banner
+    const warnBanner = document.getElementById('cfg-warn-banner');
+    warnBanner.style.display = srv.status === 'Online' ? 'block' : 'none';
+
+    // Build tabs
+    const tabsEl = document.getElementById('cfg-tabs');
+    tabsEl.innerHTML = '';
+    configs.forEach((entry, i) => {
+        const tab = document.createElement('button');
+        tab.className = 'cfg-tab' + (i === 0 ? ' active' : '');
+        tab.textContent = entry.label || entry.file;
+        tab.onclick = () => switchCfgTab(i);
+        tabsEl.appendChild(tab);
+    });
+
+    // Hide tabs row if only one file
+    tabsEl.style.display = configs.length > 1 ? 'flex' : 'none';
+
+    cfgActiveTabIndex = 0;
+    await loadCfgTab(srv, 0);
+
+    const modal = document.getElementById('config-modal');
+    modal.style.display = 'flex';
+};
+
+async function switchCfgTab(index) {
+    const srv = servers.find(s => s.id === activeId);
+    if (!srv) return;
+
+    // Update tab highlight
+    const tabs = document.querySelectorAll('.cfg-tab');
+    tabs.forEach((t, i) => t.classList.toggle('active', i === index));
+
+    cfgActiveTabIndex = index;
+    await loadCfgTab(srv, index);
+}
+
+async function loadCfgTab(srv, index) {
+    const config = ServerTypeRegistry[srv.type];
+    const fileEntry = config.gameFiles.configs[index];
+    cfgCurrentFilePath = resolveCfgPath(srv, fileEntry);
+
+    document.getElementById('cfg-file-path').textContent = cfgCurrentFilePath;
+    document.getElementById('cfg-save-status').textContent = '';
+    document.getElementById('cfg-save-status').classList.remove('visible');
+
+    const result = await window.api.invoke('read-config-file', cfgCurrentFilePath);
+    const editor = document.getElementById('cfg-editor');
+
+    if (result.success) {
+        editor.value = result.content;
+        cfgOriginalContent = result.content;
+    } else {
+        editor.value = `// Could not read file:\n// ${result.error}`;
+        cfgOriginalContent = '';
+    }
+
+    updateCfgLineNumbers();
+    editor.scrollTop = 0;
+    document.getElementById('cfg-line-numbers').scrollTop = 0;
+}
+
+function updateCfgLineNumbers() {
+    const editor = document.getElementById('cfg-editor');
+    const lineNumbers = document.getElementById('cfg-line-numbers');
+    const count = editor.value.split('\n').length;
+    lineNumbers.textContent = Array.from({ length: count }, (_, i) => i + 1).join('\n');
+}
+
+// Wire up line numbers and scroll sync after DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    const editor = document.getElementById('cfg-editor');
+    const lineNumbers = document.getElementById('cfg-line-numbers');
+    if (!editor || !lineNumbers) return;
+
+    editor.addEventListener('input', updateCfgLineNumbers);
+    editor.addEventListener('scroll', () => {
+        lineNumbers.scrollTop = editor.scrollTop;
+    });
+});
+
+window.saveConfigFile = async () => {
+    const editor = document.getElementById('cfg-editor');
+    const content = editor.value;
+    const statusEl = document.getElementById('cfg-save-status');
+
+    const result = await window.api.invoke('write-config-file', {
+        filePath: cfgCurrentFilePath,
+        content
+    });
+
+    if (result.success) {
+        cfgOriginalContent = content;
+        statusEl.textContent = '✓ Saved';
+        statusEl.style.color = 'var(--success)';
+        statusEl.classList.add('visible');
+        setTimeout(() => statusEl.classList.remove('visible'), 2500);
+    } else {
+        statusEl.textContent = `✗ Save failed: ${result.error}`;
+        statusEl.style.color = 'var(--danger)';
+        statusEl.classList.add('visible');
+    }
+};
+
+window.discardConfigChanges = () => {
+    const editor = document.getElementById('cfg-editor');
+    editor.value = cfgOriginalContent;
+    updateCfgLineNumbers();
+    const statusEl = document.getElementById('cfg-save-status');
+    statusEl.classList.remove('visible');
+};
+
+window.closeConfigEditor = () => {
+    document.getElementById('config-modal').style.display = 'none';
+};
 window.api.receive('system-info', (infoMsg) => window.updateSystemLog(`INFO: ${infoMsg}`));

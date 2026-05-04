@@ -132,6 +132,7 @@
                 <div class="btn-group">
                     <button class="btn btn-launch" onclick="startServer()" title="Launch Server">Launch Server</button>
                     <button class="btn btn-folder" onclick="openActiveFolder()" title="Open Server Folder">Open Folder</button>
+                    <button id="btn-edit-config" class="btn btn-config" onclick="openConfigEditor()" title="Edit Config Files" style="display:none;">Edit Config</button>
                     <button class="btn btn-stop" onclick="stopServer()" title="Shutdown Server">Shutdown</button>
                     <button class="btn btn-kill" onclick="killServer()" title="Force Terminate Process">Force Kill</button>
                     <div class="toggle-group">
@@ -387,6 +388,43 @@
         <a id="menu-folder-btn">📂 Open Server Folder</a>
         <div class="dropdown-divider"></div>
         <a id="menu-delete-btn" class="text-danger">🗑️ Delete Server</a>
+    </div>
+
+    <!-- CONFIG EDITOR MODAL -->
+    <div id="config-modal" class="modal">
+        <div class="config-modal-content">
+            <div class="config-modal-header">
+                <div class="config-modal-title">
+                    <span id="cfg-modal-icon"></span>
+                    <span id="cfg-modal-server-name"></span>
+                    <span class="config-modal-subtitle">— Config Editor</span>
+                </div>
+                <button class="cfg-close-btn" onclick="closeConfigEditor()">✕</button>
+            </div>
+
+            <div id="cfg-warn-banner" class="cfg-warn-banner" style="display:none;">
+                ⚠ Server is currently running — changes will take effect after the next restart.
+            </div>
+
+            <div id="cfg-tabs" class="cfg-tabs"></div>
+
+            <div class="editor-wrap">
+                <div id="cfg-line-numbers" class="cfg-line-numbers">1</div>
+                <textarea id="cfg-editor" class="cfg-textarea" spellcheck="false"></textarea>
+            </div>
+
+            <div class="cfg-file-path-row">
+                <span id="cfg-file-path" class="cfg-file-path"></span>
+            </div>
+
+            <div class="config-modal-footer">
+                <span id="cfg-save-status" class="cfg-save-status"></span>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-outline" onclick="discardConfigChanges()">Discard Changes</button>
+                    <button class="btn btn-launch" onclick="saveConfigFile()">Save Changes</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script type="module" src="renderer.js"></script>

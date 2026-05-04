@@ -17,7 +17,7 @@ contextBridge.exposeInMainWorld('api', {
     },
     // For asking main for data and getting a result (Two-way)
     invoke: (channel, data) => {
-        let validChannels = ['get-servers', 'get-settings', 'check-admin', 'open-dialog', 'select-folder'];
+        let validChannels = ['get-servers', 'get-settings', 'check-admin', 'open-dialog', 'select-folder', 'read-config-file', 'write-config-file'];
         if (validChannels.includes(channel)) {
             return ipcRenderer.invoke(channel, data);
         }

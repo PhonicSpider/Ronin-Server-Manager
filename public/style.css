@@ -705,6 +705,17 @@ input[type="checkbox"] {
     border-color: rgba(239, 68, 68, 0.7);
 }
 
+.btn-config {
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    color: #a78bfa;
+}
+.btn-config:hover {
+    background: rgba(139, 92, 246, 0.22);
+    border-color: rgba(139, 92, 246, 0.6);
+    color: #c4b5fd;
+}
+
 .btn-settings:hover {
     background: rgba(0, 123, 255, 0.15);
     border-width: 1px;
@@ -1061,4 +1072,182 @@ textarea:focus {
     color: var(--accent);
     white-space: nowrap;
     text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.5);
+}
+
+/* --- CONFIG EDITOR MODAL --- */
+.config-modal-content {
+    background: rgb(var(--bg-color));
+    width: min(820px, 92vw);
+    max-height: 90vh;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.config-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.config-modal-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.config-modal-subtitle {
+    color: var(--dim);
+    font-weight: 400;
+}
+
+.cfg-close-btn {
+    background: none;
+    border: none;
+    color: var(--dim);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    line-height: 1;
+    transition: color 0.15s, background 0.15s;
+}
+.cfg-close-btn:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.cfg-warn-banner {
+    background: rgba(245, 158, 11, 0.12);
+    border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+    color: #f59e0b;
+    font-size: 12px;
+    padding: 8px 24px;
+    flex-shrink: 0;
+    letter-spacing: 0.02em;
+}
+
+.cfg-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 10px 24px 0;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.cfg-tab {
+    padding: 6px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--dim);
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    background: none;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+    position: relative;
+    bottom: -1px;
+}
+.cfg-tab:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.04);
+}
+.cfg-tab.active {
+    color: var(--accent);
+    border-color: var(--border);
+    border-bottom-color: rgb(var(--bg-color));
+    background: rgb(var(--bg-color));
+}
+
+.editor-wrap {
+    display: flex;
+    flex: 1;
+    min-height: 380px;
+    overflow: hidden;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    min-height: 0;
+    background: #080a0f;
+}
+
+.cfg-line-numbers {
+    width: 48px;
+    min-width: 48px;
+    padding: 14px 10px 14px 0;
+    text-align: right;
+    color: rgba(255, 255, 255, 0.2);
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    overflow: hidden;
+    user-select: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    white-space: pre;
+    box-sizing: border-box;
+}
+
+.cfg-textarea {
+    flex: 1;
+    padding: 14px 16px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.88);
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    resize: none;
+    outline: none;
+    white-space: pre;
+    overflow-wrap: normal;
+    overflow-x: auto;
+    box-sizing: border-box;
+    tab-size: 4;
+}
+.cfg-textarea:focus {
+    box-shadow: inset 3px 0 0 rgba(139, 92, 246, 0.5);
+}
+
+.cfg-file-path-row {
+    padding: 6px 24px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.cfg-file-path {
+    font-family: 'Consolas', monospace;
+    font-size: 11px;
+    color: var(--dim);
+    opacity: 0.6;
+}
+
+.config-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.cfg-save-status {
+    font-size: 12px;
+    color: var(--success);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.cfg-save-status.visible {
+    opacity: 1;
 }

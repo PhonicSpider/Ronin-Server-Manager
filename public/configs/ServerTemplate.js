@@ -16,6 +16,20 @@
         //                   (e.g. SE uses -path "<workingDir>") so each instance can be told apart.
         category: "DIRECT_CONSOLE"
     },
+    // --- Optional: Config files accessible via the in-app config editor. ---
+    // Omit this block entirely if the game has no editable config files.
+    gameFiles: {
+        // Optional subfolder relative to workingDir where the configs live.
+        // If omitted, files are looked up directly in workingDir.
+        configPath: "relative/subfolder",
+
+        // Each entry becomes a tab in the config editor.
+        // 'label' is the tab name shown in the UI; 'file' is the filename inside configPath (or workingDir).
+        configs: [
+            { label: "Server Config", file: "config.ini" },
+            // { label: "Second File",  file: "other.cfg" },
+        ]
+    },
 
     // --- Fields for configuring how the server setup modal should look and function for this game. ---
     label: "DISPLAY LABEL (e.g. GAME_SERVER.EXE)", // The label above the input for the executable path. Make it descriptive to help users know what to put there.
