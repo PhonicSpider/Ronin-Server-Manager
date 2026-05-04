@@ -1,0 +1,1910 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://phonicspider.github.io/Ronin-Server-Manager/troubleshooting/">
+      
+      
+        <link rel="prev" href="../servers/palworld/">
+      
+      
+        <link rel="next" href="../contributing/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>🛠️ Support - Ronin Server Manager</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CFira+Code:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"Fira Code"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  <link href="../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="deep-orange" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#troubleshooting-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Ronin Server Manager" class="md-header__button md-logo" aria-label="Ronin Server Manager" data-md-component="logo">
+      
+  <img src="../assets/images/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Ronin Server Manager
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              🛠️ Support
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/PhonicSpider/Ronin-Server-Manager" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Ronin Server Manager" class="md-nav__button md-logo" aria-label="Ronin Server Manager" data-md-component="logo">
+      
+  <img src="../assets/images/logo.png" alt="logo">
+
+    </a>
+    Ronin Server Manager
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/PhonicSpider/Ronin-Server-Manager" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🏠 Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../servers/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🖥️ Server Setup
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    🖥️ Server Setup
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/minecraft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🟩 Minecraft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/space-engineers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🚀 Space Engineers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/terraria/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🌳 Terraria
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/ark-survival/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🦕 Ark Survival
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/rust/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ☢️ Rust
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/palworld/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    👹 PalWorld
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🛠️ Support
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🛠️ Support
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#chapter-1-universal-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chapter 1 — Universal Issues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Chapter 1 — Universal Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#server-starts-then-immediately-goes-offline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ▶️ Server Starts Then Immediately Goes Offline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#console-is-blank-no-output-appearing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🖥️ Console is Blank — No Output Appearing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#status-dot-not-updating-after-shutdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔴 Status Dot Not Updating After Shutdown
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#browse-buttons-dont-open-file-explorer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📂 Browse Buttons Don't Open File Explorer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#two-servers-sharing-the-same-pid-wrong-server-goes-online" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔄 Two Servers Sharing the Same PID / Wrong Server Goes Online
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-shows-online-immediately-after-rsm-restarts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        👻 Server Shows "Online" Immediately After RSM Restarts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quick-actions-console-commands-do-nothing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚡ Quick Actions / Console Commands Do Nothing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#admin-badge-is-red-missing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🛡️ Admin Badge is Red / Missing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rsm-itself-is-using-high-cpu-or-ram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        💾 RSM Itself Is Using High CPU or RAM
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chapter-2-game-specific-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chapter 2 — Game-Specific Issues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Chapter 2 — Game-Specific Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#server-exits-immediately-eula-not-accepted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚠️ Server Exits Immediately — EULA Not Accepted
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#java-not-found-or-wrong-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ☕ Java Not Found or Wrong Version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-window-opens-but-console-is-blank" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ❌ Server Window Opens but Console is Blank
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-lags-badly-or-runs-out-of-memory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        💾 Server Lags Badly or Runs Out of Memory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#serverjar-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ❓ server.jar Not Found
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#second-instance-fails-port-already-in-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔌 Second Instance Fails — Port Already In Use
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#console-output-is-delayed-by-12-seconds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🕐 Console Output is Delayed by 1–2 Seconds
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#commands-return-no-response" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        💻 Commands Return No Response
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#-path-argument-must-match-working-directory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📁 -path Argument Must Match Working Directory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#se-crashes-immediately-admin-rights-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🛡️ SE Crashes Immediately — Admin Rights Required
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#console-is-empty-after-server-starts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🖥️ Console is Empty After Server Starts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rcon-commands-fail-or-return-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔑 RCON Commands Fail or Return Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-crashes-immediately-after-launch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        💥 Server Crashes Immediately After Launch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multiple-instances-conflict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🌐 Multiple Instances Conflict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#console-is-blank-for-the-first-minute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⏳ Console is Blank for the First Minute
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quick-actions-are-not-available" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚡ Quick Actions Are Not Available
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-ignores-config-or-starts-with-wrong-world" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚙️ Server Ignores Config or Starts With Wrong World
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#port-conflict-with-multiple-terraria-instances" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚠️ Port Conflict With Multiple Terraria Instances
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-starts-slowly-world-generation-takes-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⏱️ Server Starts Slowly — World Generation Takes Time
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-rsm-works-internally" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🧠 How RSM Works Internally
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#collecting-logs-for-a-bug-report" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📋 Collecting Logs for a Bug Report
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🔥 Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#chapter-1-universal-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chapter 1 — Universal Issues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Chapter 1 — Universal Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#server-starts-then-immediately-goes-offline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ▶️ Server Starts Then Immediately Goes Offline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#console-is-blank-no-output-appearing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🖥️ Console is Blank — No Output Appearing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#status-dot-not-updating-after-shutdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔴 Status Dot Not Updating After Shutdown
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#browse-buttons-dont-open-file-explorer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📂 Browse Buttons Don't Open File Explorer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#two-servers-sharing-the-same-pid-wrong-server-goes-online" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔄 Two Servers Sharing the Same PID / Wrong Server Goes Online
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-shows-online-immediately-after-rsm-restarts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        👻 Server Shows "Online" Immediately After RSM Restarts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quick-actions-console-commands-do-nothing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚡ Quick Actions / Console Commands Do Nothing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#admin-badge-is-red-missing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🛡️ Admin Badge is Red / Missing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rsm-itself-is-using-high-cpu-or-ram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        💾 RSM Itself Is Using High CPU or RAM
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chapter-2-game-specific-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chapter 2 — Game-Specific Issues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Chapter 2 — Game-Specific Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#server-exits-immediately-eula-not-accepted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚠️ Server Exits Immediately — EULA Not Accepted
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#java-not-found-or-wrong-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ☕ Java Not Found or Wrong Version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-window-opens-but-console-is-blank" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ❌ Server Window Opens but Console is Blank
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-lags-badly-or-runs-out-of-memory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        💾 Server Lags Badly or Runs Out of Memory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#serverjar-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ❓ server.jar Not Found
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#second-instance-fails-port-already-in-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔌 Second Instance Fails — Port Already In Use
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#console-output-is-delayed-by-12-seconds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🕐 Console Output is Delayed by 1–2 Seconds
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#commands-return-no-response" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        💻 Commands Return No Response
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#-path-argument-must-match-working-directory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📁 -path Argument Must Match Working Directory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#se-crashes-immediately-admin-rights-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🛡️ SE Crashes Immediately — Admin Rights Required
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#console-is-empty-after-server-starts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🖥️ Console is Empty After Server Starts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rcon-commands-fail-or-return-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔑 RCON Commands Fail or Return Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-crashes-immediately-after-launch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        💥 Server Crashes Immediately After Launch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multiple-instances-conflict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🌐 Multiple Instances Conflict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#console-is-blank-for-the-first-minute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⏳ Console is Blank for the First Minute
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quick-actions-are-not-available" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚡ Quick Actions Are Not Available
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-ignores-config-or-starts-with-wrong-world" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚙️ Server Ignores Config or Starts With Wrong World
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#port-conflict-with-multiple-terraria-instances" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚠️ Port Conflict With Multiple Terraria Instances
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-starts-slowly-world-generation-takes-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⏱️ Server Starts Slowly — World Generation Takes Time
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-rsm-works-internally" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🧠 How RSM Works Internally
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#collecting-logs-for-a-bug-report" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📋 Collecting Logs for a Bug Report
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="troubleshooting-guide"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🛠️ Troubleshooting Guide</p></h1>
+<div class="admonition abstract">
+<p class="admonition-title">How to Use This Guide</p>
+<p>This guide is split into two chapters. <strong>Chapter 1</strong> covers problems that can happen with any server type. <strong>Chapter 2</strong> covers issues specific to each game. If you are unsure which applies to you, start at the top and work down — most problems are universal.</p>
+<p>Use <strong>Ctrl+F</strong> to search for the exact error message you are seeing.</p>
+</div>
+<hr>
+<h2 id="chapter-1-universal-issues"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">Chapter 1 — Universal Issues</p></h2>
+<p>These issues can occur with any game type regardless of server software.</p>
+<hr>
+<h3 class="rsm-header" id="server-starts-then-immediately-goes-offline">▶️ Server Starts Then Immediately Goes Offline</h3>
+<p>The server process launched but exited before RSM could attach to it.</p>
+<details class="failure">
+<summary>Server crashes on launch</summary>
+<p><strong>Step 1 — Run it manually first.</strong><br>
+Outside of RSM, navigate to your server folder and launch the executable directly. If it fails here too, the problem is with the server software itself, not RSM.<br>
+Common causes: missing prerequisite files, unaccepted EULA, missing <code>.dll</code> libraries next to the executable.</p>
+<p><strong>Step 2 — Check your Working Directory.</strong><br>
+This is the most common cause of an instant crash. The server executable often expects to be launched <em>from inside</em> its own folder so it can find <code>.dll</code>, config, and data files.<br>
+Set the <strong>Working Directory</strong> to the folder that <em>contains</em> the server executable, not a parent folder above it.</p>
+<p><strong>Step 3 — Check your Arguments.</strong><br>
+An unrecognised flag or a malformed argument string (e.g. mismatched quotes) will cause most server software to exit with code 1.<br>
+Review your <strong>Arguments</strong> field and compare against the examples in the relevant <a href="../servers/">Server Setup Guide</a>.</p>
+<p><strong>Step 4 — Run RSM as Administrator.</strong><br>
+Some servers need to bind to low-number network ports or write to protected directories. Right-click the RSM shortcut and select <strong>Run as administrator</strong>. Check that the admin badge in the RSM header turns green.</p>
+</details>
+<hr>
+<h3 class="rsm-header" id="console-is-blank-no-output-appearing">🖥️ Console is Blank — No Output Appearing</h3>
+<p>The server is running but RSM shows no text in the console panel.</p>
+<details class="warning">
+<summary>Blank console for a running server</summary>
+<p>The cause depends on which category your server uses.</p>
+<p><strong>DIRECT_CONSOLE games (Minecraft, 7 Days to Die)</strong><br>
+RSM reads the process's standard output stream. If the server opens its own GUI window instead of writing to stdout, the stream RSM captures will be empty.</p>
+<ul>
+<li>Ensure <code>nogui</code> or <code>--nogui</code> is at the end of your <strong>Arguments</strong> field.</li>
+<li>Ensure RSM is running as Administrator so it has permission to attach to the process stream.</li>
+</ul>
+<p><strong>POWERSHELL_BRIDGE games (Space Engineers, Ark, Terraria)</strong><br>
+RSM tails a log file on disk. If the log file path is wrong, empty, or the game hasn't written to it yet, the console will be blank.</p>
+<ul>
+<li>Double-check your <strong>Log Path</strong> field points to the <em>folder</em> containing <code>.log</code> files, not a specific file.</li>
+<li>Wait 15–30 seconds after the server starts. Some games (especially Ark) buffer log writes and the first output can take up to a minute.</li>
+<li>Ensure the game is configured to write logs (see the game-specific section below).</li>
+</ul>
+</details>
+<hr>
+<h3 class="rsm-header" id="status-dot-not-updating-after-shutdown">🔴 Status Dot Not Updating After Shutdown</h3>
+<p>The green pulse stays green for several seconds after clicking <strong>Shutdown</strong>, or never turns red at all.</p>
+<details class="warning">
+<summary>Status dot is slow or stuck</summary>
+<p><strong>Normal delay (up to ~3 seconds):</strong> RSM sends a graceful shutdown signal via PowerShell (<code>CloseMainWindow</code>), waits for the OS to acknowledge, then immediately triggers the UI update. A 2–4 second delay is expected on most machines.</p>
+<p><strong>Longer delay / never updates:</strong><br>
+- Check the System Console in RSM for a line that says <code>RSM-WARN: PID still active</code>. This means the game process is taking a long time to save and exit. This is normal for large Minecraft worlds or long Space Engineers autosaves.<br>
+- If the server is completely frozen and not responding to the graceful signal, use the <strong>Force Kill</strong> button instead. This sends <code>taskkill /F /T</code> to the process tree and the dot will update within one heartbeat cycle (5 seconds).</p>
+</details>
+<hr>
+<h3 class="rsm-header" id="browse-buttons-dont-open-file-explorer">📂 Browse Buttons Don't Open File Explorer</h3>
+<p>Clicking a <strong>Browse</strong> button in the Add Server wizard does nothing.</p>
+<details class="failure">
+<summary>File/folder picker does not open</summary>
+<p>This is caused by running an outdated version of RSM where the file picker IPC channels were not whitelisted. Update to the latest release — this was resolved in the <code>server-selection-rework</code> update.</p>
+<p>If you are building from source, ensure <code>open-dialog</code> and <code>select-folder</code> are present in the <code>invoke</code> whitelist in <code>preload.js</code>.</p>
+</details>
+<hr>
+<h3 class="rsm-header" id="two-servers-sharing-the-same-pid-wrong-server-goes-online">🔄 Two Servers Sharing the Same PID / Wrong Server Goes Online</h3>
+<p>You start a second instance of the same game and RSM assigns the same PID to both, or marks the wrong server as Online.</p>
+<details class="failure">
+<summary>Duplicate PID across multiple instances</summary>
+<p><strong>Root cause:</strong> RSM's deep PID search discriminates between multiple instances of the same EXE using the <strong>Working Directory</strong> path. If two servers share the same working directory, RSM cannot tell them apart.</p>
+<p><strong>Fix:</strong><br>
+1. Ensure every server instance has a <strong>unique Working Directory</strong>.<br>
+2. For games that include the instance path in their launch arguments (like Space Engineers with <code>-path</code>), also ensure the argument path matches the working directory exactly.<br>
+3. If one server instance is already running and you start a second, RSM will never assign the first server's confirmed PID to the new one — but both must have distinct directories for the second search to succeed.</p>
+<p>See the <a href="#space-engineers">Space Engineers multi-instance section</a> below for the most common example of this.</p>
+</details>
+<hr>
+<h3 class="rsm-header" id="server-shows-online-immediately-after-rsm-restarts">👻 Server Shows "Online" Immediately After RSM Restarts</h3>
+<p>RSM was restarted (or the PC was rebooted) and a server that was previously stopped is incorrectly shown as Online.</p>
+<details class="info">
+<summary>Ghost Online status on startup</summary>
+<p>On startup RSM resets all saved server statuses to <strong>Offline</strong> before the UI loads, so this should not occur in current versions. If you see it:</p>
+<ul>
+<li>Click <strong>Force Kill</strong> on the affected server. If the process is genuinely gone, the button will do nothing and the status will correct itself on the next heartbeat (within 5 seconds).</li>
+<li>If the server truly <em>is</em> still running from a previous session, RSM's heartbeat will re-attach to it within one cycle. This is <strong>PID Handoff</strong> working as designed.</li>
+</ul>
+</details>
+<hr>
+<h3 class="rsm-header" id="quick-actions-console-commands-do-nothing">⚡ Quick Actions / Console Commands Do Nothing</h3>
+<p>You click a Quick Action button or type a command and nothing happens on the server.</p>
+<details class="warning">
+<summary>Commands are sent but have no effect</summary>
+<p>The command path depends on the server type:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Server Type</th>
+<th style="text-align: left;">How Commands Are Sent</th>
+<th style="text-align: left;">What Can Go Wrong</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Minecraft</td>
+<td style="text-align: left;">Written directly to process stdin</td>
+<td style="text-align: left;">Server not fully started yet; wait for <code>Done!</code> in logs</td>
+</tr>
+<tr>
+<td style="text-align: left;">Space Engineers</td>
+<td style="text-align: left;">HTTP API (<code>axios</code> to <code>localhost:PORT</code>)</td>
+<td style="text-align: left;">Wrong API port or API password in RSM settings</td>
+</tr>
+<tr>
+<td style="text-align: left;">Ark</td>
+<td style="text-align: left;">RCON protocol (<code>rcon-client</code> to <code>localhost:PORT</code>)</td>
+<td style="text-align: left;">Wrong RCON port or admin password; <code>-RCONEnabled</code> missing from args</td>
+</tr>
+<tr>
+<td style="text-align: left;">Terraria</td>
+<td style="text-align: left;">No command API available</td>
+<td style="text-align: left;">Terraria has no RCON — commands must be typed in its own console</td>
+</tr>
+</tbody>
+</table>
+<p><strong>General checklist:</strong></p>
+<ul>
+<li>Confirm the server has fully started before sending commands (watch for a "ready" line in the console).</li>
+<li>For RCON/API games, verify the port and password in RSM match exactly what is in the server's config or launch arguments.</li>
+<li>Ensure the relevant firewall port is open on <code>localhost</code> (even local connections can be blocked by security software).</li>
+</ul>
+</details>
+<hr>
+<h3 class="rsm-header" id="admin-badge-is-red-missing">🛡️ Admin Badge is Red / Missing</h3>
+<p>The shield icon in the RSM header is red, indicating RSM is not running with Administrator privileges.</p>
+<details class="warning">
+<summary>RSM not running as administrator</summary>
+<p>Some server types (Space Engineers in particular) need to bind to network ports and write to <code>C:\ProgramData</code>, both of which require elevated rights.</p>
+<ul>
+<li>Close RSM.</li>
+<li>Right-click the RSM shortcut or <code>.exe</code> and select <strong>Run as administrator</strong>.</li>
+<li>To make this permanent: right-click → Properties → Compatibility → check <strong>Run this program as an administrator</strong>.</li>
+</ul>
+</details>
+<hr>
+<h3 class="rsm-header" id="rsm-itself-is-using-high-cpu-or-ram">💾 RSM Itself Is Using High CPU or RAM</h3>
+<p>The manager's own process is consuming significant resources, separate from the game servers.</p>
+<details class="info">
+<summary>RSM resource usage</summary>
+<p>RSM polls each running server every <strong>5 seconds</strong> via <code>tasklist</code> and WMIC for CPU/RAM metrics. This is lightweight by design, but a few situations can increase overhead:</p>
+<ul>
+<li><strong>Many running servers simultaneously</strong> — each has its own heartbeat interval.</li>
+<li><strong>Very large log files</strong> — RSM tails log files from the last-read position, but extremely high log output (debug mode servers) can create a backlog. Disable verbose/debug logging in the game server's config if possible.</li>
+<li><strong>Deep search loop running</strong> — if RSM is stuck searching for a PID, you will see repeated <code>deep search</code> lines in the System Console. This burns CPU. If it does not resolve within 30 seconds, stop the server and restart it.</li>
+</ul>
+</details>
+<hr>
+<h2 id="chapter-2-game-specific-issues"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">Chapter 2 — Game-Specific Issues</p></h2>
+<p>Select your game below.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:4"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio"><input id="__tabbed_1_2" name="__tabbed_1" type="radio"><input id="__tabbed_1_3" name="__tabbed_1" type="radio"><input id="__tabbed_1_4" name="__tabbed_1" type="radio"><div class="tabbed-labels"><label for="__tabbed_1_1"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 2h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m2 4v4h4v2H8v6h2v-2h4v2h2v-6h-2v-2h4V6h-4v4h-4V6z"></path></svg></span> Minecraft</label><label for="__tabbed_1_2"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m13.13 22.19-1.63-3.83c1.57-.58 3.04-1.36 4.4-2.27zM5.64 12.5l-3.83-1.63 6.1-2.77C7 9.46 6.22 10.93 5.64 12.5M21.61 2.39S16.66.269 11 5.93c-2.19 2.19-3.5 4.6-4.35 6.71-.28.75-.09 1.57.46 2.13l2.13 2.12c.55.56 1.37.74 2.12.46A19.1 19.1 0 0 0 18.07 13c5.66-5.66 3.54-10.61 3.54-10.61m-7.07 7.07c-.78-.78-.78-2.05 0-2.83s2.05-.78 2.83 0c.77.78.78 2.05 0 2.83s-2.05.78-2.83 0m-5.66 7.07-1.41-1.41zM6.24 22l3.64-3.64c-.34-.09-.67-.24-.97-.45L4.83 22zM2 22h1.41l4.77-4.76-1.42-1.41L2 20.59zm0-2.83 4.09-4.08c-.21-.3-.36-.62-.45-.97L2 17.76z"></path></svg></span> Space Engineers</label><label for="__tabbed_1_3"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.35 3c1.18-.17 2.43 1.12 2.79 2.9.36 1.77-.29 3.35-1.47 3.53-1.17.18-2.43-1.11-2.8-2.89-.37-1.77.3-3.35 1.48-3.54m7.15 0c1.19.19 1.85 1.77 1.5 3.54-.38 1.78-1.63 3.07-2.81 2.89-1.19-.18-1.84-1.76-1.47-3.53.36-1.78 1.61-3.07 2.78-2.9M3 7.6c1.14-.49 2.69.4 3.5 1.95.76 1.58.5 3.24-.63 3.73s-2.67-.39-3.46-1.96S1.9 8.08 3 7.6m18 0c1.1.48 1.38 2.15.59 3.72s-2.33 2.45-3.46 1.96-1.39-2.15-.63-3.73C18.31 8 19.86 7.11 21 7.6m-1.67 10.78c.04.94-.68 1.98-1.54 2.37-1.79.82-3.91-.88-5.9-.88s-4.13 1.77-5.89.88c-1-.49-1.69-1.79-1.56-2.87.18-1.49 1.97-2.29 3.03-3.38 1.41-1.41 2.41-4.06 4.42-4.06 2 0 3.06 2.61 4.41 4.06 1.11 1.22 2.96 2.25 3.03 3.88"></path></svg></span> Ark: Survival</label><label for="__tabbed_1_4"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3c.48.17.98.3 1.34.3C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8"></path></svg></span> Terraria</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<h3 class="rsm-header" id="server-exits-immediately-eula-not-accepted">⚠️ Server Exits Immediately — EULA Not Accepted</h3>
+<details class="failure">
+<summary>Server closes with 'You need to agree to the EULA'</summary>
+<p>Minecraft will not start until <code>eula.txt</code> is manually accepted.</p>
+<ol>
+<li>Run your <code>server.jar</code> once outside of RSM. It will generate <code>eula.txt</code> in the Working Directory and then exit.</li>
+<li>Open <code>eula.txt</code> in a text editor.</li>
+<li>Change <code>eula=false</code> to <code>eula=true</code> and save.</li>
+<li>Start the server through RSM as normal.</li>
+</ol>
+</details>
+<hr>
+<h3 class="rsm-header" id="java-not-found-or-wrong-version">☕ Java Not Found or Wrong Version</h3>
+<details class="failure">
+<summary>RSM can't find java.exe or server starts with errors</summary>
+<p>RSM requires the <strong>full path</strong> to <code>java.exe</code>, not just <code>java</code>. The system <code>PATH</code> is not used.</p>
+<ul>
+<li>Open a terminal and run <code>where java</code> to find the location.</li>
+<li>Navigate to <code>C:\Program Files\Java\</code> and find the correct JDK version folder. The path should look like <code>C:\Program Files\Java\jdk-21\bin\java.exe</code>.</li>
+<li>Modern Minecraft versions (1.17+) require <strong>Java 17 or 21</strong>. Older versions may require Java 8.</li>
+<li>If you have multiple Java versions installed, make sure the path in RSM points to the correct one for your server version.</li>
+</ul>
+</details>
+<hr>
+<h3 class="rsm-header" id="server-window-opens-but-console-is-blank">❌ Server Window Opens but Console is Blank</h3>
+<details class="warning">
+<summary>Output visible in the Java window but not in RSM</summary>
+<p>The Minecraft server opened its built-in GUI window, which does not write to stdout. RSM cannot read this stream.</p>
+<ul>
+<li>Add <code>nogui</code> or <code>--nogui</code> to the <strong>end</strong> of your Arguments field.</li>
+<li>Your arguments should look like: <code>-Xmx4G -Xms2G -jar fabric-server-launcher.jar --nogui</code></li>
+</ul>
+</details>
+<hr>
+<h3 class="rsm-header" id="server-lags-badly-or-runs-out-of-memory">💾 Server Lags Badly or Runs Out of Memory</h3>
+<details class="warning">
+<summary>RAM allocation issues</summary>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Symptom</th>
+<th style="text-align: left;">Likely Cause</th>
+<th style="text-align: left;">Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Constant lag / GC pauses</td>
+<td style="text-align: left;"><code>-Xms</code> too low</td>
+<td style="text-align: left;">Set <code>-Xms</code> equal to <code>-Xmx</code> (e.g. both <code>4G</code>)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Instant crash on start</td>
+<td style="text-align: left;"><code>-Xmx</code> higher than available RAM</td>
+<td style="text-align: left;">Lower your max RAM; leave 2GB free for Windows</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>OutOfMemoryError</code> in logs</td>
+<td style="text-align: left;">Max heap too small for the modpack</td>
+<td style="text-align: left;">Increase <code>-Xmx</code> (try <code>6G</code> for heavy modpacks)</td>
+</tr>
+</tbody>
+</table>
+</details>
+<hr>
+<h3 class="rsm-header" id="serverjar-not-found">❓ <code>server.jar</code> Not Found</h3>
+<details class="failure">
+<summary>Error: unable to access jarfile server.jar</summary>
+<p>The <code>-jar</code> argument in RSM is a <strong>relative path</strong> resolved from the Working Directory. If the jar filename does not exactly match, Java will fail to start.</p>
+<ul>
+<li>Confirm the jar file exists in the Working Directory.</li>
+<li>Check the exact filename. Fabric uses <code>fabric-server-launcher.jar</code>, Forge uses <code>forge-X.X.X.jar</code>, Vanilla uses <code>server.jar</code>. Update your <code>-jar</code> argument to match.</li>
+</ul>
+</details>
+</div>
+<div class="tabbed-block">
+<h3 class="rsm-header" id="second-instance-fails-port-already-in-use">🔌 Second Instance Fails — Port Already In Use</h3>
+<details class="failure">
+<summary>Error binding server endpoint: Only one usage of each socket address</summary>
+<p>This error appears in the Space Engineers log when two instances are configured to use the <strong>same game port</strong> (default <code>27016</code>). This is a setting inside the Space Engineers dedicated server config, not in RSM.</p>
+<ol>
+<li>Navigate to the second instance's folder: <code>C:\ProgramData\SpaceEngineersDedicated\YourInstance\</code></li>
+<li>Open <code>SpaceEngineers-Dedicated.cfg</code> in a text editor.</li>
+<li>Find the <code>&lt;ServerPort&gt;</code> tag and change it to an unused port (e.g. <code>27017</code>, <code>27018</code>).</li>
+<li>Also ensure the <code>&lt;SteamPort&gt;</code> value is different between instances.</li>
+<li>Restart the second instance.</li>
+</ol>
+<div class="admonition tip">
+<p class="admonition-title">Each instance needs three unique ports</p>
+<p>Game Port (<code>ServerPort</code>), Steam Query Port (<code>ServerQueryPort</code>), and API Port (the one entered in RSM). Make sure all three are different across every instance you run simultaneously.</p>
+</div>
+</details>
+<hr>
+<h3 class="rsm-header" id="console-output-is-delayed-by-12-seconds">🕐 Console Output is Delayed by 1–2 Seconds</h3>
+<details class="info">
+<summary>Slight delay in SE log output — this is normal</summary>
+<p>Space Engineers runs headless and writes output to a physical log file on disk. RSM "tails" this file by checking it every second for new lines. A <strong>1–2 second delay</strong> between in-game events and them appearing in the RSM console is expected behaviour and is not a bug.</p>
+</details>
+<hr>
+<h3 class="rsm-header" id="commands-return-no-response">💻 Commands Return No Response</h3>
+<details class="warning">
+<summary>Quick Actions or console commands do nothing in SE</summary>
+<p>SE commands are sent via its HTTP API. Three things must be correct:</p>
+<ol>
+<li><strong><code>-console</code> must be in your Arguments.</strong> Without this flag, the SE dedicated server does not start its HTTP API endpoint.</li>
+<li><strong>API Port</strong> in RSM must match the port SE is actually listening on (default <code>8080</code>). Check <code>SpaceEngineers-Dedicated.cfg</code> for the <code>&lt;RemoteApiPort&gt;</code> value.</li>
+<li><strong>API Password</strong> in RSM must match the <code>&lt;RemoteSecurityKey&gt;</code> value in the same config file. If this field is blank in the config, leave it blank in RSM too.</li>
+</ol>
+</details>
+<hr>
+<h3 class="rsm-header" id="-path-argument-must-match-working-directory">📁 <code>-path</code> Argument Must Match Working Directory</h3>
+<details class="warning">
+<summary>SE loads the wrong instance or wrong world</summary>
+<p>RSM uses the <strong>Working Directory</strong> field to identify which SE instance to attach to when running multiple instances side-by-side. The <code>-path</code> argument in your <strong>Arguments</strong> field must be the <strong>exact same path</strong> as the Working Directory.</p>
+<p>Example — if your Working Directory is <code>C:\ProgramData\SpaceEngineersDedicated\Survival</code>, your Arguments must include:</p>
+<div class="highlight"><pre><span></span><code>-console -ignorelastsession -path "C:\ProgramData\SpaceEngineersDedicated\Survival"
+</code></pre></div>
+<p>If these do not match, RSM may attach to the wrong SE instance.</p>
+</details>
+<hr>
+<h3 class="rsm-header" id="se-crashes-immediately-admin-rights-required">🛡️ SE Crashes Immediately — Admin Rights Required</h3>
+<details class="failure">
+<summary>Access denied or network binding errors on start</summary>
+<p>Space Engineers Dedicated Server must bind to network ports and write to <code>C:\ProgramData</code>, both protected locations. RSM must be running as Administrator.</p>
+<p>Check that the <strong>admin shield badge</strong> in the RSM header is green before starting any SE server.</p>
+</details>
+</div>
+<div class="tabbed-block">
+<h3 class="rsm-header" id="console-is-empty-after-server-starts">🖥️ Console is Empty After Server Starts</h3>
+<details class="warning">
+<summary>No log output in RSM for an Ark server</summary>
+<p>Ark does not write a log file by default. Two things are required:</p>
+<ol>
+<li>Add <strong><code>-servergamelog</code></strong> to your Arguments. Without this flag, Ark never creates the <code>.log</code> file RSM reads.</li>
+<li>Confirm your <strong>Log Path</strong> in RSM points to the <code>Saved\Logs</code> folder, e.g.:<br>
+<code>...\ShooterGame\Saved\Logs</code><br>
+   This folder is only created after the server has run at least once. Run it once outside of RSM to generate it.</li>
+</ol>
+<div class="admonition info">
+<p class="admonition-title">Ark logs are buffered</p>
+<p>Even with <code>-servergamelog</code> active, there is a <strong>2–5 second delay</strong> between in-game events and them appearing in RSM. This is an Ark engine behaviour, not a RSM bug.</p>
+</div>
+</details>
+<hr>
+<h3 class="rsm-header" id="rcon-commands-fail-or-return-errors">🔑 RCON Commands Fail or Return Errors</h3>
+<details class="failure">
+<summary>Commands do nothing or RSM shows an RCON connection error</summary>
+<p>Check the following in order:</p>
+<ol>
+<li><strong><code>-RCONEnabled</code></strong> must be present in your Arguments. Without it, Ark's RCON listener never starts.</li>
+<li>The <strong>RCON Port</strong> in RSM must match the <code>-RCONPort=</code> value in your Arguments. Default is <code>27020</code>.</li>
+<li>The <strong>Admin Password</strong> in RSM must exactly match the <code>-ServerAdminPassword=</code> value in your Arguments — including capitalisation and special characters.</li>
+<li>Check that your security software (Windows Defender, antivirus) is not blocking the RCON port on <code>localhost</code>. Add an inbound rule for the port if needed.</li>
+</ol>
+</details>
+<hr>
+<h3 class="rsm-header" id="server-crashes-immediately-after-launch">💥 Server Crashes Immediately After Launch</h3>
+<details class="failure">
+<summary>ShooterGameServer.exe exits within seconds</summary>
+<p>The most common cause is an incorrect <strong>Working Directory</strong>. Ark's executable must be launched from the <code>Win64</code> folder because it needs to load sibling <code>.dll</code> files from that same directory.</p>
+<ul>
+<li>Working Directory must be: <code>...\ShooterGame\Binaries\Win64</code></li>
+<li><strong>Not</strong> the root Ark folder, and <strong>not</strong> <code>ShooterGame</code> — it must be <code>Win64</code> specifically.</li>
+</ul>
+</details>
+<hr>
+<h3 class="rsm-header" id="multiple-instances-conflict">🌐 Multiple Instances Conflict</h3>
+<details class="warning">
+<summary>Second Ark server crashes or can't be found by players</summary>
+<p>Each Ark instance needs three unique ports in its Arguments:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Argument</th>
+<th style="text-align: left;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>-Port=</code></td>
+<td style="text-align: left;"><code>7777</code></td>
+<td style="text-align: left;">Main game connection port</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>-QueryPort=</code></td>
+<td style="text-align: left;"><code>27015</code></td>
+<td style="text-align: left;">Steam query port</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>-RCONPort=</code></td>
+<td style="text-align: left;"><code>27020</code></td>
+<td style="text-align: left;">RSM command port</td>
+</tr>
+</tbody>
+</table>
+<p>Increment each by 1 (or any unused value) per additional instance. Also ensure each instance has a <strong>unique Working Directory</strong> so RSM can tell them apart.</p>
+</details>
+<hr>
+<h3 class="rsm-header" id="console-is-blank-for-the-first-minute">⏳ Console is Blank for the First Minute</h3>
+<details class="info">
+<summary>No output during initial Ark startup — this is normal</summary>
+<p>When Ark boots, it loads "Primal Game Data" which can take <strong>30–90 seconds</strong> depending on your hardware and mods. No log lines are written during this phase. The RSM console will appear blank during this time. Wait for the loading phase to complete before assuming something is wrong.</p>
+</details>
+</div>
+<div class="tabbed-block">
+<h3 class="rsm-header" id="quick-actions-are-not-available">⚡ Quick Actions Are Not Available</h3>
+<details class="info">
+<summary>No Quick Action buttons appear for Terraria</summary>
+<p>Terraria's dedicated server has <strong>no RCON protocol and no HTTP API</strong>. There is no programmatic way to send commands to a running Terraria server from an external process. This is a limitation of the game software itself.</p>
+<p>Terraria is managed through RSM for <strong>process control only</strong> (start, stop, monitor). To send in-game commands, you must interact with the server's console window directly if you have one open, or use an in-game admin account.</p>
+</details>
+<hr>
+<h3 class="rsm-header" id="server-ignores-config-or-starts-with-wrong-world">⚙️ Server Ignores Config or Starts With Wrong World</h3>
+<details class="warning">
+<summary>Terraria loads the wrong world or ignores config file</summary>
+<p>Terraria reads its configuration from the file specified by the <code>-config</code> argument. If this file path is wrong or uses a relative path that doesn't resolve from the Working Directory, Terraria falls back to defaults.</p>
+<ul>
+<li>Use an <strong>absolute path</strong> for your config file: <code>-config "C:\Servers\Terraria\serverconfig.txt"</code></li>
+<li>Confirm the Working Directory in RSM is set to the folder containing <code>TerrariaServer.exe</code>.</li>
+<li>Open <code>serverconfig.txt</code> and verify <code>world=</code> points to an existing <code>.wld</code> file.</li>
+</ul>
+</details>
+<hr>
+<h3 class="rsm-header" id="port-conflict-with-multiple-terraria-instances">⚠️ Port Conflict With Multiple Terraria Instances</h3>
+<details class="warning">
+<summary>Second Terraria server crashes or is unreachable</summary>
+<p>Each Terraria instance needs a unique port. Set this in your <strong>Arguments</strong> field:</p>
+<div class="highlight"><pre><span></span><code>-config "C:\Servers\Terraria\serverconfig.txt" -port 7778 -players 8
+</code></pre></div>
+<p>Default port is <code>7777</code>. Increment by 1 for each additional instance, and ensure each instance has a unique <strong>Working Directory</strong> in RSM.</p>
+</details>
+<hr>
+<h3 class="rsm-header" id="server-starts-slowly-world-generation-takes-time">⏱️ Server Starts Slowly — World Generation Takes Time</h3>
+<details class="info">
+<summary>RSM shows 'Starting' for a long time — this is normal for new worlds</summary>
+<p>If <code>serverconfig.txt</code> points to a world file that does not yet exist, Terraria will <strong>generate a new world</strong> before the server becomes joinable. This can take <strong>1–3 minutes</strong> for large worlds. RSM will show the server as <strong>Starting</strong> during this time. Once generation finishes, the status will update to <strong>Online</strong> automatically.</p>
+</details>
+</div>
+</div>
+</div>
+<hr>
+<h2 id="how-rsm-works-internally"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🧠 How RSM Works Internally</p></h2>
+<p>Understanding these mechanics can help you diagnose unusual problems.</p>
+<div class="admonition info">
+<p class="admonition-title">PID Handoff &amp; Heartbeat</p>
+<p>When RSM starts a server it records the game process's <strong>PID (Process ID)</strong>. Every <strong>5 seconds</strong>, RSM checks whether that PID is still present in the Windows task list.</p>
+<ul>
+<li>If the PID disappears (crash or manual close), RSM automatically triggers cleanup and sets the server to <strong>Offline</strong>.</li>
+<li>If RSM itself is restarted while a server is running, the saved PID is discarded and all servers reset to <strong>Offline</strong> on load. RSM does not re-attach to previously running servers across restarts.</li>
+</ul>
+</div>
+<div class="admonition info">
+<p class="admonition-title">Deep PID Search (PowerShell Bridge servers only)</p>
+<p>Native <code>.exe</code> servers (SE, Ark, Terraria) are launched through a hidden PowerShell process. The game may briefly break the parent–child link during startup (e.g. Space Engineers re-launches itself). When this happens, RSM runs a <strong>deep search</strong> every 3 seconds using WMIC to find the game by EXE name and Working Directory path.</p>
+<p>If you see repeated <code>deep search</code> lines in the System Console and the server never goes Online, the Working Directory in RSM does not match what the game process is actually using. Double-check your <code>-path</code> or working directory arguments.</p>
+</div>
+<div class="admonition info">
+<p class="admonition-title">Log Tailing (PowerShell Bridge servers only)</p>
+<p>RSM does not capture stdout for bridge-mode servers. Instead it reads from the log file on disk, tracking the byte position between reads so it only processes new lines. This is why a correct <strong>Log Path</strong> is essential for these game types.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Firewall and Security Software</p>
+<p>RSM uses PowerShell to launch and stop processes. Some antivirus products flag this behaviour. If servers fail to start without an obvious error, temporarily disable real-time protection to test. Add RSM and PowerShell to your antivirus exclusions if this resolves the issue.</p>
+</div>
+<hr>
+<h2 id="collecting-logs-for-a-bug-report"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">📋 Collecting Logs for a Bug Report</p></h2>
+<p>If your issue is not listed here, collect the following before opening a ticket so the problem can be reproduced quickly.</p>
+<div class="grid cards">
+<ul>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M5 3c-1.11 0-2 .89-2 2v14c0 1.11.89 2 2 2h14c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 2h14v14H5zm2 2v2h10V7zm0 4v2h10v-2zm0 4v2h7v-2z"></path></svg></span> <strong>RSM System Console Output</strong></p>
+<hr>
+<p>Copy the full text from the <strong>System Console</strong> panel in RSM (bottom of the main window). This contains startup messages, PID search output, and any error replies from IPC handlers.</p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 20H4a2 2 0 0 1-2-2V6c0-1.11.89-2 2-2h6l2 2h7a2 2 0 0 1 2 2H4v10l2.14-8h17.07l-2.28 8.5c-.23.87-1.01 1.5-1.93 1.5"></path></svg></span> <strong>RSM App Log</strong></p>
+<hr>
+<p>Located at: <code>C:\Users\&lt;YourName&gt;\AppData\Roaming\ronin-server-manager\</code><br>
+Include any <code>.log</code> files from this directory.</p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h7c-.41-.25-.8-.56-1.14-.9a6.48 6.48 0 0 1-.36-9.18C13.69 9.5 17.33 9.13 20 11V8zm-1 7V3.5L18.5 9zm7.31 9.9c1.33-2.11.69-4.9-1.4-6.22-2.11-1.33-4.91-.68-6.22 1.4-1.34 2.11-.69 4.89 1.4 6.22 1.46.93 3.32.93 4.79.02L22 23.39 23.39 22zm-3.81.1a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5"></path></svg></span> <strong>Game Server Log</strong></p>
+<hr>
+<p>The log file RSM reads from disk (the path set in your <strong>Log Path</strong> field). Include the last 100 lines, or the full file if it is small.</p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11 9h2V7h-2m1 13c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m-1 15h2v-6h-2z"></path></svg></span> <strong>RSM Version</strong></p>
+<hr>
+<p>Visible in the title bar or About screen. Mention your Windows version and whether RSM is running as Administrator.</p>
+</li>
+</ul>
+</div>
+<p><a class="md-button md-button--primary" href="https://github.com/PhonicSpider/Ronin-Server-Manager/issues">Report an Issue on GitHub</a></p>
+<hr>
+<p align="center">
+  <i><b>Tip:</b> The System Console in RSM (the log panel at the bottom) is your best first diagnostic tool. Every start, stop, PID search, and command result is logged there in real time.</i>
+</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.indexes", "navigation.expand", "navigation.tracking", "toc.follow", "content.code.copy", "content.tabs.link"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>

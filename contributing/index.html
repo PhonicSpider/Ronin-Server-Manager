@@ -1,0 +1,1670 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://phonicspider.github.io/Ronin-Server-Manager/contributing/">
+      
+      
+        <link rel="prev" href="../troubleshooting/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>🔥 Contributing - Ronin Server Manager</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CFira+Code:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"Fira Code"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  <link href="../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="deep-orange" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#contributing-to-rsm" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Ronin Server Manager" class="md-header__button md-logo" aria-label="Ronin Server Manager" data-md-component="logo">
+      
+  <img src="../assets/images/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Ronin Server Manager
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              🔥 Contributing
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/PhonicSpider/Ronin-Server-Manager" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Ronin Server Manager" class="md-nav__button md-logo" aria-label="Ronin Server Manager" data-md-component="logo">
+      
+  <img src="../assets/images/logo.png" alt="logo">
+
+    </a>
+    Ronin Server Manager
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/PhonicSpider/Ronin-Server-Manager" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🏠 Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../servers/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🖥️ Server Setup
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    🖥️ Server Setup
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/minecraft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🟩 Minecraft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/space-engineers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🚀 Space Engineers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/terraria/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🌳 Terraria
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/ark-survival/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🦕 Ark Survival
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/rust/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ☢️ Rust
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/palworld/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    👹 PalWorld
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🛠️ Support
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🔥 Contributing
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🔥 Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#dev-environment-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🛠️ Dev Environment Setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🗂️ Project Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-a-new-game-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🎮 Adding a New Game Server
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🎮 Adding a New Game Server">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-create-the-config-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 — Create the Config File
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-add-an-icon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 — Add an Icon
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-register-in-the-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 — Register in the Index
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-register-the-category-in-mainjs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 — Register the Category in main.js
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 4 — Register the Category in main.js">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#which-category-do-i-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Which category do I use?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5-add-quick-actions-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5 — Add Quick Actions (optional)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ipc-channel-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📡 IPC Channel Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="📡 IPC Channel Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-three-ipc-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Three IPC Patterns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#current-channel-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Channel List
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-ui-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🧩 Adding UI Features
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🧩 Adding UI Features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#css-custom-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CSS Custom Properties
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-state-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server State Object
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contribution-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ✅ Contribution Checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#dev-environment-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🛠️ Dev Environment Setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🗂️ Project Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-a-new-game-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🎮 Adding a New Game Server
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🎮 Adding a New Game Server">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-create-the-config-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 — Create the Config File
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-add-an-icon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 — Add an Icon
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-register-in-the-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 — Register in the Index
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-register-the-category-in-mainjs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 — Register the Category in main.js
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 4 — Register the Category in main.js">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#which-category-do-i-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Which category do I use?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5-add-quick-actions-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5 — Add Quick Actions (optional)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ipc-channel-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📡 IPC Channel Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="📡 IPC Channel Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-three-ipc-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Three IPC Patterns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#current-channel-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Channel List
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-ui-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🧩 Adding UI Features
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🧩 Adding UI Features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#css-custom-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CSS Custom Properties
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-state-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server State Object
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contribution-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ✅ Contribution Checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="contributing-to-rsm"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🔥 Contributing to RSM</p></h1>
+<div class="admonition abstract">
+<p class="admonition-title">Welcome, Contributor</p>
+<p>Ronin Server Manager is built on <strong>Electron</strong> with a Node.js main process and a vanilla JS renderer. This guide covers everything you need to add a new game server type, wire up new IPC features, or extend the UI — without breaking anything that already works.</p>
+</div>
+<hr>
+<h2 id="dev-environment-setup"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🛠️ Dev Environment Setup</p></h2>
+<p><strong>Prerequisites:</strong> Node.js 18+, Git, Windows 10/11 (RSM is Windows-only).</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># 1. Fork the repo on GitHub, then clone your fork</span>
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/YOUR_USERNAME/Ronin-Server-Manager.git
+<span class="nb">cd</span><span class="w"> </span>Ronin-Server-Manager
+
+<span class="c1"># 2. Install dependencies</span>
+npm<span class="w"> </span>install
+
+<span class="c1"># 3. Run in development mode (opens the app with DevTools available)</span>
+npm<span class="w"> </span>start
+
+<span class="c1"># 4. Build a distributable Windows installer (outputs to /dist)</span>
+npm<span class="w"> </span>run<span class="w"> </span>dist
+</code></pre></div>
+<div class="admonition tip">
+<p class="admonition-title">DevTools</p>
+<p>Press <code>Ctrl+Shift+I</code> inside the running app to open Chromium DevTools for the renderer. Main process logs appear in the terminal you launched from.</p>
+</div>
+<hr>
+<h2 id="project-structure"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🗂️ Project Structure</p></h2>
+<div class="highlight"><pre><span></span><code>RoninServerControllerApp/
+├── main.js                   ← Node.js main process (IPC, process management, OS calls)
+├── preload.js                ← Context bridge (security whitelist between main ↔ renderer)
+├── public/
+│   ├── index.html            ← App shell HTML
+│   ├── renderer.js           ← UI logic (DOM, events, state)
+│   ├── style.css             ← All visual styles (CSS custom properties for theming)
+│   └── configs/
+│       ├── index.js          ← ServerTypeRegistry (master game list)
+│       ├── ServerTemplate.js ← Annotated template for new game types
+│       ├── minecraft.js
+│       ├── space-engineers.js
+│       ├── terraria.js
+│       └── ark-survival.js
+├── public/logos/             ← Game icon files (PNG or SVG)
+└── docs/                     ← MkDocs documentation site
+</code></pre></div>
+<hr>
+<h2 id="adding-a-new-game-server"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🎮 Adding a New Game Server</p></h2>
+<p>Adding a game type involves <strong>four required steps</strong> and one optional one. Each step is described below.</p>
+<div class="grid cards">
+<ul>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 7v2h2v8h2V7zm2-5a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2"></path></svg></span> <strong>Create the Config File</strong></p>
+<hr>
+<p><code>public/configs/your-game.js</code></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 7v2h4v2h-2a2 2 0 0 0-2 2v4h6v-2h-4v-2h2a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zm3-5a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2"></path></svg></span> <strong>Add an Icon</strong></p>
+<hr>
+<p><code>public/logos/yourGameLogo.png</code></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15 15v-1.5a1.5 1.5 0 0 0-1.5-1.5 1.5 1.5 0 0 0 1.5-1.5V9a2 2 0 0 0-2-2H9v2h4v2h-2v2h2v2H9v2h4a2 2 0 0 0 2-2M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2"></path></svg></span> <strong>Register in the Index</strong></p>
+<hr>
+<p><code>public/configs/index.js</code></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 7v6h4v4h2V7h-2v4h-2V7zm3-5a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2"></path></svg></span> <strong>Register the Category</strong></p>
+<hr>
+<p><code>main.js → findServType()</code></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 7v6h4v2H9v2h4a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-2V9h4V7zm3-5a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2"></path></svg></span> <strong>Add Quick Actions</strong> <em>(optional)</em></p>
+<hr>
+<p><code>quickActions</code> array in your config file</p>
+</li>
+</ul>
+</div>
+<hr>
+<h3 class="rsm-header" id="step-1-create-the-config-file">Step 1 — Create the Config File</h3>
+<p>Copy <code>public/configs/ServerTemplate.js</code> and fill it in for your game. Every field is documented inline in the template. Here is the full structure with explanations:</p>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kd">const</span><span class="w"> </span><span class="nx">yourGame</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="c1">// ── META ─────────────────────────────────────────────────────────────────</span>
+<span class="w">    </span><span class="nx">meta</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">displayName</span><span class="o">:</span><span class="w"> </span><span class="s2">"Your Game"</span><span class="p">,</span><span class="w">          </span><span class="c1">// Shown in the 'Add Server' picker</span>
+<span class="w">        </span><span class="nx">icon</span><span class="o">:</span><span class="w"> </span><span class="s2">"logos/yourGameLogo.png"</span><span class="w">     </span><span class="c1">// Path relative to /public</span>
+<span class="w">    </span><span class="p">},</span>
+
+<span class="w">    </span><span class="c1">// ── BACKEND ──────────────────────────────────────────────────────────────</span>
+<span class="w">    </span><span class="nx">backend</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// DIRECT_CONSOLE  — RSM spawns the process directly and pipes stdin/stdout.</span>
+<span class="w">        </span><span class="c1">//                   Use for Java servers and any EXE where you want live</span>
+<span class="w">        </span><span class="c1">//                   console I/O (Minecraft, 7 Days to Die, etc.)</span>
+<span class="w">        </span><span class="c1">//</span>
+<span class="w">        </span><span class="c1">// POWERSHELL_BRIDGE — RSM launches the EXE hidden via PowerShell, then</span>
+<span class="w">        </span><span class="c1">//                     finds the real game PID through a deep search.</span>
+<span class="w">        </span><span class="c1">//                     Use for native Windows EXEs that open their own</span>
+<span class="w">        </span><span class="c1">//                     window (Space Engineers, Ark, Terraria, etc.)</span>
+<span class="w">        </span><span class="nx">category</span><span class="o">:</span><span class="w"> </span><span class="s2">"POWERSHELL_BRIDGE"</span>
+<span class="w">    </span><span class="p">},</span>
+
+<span class="w">    </span><span class="c1">// ── SETUP MODAL ──────────────────────────────────────────────────────────</span>
+<span class="w">    </span><span class="nx">label</span><span class="o">:</span><span class="w"> </span><span class="s2">"SERVER EXECUTABLE (GameServer.exe)"</span><span class="p">,</span><span class="w">  </span><span class="c1">// Label above the EXE path field</span>
+
+<span class="w">    </span><span class="c1">// Controls which input fields appear in the Add Server wizard.</span>
+<span class="w">    </span><span class="c1">// 'block' = visible   'none' = hidden</span>
+<span class="w">    </span><span class="nx">blocks</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">path</span><span class="o">:</span><span class="w">       </span><span class="s1">'block'</span><span class="p">,</span><span class="w">   </span><span class="c1">// Main executable path</span>
+<span class="w">        </span><span class="nx">workingDir</span><span class="o">:</span><span class="w"> </span><span class="s1">'block'</span><span class="p">,</span><span class="w">   </span><span class="c1">// Working/instance directory</span>
+<span class="w">        </span><span class="nx">args</span><span class="o">:</span><span class="w">       </span><span class="s1">'block'</span><span class="p">,</span><span class="w">   </span><span class="c1">// Launch arguments</span>
+<span class="w">        </span><span class="nx">log</span><span class="o">:</span><span class="w">        </span><span class="s1">'none'</span><span class="p">,</span><span class="w">    </span><span class="c1">// External log file path  (for POWERSHELL_BRIDGE log tailing)</span>
+<span class="w">        </span><span class="nx">port</span><span class="o">:</span><span class="w">       </span><span class="s1">'none'</span><span class="p">,</span><span class="w">    </span><span class="c1">// API / RCON port</span>
+<span class="w">        </span><span class="nx">portPass</span><span class="o">:</span><span class="w">   </span><span class="s1">'none'</span><span class="w">     </span><span class="c1">// API / RCON password</span>
+<span class="w">    </span><span class="p">},</span>
+
+<span class="w">    </span><span class="c1">// Placeholder text OR pre-filled default values for each visible field.</span>
+<span class="w">    </span><span class="nx">defaults</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">newName</span><span class="o">:</span><span class="w">    </span><span class="s2">"e.g. My Game Server"</span><span class="p">,</span>
+<span class="w">        </span><span class="nx">exePath</span><span class="o">:</span><span class="w">    </span><span class="s2">"C:\\Servers\\YourGame\\GameServer.exe"</span><span class="p">,</span>
+<span class="w">        </span><span class="nx">workingDir</span><span class="o">:</span><span class="w"> </span><span class="s2">"C:\\Servers\\YourGame"</span><span class="p">,</span>
+<span class="w">        </span><span class="nx">customArgs</span><span class="o">:</span><span class="w"> </span><span class="s2">"-launch -flags"</span><span class="p">,</span>
+<span class="w">        </span><span class="nx">logPath</span><span class="o">:</span><span class="w">    </span><span class="s2">"C:\\Servers\\YourGame\\Logs"</span><span class="p">,</span>
+<span class="w">        </span><span class="nx">portId</span><span class="o">:</span><span class="w">     </span><span class="s2">"27020"</span><span class="p">,</span>
+<span class="w">        </span><span class="nx">portPass</span><span class="o">:</span><span class="w">   </span><span class="s2">"your-password"</span>
+<span class="w">    </span><span class="p">},</span>
+
+<span class="w">    </span><span class="c1">// 'placeholder' = shown as grey hint text</span>
+<span class="w">    </span><span class="c1">// 'value'       = pre-filled as an actual value the user can edit</span>
+<span class="w">    </span><span class="nx">varInputs</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">newName</span><span class="o">:</span><span class="w">    </span><span class="s2">"placeholder"</span><span class="p">,</span>
+<span class="w">        </span><span class="nx">exePath</span><span class="o">:</span><span class="w">    </span><span class="s2">"placeholder"</span><span class="p">,</span>
+<span class="w">        </span><span class="nx">workingDir</span><span class="o">:</span><span class="w"> </span><span class="s2">"placeholder"</span><span class="p">,</span>
+<span class="w">        </span><span class="nx">customArgs</span><span class="o">:</span><span class="w"> </span><span class="s2">"value"</span><span class="p">,</span><span class="w">       </span><span class="c1">// ← pre-fill args so users don't start blank</span>
+<span class="w">        </span><span class="nx">logPath</span><span class="o">:</span><span class="w">    </span><span class="s2">"placeholder"</span><span class="p">,</span>
+<span class="w">        </span><span class="nx">portId</span><span class="o">:</span><span class="w">     </span><span class="s2">"placeholder"</span><span class="p">,</span>
+<span class="w">        </span><span class="nx">portPass</span><span class="o">:</span><span class="w">   </span><span class="s2">"placeholder"</span>
+<span class="w">    </span><span class="p">},</span>
+
+<span class="w">    </span><span class="c1">// ── QUICK ACTIONS (optional) ──────────────────────────────────────────────</span>
+<span class="w">    </span><span class="nx">quickActions</span><span class="o">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nx">label</span><span class="o">:</span><span class="w"> </span><span class="s1">'List Players'</span><span class="p">,</span><span class="w"> </span><span class="nx">command</span><span class="o">:</span><span class="w"> </span><span class="s1">'listplayers'</span><span class="w"> </span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nx">label</span><span class="o">:</span><span class="w"> </span><span class="s1">'Save World'</span><span class="p">,</span><span class="w">   </span><span class="nx">command</span><span class="o">:</span><span class="w"> </span><span class="s1">'saveworld'</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="p">};</span>
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Working Directory — Multi-Instance Rule</p>
+<p>Every instance of a game must have a <strong>unique <code>workingDir</code></strong>. RSM uses this path to tell multiple instances of the same EXE apart.</p>
+<p>For games that self-relaunch (like Space Engineers), the <code>workingDir</code> value <strong>must also appear somewhere in <code>customArgs</code></strong> (e.g. <code>-path "C:\Servers\MyInstance"</code>). This lets the deep PID search match the right process when the parent-child link is broken.</p>
+</div>
+<hr>
+<h3 class="rsm-header" id="step-2-add-an-icon">Step 2 — Add an Icon</h3>
+<p>Drop a square PNG or SVG into <code>public/logos/</code>. Keep it under 64×64px for sharp rendering at the sidebar size. Reference it in <code>meta.icon</code> as a path relative to <code>/public</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">icon</span><span class="o">:</span><span class="w"> </span><span class="s2">"logos/yourGameLogo.png"</span>
+</code></pre></div>
+<hr>
+<h3 class="rsm-header" id="step-3-register-in-the-index">Step 3 — Register in the Index</h3>
+<p>Open <code>public/configs/index.js</code> and add your export in both the import block and the registry object:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// 1. Import your new config</span>
+<span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">yourGame</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">'./your-game.js'</span><span class="p">;</span>
+
+<span class="c1">// 2. Add it to the registry — the key becomes srv.type in the saved server JSON</span>
+<span class="k">export</span><span class="w"> </span><span class="kd">const</span><span class="w"> </span><span class="nx">ServerTypeRegistry</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="s1">'minecraft'</span><span class="o">:</span><span class="w">        </span><span class="nx">minecraft</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">'space-engineers'</span><span class="o">:</span><span class="w">  </span><span class="nx">spaceEngineers</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">'terraria'</span><span class="o">:</span><span class="w">         </span><span class="nx">terraria</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">'ark'</span><span class="o">:</span><span class="w">              </span><span class="nx">ark</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">'your-game'</span><span class="o">:</span><span class="w">        </span><span class="nx">yourGame</span><span class="p">,</span><span class="w">   </span><span class="c1">// ← add this line</span>
+<span class="p">};</span>
+</code></pre></div>
+<div class="admonition info">
+<p class="admonition-title">Registry Key Convention</p>
+<p>Use lowercase kebab-case for the key (e.g. <code>'seven-days-to-die'</code>). This value is stored in <code>servers.json</code> as <code>srv.type</code> and is used everywhere RSM identifies server behaviour.</p>
+</div>
+<hr>
+<h3 class="rsm-header" id="step-4-register-the-category-in-mainjs">Step 4 — Register the Category in <code>main.js</code></h3>
+<p>Open <code>main.js</code> and find the <code>findServType()</code> function near the bottom. Add your game's registry key to the correct <code>case</code> group:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">function</span><span class="w"> </span><span class="nx">findServType</span><span class="p">(</span><span class="nx">srv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="nx">srv</span><span class="p">.</span><span class="nx">type</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="s1">''</span><span class="p">).</span><span class="nx">toLowerCase</span><span class="p">();</span>
+
+<span class="w">    </span><span class="k">switch</span><span class="w"> </span><span class="p">(</span><span class="nx">type</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="s1">'minecraft'</span><span class="o">:</span>
+<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="s1">'7daystodie'</span><span class="o">:</span>
+<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="s1">'terraria'</span><span class="o">:</span>
+<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="s1">'your-game'</span><span class="o">:</span><span class="w">            </span><span class="c1">// ← DIRECT_CONSOLE games go here</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="s1">'DIRECT_CONSOLE'</span><span class="p">;</span>
+
+<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="s1">'space-engineers'</span><span class="o">:</span>
+<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="s1">'ark'</span><span class="o">:</span>
+<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="s1">'your-other-game'</span><span class="o">:</span><span class="w">      </span><span class="c1">// ← POWERSHELL_BRIDGE games go here</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="s1">'POWERSHELL_BRIDGE'</span><span class="p">;</span>
+
+<span class="w">        </span><span class="k">default</span><span class="o">:</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="s1">'DIRECT_CONSOLE'</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 class="rsm-header" id="which-category-do-i-use">Which category do I use?</h4>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio"><input id="__tabbed_1_2" name="__tabbed_1" type="radio"><div class="tabbed-labels"><label for="__tabbed_1_1"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 19V7H4v12zm0-16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm-7 14v-2h5v2zm-3.42-4L5.57 9H8.4l3.3 3.3c.39.39.39 1.03 0 1.42L8.42 17H5.59z"></path></svg></span> DIRECT_CONSOLE</label><label for="__tabbed_1_2"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21.83 4c.49 0 .8.4.67.89l-3.16 14.22c-.11.49-.59.89-1.08.89H2.17c-.49 0-.8-.4-.67-.89L4.66 4.89C4.77 4.4 5.25 4 5.74 4zm-6 12h-4c-.46 0-.83.38-.83.84 0 .47.37.85.83.85h4c.47 0 .85-.38.85-.85 0-.46-.38-.84-.85-.84m-10.05.28a.87.87 0 0 0-.21 1.22c.28.42.84.5 1.24.23 7.35-5.17 7.4-5.23 7.45-5.26.18-.16.27-.38.28-.6.01-.2-.04-.37-.16-.56L9.46 6.03A.867.867 0 0 0 8.21 6c-.36.32-.38.88-.05 1.24l4.15 4.44z"></path></svg></span> POWERSHELL_BRIDGE</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p>RSM spawns the process directly using Node's <code>child_process.spawn()</code>. It pipes <code>stdin</code> and <code>stdout</code> so console output appears in real time and commands can be sent directly.</p>
+<p><strong>Use when:</strong></p>
+<ul>
+<li>The server runs as a single foreground process (Java, most script runners)</li>
+<li>You want live console output without a log file</li>
+<li>Commands can be sent by writing to stdin (e.g. <code>list\n</code>)</li>
+</ul>
+<p><strong>Examples:</strong> Minecraft, 7 Days to Die, Terraria</p>
+</div>
+<div class="tabbed-block">
+<p>RSM launches the EXE hidden via PowerShell (<code>Start-Process -WindowStyle Hidden</code>), captures the spawned PID, then monitors the process via WMIC heartbeat. Console output is read by tailing the server's log file on disk.</p>
+<p><strong>Use when:</strong></p>
+<ul>
+<li>The EXE opens its own GUI window (most native Windows game servers)</li>
+<li>The server needs to run headless in the background</li>
+<li>Commands are sent via RCON or an HTTP API (not stdin)</li>
+</ul>
+<p><strong>Examples:</strong> Space Engineers, Ark</p>
+</div>
+</div>
+</div>
+<hr>
+<h3 class="rsm-header" id="step-5-add-quick-actions-optional">Step 5 — Add Quick Actions <em>(optional)</em></h3>
+<p>Quick actions are one-click buttons that appear in the RSM dashboard when a server is selected. Each entry sends a command through whichever command path the server supports (stdin for <code>DIRECT_CONSOLE</code>, RCON/HTTP API for <code>POWERSHELL_BRIDGE</code>).</p>
+<div class="highlight"><pre><span></span><code><span class="nx">quickActions</span><span class="o">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nx">label</span><span class="o">:</span><span class="w"> </span><span class="s1">'List Players'</span><span class="p">,</span><span class="w">  </span><span class="nx">command</span><span class="o">:</span><span class="w"> </span><span class="s1">'listplayers'</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nx">label</span><span class="o">:</span><span class="w"> </span><span class="s1">'Save World'</span><span class="p">,</span><span class="w">    </span><span class="nx">command</span><span class="o">:</span><span class="w"> </span><span class="s1">'saveworld'</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nx">label</span><span class="o">:</span><span class="w"> </span><span class="s1">'Kick All'</span><span class="p">,</span><span class="w">      </span><span class="nx">command</span><span class="o">:</span><span class="w"> </span><span class="s1">'kickall'</span><span class="w"> </span><span class="p">},</span>
+<span class="p">]</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Field</th>
+<th style="text-align: left;">Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>label</code></td>
+<td style="text-align: left;">Button text shown in the UI</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>command</code></td>
+<td style="text-align: left;">The exact command string sent to the server</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition tip">
+<p class="admonition-title">No Quick Actions?</p>
+<p>If the game has no interactive console (e.g. Terraria, which has no RCON), simply omit the <code>quickActions</code> array entirely. The Quick Actions card will not appear for that server type.</p>
+</div>
+<hr>
+<h2 id="ipc-channel-reference"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">📡 IPC Channel Reference</p></h2>
+<p>RSM uses Electron's IPC to communicate between the <strong>main process</strong> (<code>main.js</code>) and the <strong>renderer</strong> (<code>renderer.js</code>). All channels must be whitelisted in <code>preload.js</code> before they can be used.</p>
+<h3 class="rsm-header" id="the-three-ipc-patterns">The Three IPC Patterns</h3>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:3"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio"><input id="__tabbed_2_2" name="__tabbed_2" type="radio"><input id="__tabbed_2_3" name="__tabbed_2" type="radio"><div class="tabbed-labels"><label for="__tabbed_2_1"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"></path></svg></span> send (One-way, Renderer → Main)</label><label for="__tabbed_2_2"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg></span> receive (One-way, Main → Renderer)</label><label for="__tabbed_2_3"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6.45 17.45 1 12l5.45-5.45 1.41 1.41L4.83 11h14.34l-3.03-3.04 1.41-1.41L23 12l-5.45 5.45-1.41-1.41L19.17 13H4.83l3.03 3.04z"></path></svg></span> invoke (Two-way, Renderer asks Main)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p>Renderer fires and forgets. Main does not reply on the same call.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// preload.js whitelist</span>
+<span class="kd">let</span><span class="w"> </span><span class="nx">validChannels</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s1">'save-servers'</span><span class="p">,</span><span class="w"> </span><span class="s1">'start-server'</span><span class="p">,</span><span class="w"> </span><span class="s1">'stop-server'</span><span class="p">,</span><span class="w"> </span><span class="cm">/* ... */</span><span class="p">];</span>
+
+<span class="c1">// Renderer usage</span>
+<span class="nb">window</span><span class="p">.</span><span class="nx">api</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="s1">'my-new-channel'</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">some</span><span class="o">:</span><span class="w"> </span><span class="s1">'data'</span><span class="w"> </span><span class="p">});</span>
+
+<span class="c1">// Main handler</span>
+<span class="nx">ipcMain</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">'my-new-channel'</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">event</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">});</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<p>Main pushes data to the renderer at any time (status updates, logs, metrics).</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// preload.js whitelist</span>
+<span class="kd">let</span><span class="w"> </span><span class="nx">validChannels</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s1">'server-status-updated'</span><span class="p">,</span><span class="w"> </span><span class="s1">'console-out'</span><span class="p">,</span><span class="w"> </span><span class="cm">/* ... */</span><span class="p">];</span>
+
+<span class="c1">// Renderer listener — note: only ONE parameter (no leading 'event' arg)</span>
+<span class="nb">window</span><span class="p">.</span><span class="nx">api</span><span class="p">.</span><span class="nx">receive</span><span class="p">(</span><span class="s1">'my-push-channel'</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">data</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="c1">// Main sends to renderer</span>
+<span class="nx">mainWindow</span><span class="p">.</span><span class="nx">webContents</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="s1">'my-push-channel'</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">some</span><span class="o">:</span><span class="w"> </span><span class="s1">'data'</span><span class="w"> </span><span class="p">});</span>
+<span class="c1">// — or reply on an existing event —</span>
+<span class="nx">event</span><span class="p">.</span><span class="nx">reply</span><span class="p">(</span><span class="s1">'my-push-channel'</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">some</span><span class="o">:</span><span class="w"> </span><span class="s1">'data'</span><span class="w"> </span><span class="p">});</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<p>Renderer awaits a response from Main. Used for data fetches.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// preload.js whitelist</span>
+<span class="kd">let</span><span class="w"> </span><span class="nx">validChannels</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s1">'get-servers'</span><span class="p">,</span><span class="w"> </span><span class="s1">'get-settings'</span><span class="p">,</span><span class="w"> </span><span class="cm">/* ... */</span><span class="p">];</span>
+
+<span class="c1">// Renderer usage (async)</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nb">window</span><span class="p">.</span><span class="nx">api</span><span class="p">.</span><span class="nx">invoke</span><span class="p">(</span><span class="s1">'my-query-channel'</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="s1">'123'</span><span class="w"> </span><span class="p">});</span>
+
+<span class="c1">// Main handler</span>
+<span class="nx">ipcMain</span><span class="p">.</span><span class="nx">handle</span><span class="p">(</span><span class="s1">'my-query-channel'</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">(</span><span class="nx">event</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">result</span><span class="o">:</span><span class="w"> </span><span class="s1">'something'</span><span class="w"> </span><span class="p">};</span>
+<span class="p">});</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Whitelist All New Channels</p>
+<p>Any channel not listed in <code>preload.js</code> is silently blocked. If your feature does nothing when triggered, this is almost always the cause. Add to the correct whitelist array — <code>send</code>, <code>receive</code>, or <code>invoke</code> — before testing.</p>
+</div>
+<div class="admonition danger">
+<p class="admonition-title">Renderer Receive Callbacks — No <code>event</code> Parameter</p>
+<p>The preload strips the Electron IPC <code>event</code> object before passing data to the renderer. Receive callbacks take <strong>only the data</strong> as their argument:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// ✅ Correct</span>
+<span class="nb">window</span><span class="p">.</span><span class="nx">api</span><span class="p">.</span><span class="nx">receive</span><span class="p">(</span><span class="s1">'status-change'</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">data</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">});</span>
+
+<span class="c1">// ❌ Wrong — data will always be undefined</span>
+<span class="nb">window</span><span class="p">.</span><span class="nx">api</span><span class="p">.</span><span class="nx">receive</span><span class="p">(</span><span class="s1">'status-change'</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">event</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">});</span>
+</code></pre></div>
+</div>
+<h3 class="rsm-header" id="current-channel-list">Current Channel List</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Channel</th>
+<th style="text-align: left;">Direction</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>start-server</code></td>
+<td style="text-align: left;">send</td>
+<td style="text-align: left;">Start a server by ID</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>stop-server</code></td>
+<td style="text-align: left;">send</td>
+<td style="text-align: left;">Graceful shutdown by ID</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>kill-server</code></td>
+<td style="text-align: left;">send</td>
+<td style="text-align: left;">Force-kill by PID</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>send-command</code></td>
+<td style="text-align: left;">send</td>
+<td style="text-align: left;">Send a console command <code>{ srvId, command }</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>save-servers</code></td>
+<td style="text-align: left;">send</td>
+<td style="text-align: left;">Persist current server list to disk</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>open-folder</code></td>
+<td style="text-align: left;">send</td>
+<td style="text-align: left;">Open a path in Windows Explorer</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>log-to-system</code></td>
+<td style="text-align: left;">send</td>
+<td style="text-align: left;">Write a message to the system log</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>console-out</code></td>
+<td style="text-align: left;">receive</td>
+<td style="text-align: left;">Server console line <code>{ id, msg }</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>status-change</code></td>
+<td style="text-align: left;">receive</td>
+<td style="text-align: left;">Status update <code>{ id, status, pid? }</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>server-perf-update</code></td>
+<td style="text-align: left;">receive</td>
+<td style="text-align: left;">Per-server CPU/RAM <code>{ id, cpu, ramPercent, ramDisplay }</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>total-performance-update</code></td>
+<td style="text-align: left;">receive</td>
+<td style="text-align: left;">Machine-wide CPU/RAM <code>{ cpu, ram }</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>system-info</code></td>
+<td style="text-align: left;">receive</td>
+<td style="text-align: left;">Info message for the system log</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>system-error</code></td>
+<td style="text-align: left;">receive</td>
+<td style="text-align: left;">Error message for the system log</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>server-status-updated</code></td>
+<td style="text-align: left;">receive</td>
+<td style="text-align: left;">Full server list refresh</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>load-servers</code></td>
+<td style="text-align: left;">receive</td>
+<td style="text-align: left;">Initial server list on app start</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>get-servers</code></td>
+<td style="text-align: left;">invoke</td>
+<td style="text-align: left;">Fetch current server list</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>get-settings</code></td>
+<td style="text-align: left;">invoke</td>
+<td style="text-align: left;">Fetch app settings</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>check-admin</code></td>
+<td style="text-align: left;">invoke</td>
+<td style="text-align: left;">Check if RSM is running as Administrator</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>open-dialog</code></td>
+<td style="text-align: left;">invoke</td>
+<td style="text-align: left;">Open a file-picker dialog</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>select-folder</code></td>
+<td style="text-align: left;">invoke</td>
+<td style="text-align: left;">Open a folder-picker dialog</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="adding-ui-features"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🧩 Adding UI Features</p></h2>
+<p>RSM's renderer is vanilla JS — no framework. The pattern for adding a new UI feature is:</p>
+<ol>
+<li><strong>Add HTML</strong> to <code>public/index.html</code></li>
+<li><strong>Add styles</strong> to <code>public/style.css</code> using the existing CSS custom properties</li>
+<li><strong>Add logic</strong> to <code>public/renderer.js</code></li>
+<li><strong>Add any new IPC channels</strong> to <code>preload.js</code> and <code>main.js</code></li>
+</ol>
+<h3 class="rsm-header" id="css-custom-properties">CSS Custom Properties</h3>
+<p>Use these variables so your feature automatically respects the active theme:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Variable</th>
+<th style="text-align: left;">Usage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>--accent</code></td>
+<td style="text-align: left;">Primary brand orange — borders, highlights, active states</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--bg</code></td>
+<td style="text-align: left;">Page background</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--card-bg</code></td>
+<td style="text-align: left;">Card/panel background</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--text</code></td>
+<td style="text-align: left;">Primary text</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--dim</code></td>
+<td style="text-align: left;">Muted/secondary text</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--border</code></td>
+<td style="text-align: left;">Subtle divider lines</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--online</code></td>
+<td style="text-align: left;">Green — running/healthy indicator</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--offline</code></td>
+<td style="text-align: left;">Red — stopped/error indicator</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>--starting</code></td>
+<td style="text-align: left;">Yellow — pending/loading indicator</td>
+</tr>
+</tbody>
+</table>
+<h3 class="rsm-header" id="server-state-object">Server State Object</h3>
+<p>Each server in the renderer's <code>servers</code> array looks like this at runtime:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nx">id</span><span class="o">:</span><span class="w">         </span><span class="s2">"1774840931523"</span><span class="p">,</span><span class="w">  </span><span class="c1">// Unique numeric string, timestamp-based</span>
+<span class="w">    </span><span class="nx">type</span><span class="o">:</span><span class="w">       </span><span class="s2">"space-engineers"</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">name</span><span class="o">:</span><span class="w">       </span><span class="s2">"My SE Server"</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">path</span><span class="o">:</span><span class="w">       </span><span class="s2">"C:\\...\\SpaceEngineersDedicated.exe"</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">workingDir</span><span class="o">:</span><span class="w"> </span><span class="s2">"C:\\ProgramData\\SpaceEngineersDedicated\\MyInstance"</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">args</span><span class="o">:</span><span class="w">       </span><span class="s2">"-console -ignorelastsession -path \"C:\\...\\MyInstance\""</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">logPath</span><span class="o">:</span><span class="w">    </span><span class="s2">"C:\\ProgramData\\SpaceEngineersDedicated\\MyInstance"</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">apiPort</span><span class="o">:</span><span class="w">    </span><span class="s2">"8080"</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">apiPass</span><span class="o">:</span><span class="w">    </span><span class="s2">""</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">status</span><span class="o">:</span><span class="w">     </span><span class="s2">"Online"</span><span class="p">,</span><span class="w">     </span><span class="c1">// 'Offline' | 'Starting' | 'Online'</span>
+<span class="w">    </span><span class="nx">pid</span><span class="o">:</span><span class="w">        </span><span class="mf">41484</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">category</span><span class="o">:</span><span class="w">   </span><span class="s2">"POWERSHELL_BRIDGE"</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>The currently selected server's ID is stored in the <code>activeId</code> variable. Use <code>servers.find(s =&gt; s.id === activeId)</code> to get the active server object.</p>
+<hr>
+<h2 id="contribution-checklist"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">✅ Contribution Checklist</p></h2>
+<p>Before opening a pull request, run through this list:</p>
+<div class="grid cards">
+<ul>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14 2H6c-1.11 0-2 .89-2 2v16c0 1.11.89 2 2 2h7.81c-.53-.91-.81-1.95-.81-3 0-3.31 2.69-6 6-6 .34 0 .67.03 1 .08V8zm-1 7V3.5L18.5 9zm10 11h-3v3h-2v-3h-3v-2h3v-3h2v3h3z"></path></svg></span> <strong>New config file created</strong></p>
+<hr>
+<p><code>public/configs/your-game.js</code> — all required fields present, no leftover template placeholders.</p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m8.5 13.5 2.5 3 3.5-4.5 4.5 6H5m16 1V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2"></path></svg></span> <strong>Icon added</strong></p>
+<hr>
+<p><code>public/logos/yourGameLogo.png</code> — square, ≤64px, referenced in <code>meta.icon</code>.</p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 5h14v2H7zm0 8v-2h14v2zM4 4.5A1.5 1.5 0 0 1 5.5 6 1.5 1.5 0 0 1 4 7.5 1.5 1.5 0 0 1 2.5 6 1.5 1.5 0 0 1 4 4.5m0 6A1.5 1.5 0 0 1 5.5 12 1.5 1.5 0 0 1 4 13.5 1.5 1.5 0 0 1 2.5 12 1.5 1.5 0 0 1 4 10.5M7 19v-2h14v2zm-3-2.5A1.5 1.5 0 0 1 5.5 18 1.5 1.5 0 0 1 4 19.5 1.5 1.5 0 0 1 2.5 18 1.5 1.5 0 0 1 4 16.5"></path></svg></span> <strong>Index updated</strong></p>
+<hr>
+<p>Imported and registered in <code>public/configs/index.js</code> with a lowercase kebab-case key.</p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 3a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2H3v2h1a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h2v-2H8v-5a2 2 0 0 0-2-2 2 2 0 0 0 2-2V5h2V3m6 0a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h1v2h-1a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2h-2v-2h2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5h-2V3z"></path></svg></span> <strong>Category registered</strong></p>
+<hr>
+<p>Game type key added to the correct <code>case</code> in <code>findServType()</code> in <code>main.js</code>.</p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 13c.34 0 .67.04 1 .09V10a2 2 0 0 0-2-2h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6a2 2 0 0 0-2 2v10c0 1.11.89 2 2 2h7.81c-.51-.88-.81-1.9-.81-3 0-3.31 2.69-6 6-6M9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9zm3 11a2 2 0 1 1 2-2c0 1.11-.89 2-2 2m10.5.25L17.75 22 15 19l1.16-1.16 1.59 1.59 3.59-3.59z"></path></svg></span> <strong>IPC whitelisted</strong></p>
+<hr>
+<p>Any new channels added to the correct whitelist array in <code>preload.js</code>.</p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 2v2h1v14a4 4 0 0 0 4 4 4 4 0 0 0 4-4V4h1V2zm4 14c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1m2-4c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1m1-5h-4V4h4z"></path></svg></span> <strong>Tested locally</strong></p>
+<hr>
+<p>Server starts, stops, and graceful-shutdown dot updates correctly. Console output flows. Quick actions (if any) send commands without errors.</p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 9h5.5L13 3.5zM6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4c0-1.11.89-2 2-2m9 16v-2H6v2zm3-4v-2H6v2z"></path></svg></span> <strong>Docs page added</strong> <em>(for new game types)</em></p>
+<hr>
+<p><code>docs/servers/your-game.md</code> following the format of the existing server guides.</p>
+</li>
+</ul>
+</div>
+<hr>
+<p align="center">
+  <i><b>Questions?</b> Open an issue on GitHub or check the <a href="troubleshooting.md">Troubleshooting Guide</a> for common gotchas.</i>
+</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.indexes", "navigation.expand", "navigation.tracking", "toc.follow", "content.code.copy", "content.tabs.link"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>

@@ -1,0 +1,962 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://phonicspider.github.io/Ronin-Server-Manager/servers/ark-survival/">
+      
+      
+        <link rel="prev" href="../terraria/">
+      
+      
+        <link rel="next" href="../rust/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>🦕 Ark Survival - Ronin Server Manager</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CFira+Code:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"Fira Code"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  <link href="../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="deep-orange" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#material-paw-ark-survival" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Ronin Server Manager" class="md-header__button md-logo" aria-label="Ronin Server Manager" data-md-component="logo">
+      
+  <img src="../../assets/images/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Ronin Server Manager
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              🦕 Ark Survival
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/PhonicSpider/Ronin-Server-Manager" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Ronin Server Manager" class="md-nav__button md-logo" aria-label="Ronin Server Manager" data-md-component="logo">
+      
+  <img src="../../assets/images/logo.png" alt="logo">
+
+    </a>
+    Ronin Server Manager
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/PhonicSpider/Ronin-Server-Manager" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🏠 Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked="">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🖥️ Server Setup
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    🖥️ Server Setup
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../minecraft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🟩 Minecraft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../space-engineers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🚀 Space Engineers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../terraria/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🌳 Terraria
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🦕 Ark Survival
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🦕 Ark Survival
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#pre-configuration-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚠️ Pre-Configuration Steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#required-pathing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📂 Required Pathing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#startup-arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚙️ Startup Arguments
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-to-rsm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🚀 Adding to RSM
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔍 Troubleshooting
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rust/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ☢️ Rust
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../palworld/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    👹 PalWorld
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🛠️ Support
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🔥 Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#pre-configuration-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚠️ Pre-Configuration Steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#required-pathing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📂 Required Pathing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#startup-arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚙️ Startup Arguments
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-to-rsm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🚀 Adding to RSM
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔍 Troubleshooting
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 class="rsm-header" id="material-paw-ark-survival">material-paw: Ark: Survival</h1>
+<div class="admonition abstract">
+<p class="admonition-title">RCON &amp; PowerShell Integration</p>
+<p>Ark: Survival Evolved (and Ascended) runs as a persistent Windows process. Because it does not stream its console output to a standard window, RSM utilizes a <strong>PowerShell Bridge</strong> to tail the latest log files and uses the <strong>RCON Protocol</strong> to send administrative commands like kicks, bans, and broadcasts.</p>
+</div>
+<hr>
+<h2 class="rsm-header" id="pre-configuration-steps">⚠️ Pre-Configuration Steps</h2>
+<p>Ark requires specific launch flags to be active before RSM can communicate with it via RCON.</p>
+<ol>
+<li><strong>RCON Activation:</strong> You must ensure <code>-RCONEnabled</code> is in your startup arguments when entering the server into the RSM (<em>Shown Below</em>*). Without this, the Console tab in RSM will be "Read-Only."</li>
+<li><strong>Firewall Rules:</strong> Ensure your RCON Port (Default: <code>27020</code>) is open in your Windows Firewall. RSM connects to this port locally to execute commands.</li>
+<li><strong>Log Generation:</strong> By default, Ark might not save logs to the disk. Ensure <code>-servergamelog</code> is added to your arguments so RSM has a file to "tail". You will also have to run the server at least once outside of the RSM to ensure it creates the save folder where the logs are stored</li>
+<li><strong>File Location:</strong> Locate these paths before starting the RSM Wizard:<ol>
+<li><strong>Server EXE:</strong> Usually located at <code>...\ShooterGame\Binaries\Win64\ShooterGameServer.exe</code></li>
+<li><strong>Working Directory:</strong> The <code>Win64</code> folder containing the executable.</li>
+<li><strong>Log Folder:</strong> Usually located at <code>...\ShooterGame\Saved\Logs</code>. (will see this folder after running the server once by itself)</li>
+<li><strong>RCON Port:</strong> Default is <code>27020</code>, set by using <code>-RCONPort=27020</code> in the custom arguments field.</li>
+<li><strong>Admin Password:</strong> The password set via <code>-ServerAdminPassword</code>.</li>
+</ol>
+</li>
+</ol>
+<hr>
+<h2 class="rsm-header" id="required-pathing">📂 Required Pathing</h2>
+<p>While setting your servers settings (<em>before adding to RSM</em>) and doing your initial run of the server, be sure to remember or copy where these folder and files are so you have them ready when adding the server to RSM.</p>
+<p>The most common locations are shown below, but they may differ based on your installation method (Steam, Epic, etc.) and custom configurations.</p>
+<div class="grid cards">
+<ul>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.11.89 2 2 2h12c1.11 0 2-.89 2-2V8zm4 18H6V4h7v5h5zm-8.46-4.35 2.09 2.09L10.35 19 7 15.65l3.35-3.35 1.28 1.26zm7.46 0L13.65 19l-1.27-1.26 2.09-2.09-2.09-2.09 1.27-1.26z"></path></svg></span> <strong>Executable Path</strong></p>
+<hr>
+<p>Points to the binary.
+<code>...\Win64\ShooterGameServer.exe</code></p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/images/ark-steps/ark-files-needed-exe.png" data-desc-position="bottom"><img alt="Adding Ark Server - glow" src="../../assets/images/ark-steps/ark-files-needed-exe.png"></a></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2m0 12H4V8h16m-7 9v-3h2v3h2v-4h2l-5-4-5 4h2v4Z"></path></svg></span> <strong>Working Directory</strong></p>
+<hr>
+<p><strong>Critical.</strong> Must be the <code>Win64</code> folder so the server can find its sibling <code>.dll</code> files.</p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/images/ark-steps/ark-files-needed-working.png" data-desc-position="bottom"><img alt="Adding Working Dir - glow" src="../../assets/images/ark-steps/ark-files-needed-working.png"></a></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19.31 18.9 3.08 3.1L21 23.39l-3.12-3.07c-.69.43-1.51.68-2.38.68-2.5 0-4.5-2-4.5-4.5s2-4.5 4.5-4.5 4.5 2 4.5 4.5c0 .88-.25 1.71-.69 2.4m-3.81.1a2.5 2.5 0 0 0 0-5 2.5 2.5 0 0 0 0 5M21 4v2H3V4zM3 16v-2h6v2zm0-5V9h18v2h-2.03c-1.01-.63-2.2-1-3.47-1s-2.46.37-3.47 1z"></path></svg></span> <strong>Log Path (Folder)</strong></p>
+<hr>
+<p>Points to the <code>Logs</code> <strong>folder</strong>. RSM will automatically scan this folder and "tail" the most recently created <code>.log</code> file.</p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/images/ark-steps/ark-files-needed-logs.png" data-desc-position="bottom"><img alt="Adding Log Folder - glow" src="../../assets/images/ark-steps/ark-files-needed-logs.png"></a></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m20.2 5.9.8-.8C19.6 3.7 17.8 3 16 3s-3.6.7-5 2.1l.8.8C13 4.8 14.5 4.2 16 4.2s3 .6 4.2 1.7m-.9.8c-.9-.9-2.1-1.4-3.3-1.4s-2.4.5-3.3 1.4l.8.8c.7-.7 1.6-1 2.5-1s1.8.3 2.5 1zM19 13h-2V9h-2v4H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2M8 18H6v-2h2zm3.5 0h-2v-2h2zm3.5 0h-2v-2h2z"></path></svg></span> <strong>RCON Port</strong></p>
+<hr>
+<p><strong>Required for Commands.</strong> Match this to your <code>-RCONPort=</code> argument. This allows the RSM console to send commands.</p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/images/ark-steps/ark-files-needed-port.png" data-desc-position="bottom"><img alt="Adding RCON Port - glow" src="../../assets/images/ark-steps/ark-files-needed-port.png"></a></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12.67 13.67c-.47.46-1.04.83-1.67 1.06V23H8v-2H5v-3h3v-3.28c-1.74-.62-3-2.26-3-4.22C5 8 7 6 9.5 6h.1c-.47.95-.68 2-.57 3.08-.59.2-1.03.76-1.03 1.42 0 .83.67 1.5 1.5 1.5.23 0 .45-.06.65-.15.64.84 1.52 1.47 2.52 1.82m8.06 5.77-2.76 1.16-.78-1.84-2.76 1.17-1.17-2.77L16.03 16l-1.27-3c-1.85.08-3.65-.95-4.41-2.75-.96-2.29.12-4.93 2.41-5.9.24-.1.5-.17.74-.23C12.84 2.87 11.5 2 10 2 7.79 2 6 3.79 6 6v.24c-.3.26-.6.58-.85.91C5.06 6.78 5 6.4 5 6c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.42-.6 2.67-1.55 3.57.42.43 1.05.56 1.63.31.77-.32 1.12-1.2.8-1.96a1 1 0 0 0-.14-.26C15.9 7.13 16 6.58 16 6c0-.63-.1-1.24-.28-1.81 1.28.36 2.38 1.25 2.93 2.57.76 1.8.24 3.81-1.15 5.05zM13 8.6c.37-.41.65-.89.82-1.42-.54.27-.85.82-.82 1.42"></path></svg></span> <strong>Admin Password</strong></p>
+<hr>
+<p><strong>Required for Commands.</strong> This must match your <code>-ServerAdminPassword=</code> that you put into the custom arguments. RSM uses this to authenticate RCON sessions.</p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/images/ark-steps/ark-files-needed-portpass.png" data-desc-position="bottom"><img alt="Adding Admin Pass - glow" src="../../assets/images/ark-steps/ark-files-needed-portpass.png"></a></p>
+</li>
+</ul>
+<hr>
+</div>
+<hr>
+<div class="admonition abstract">
+<p class="admonition-title">More Custom Arguments</p>
+<p></p><div align="center" markdown="">
+For a full list of custom arguments, click the button below:<p></p>
+<p><a class="md-button" href="https://ark.fandom.com/wiki/Server_configuration" target="_blank"><img alt="Ark Wiki Link" src="../../assets/images/ark-steps/arksLogo.png" style="width: 75px;"></a>
+</p></div><p></p>
+</div>
+<hr>
+<h2 class="rsm-header" id="startup-arguments">⚙️ Startup Arguments</h2>
+<p>When using the Ark preset in RSM, your <strong>Arguments</strong> field should look similar to this to ensure compatibility:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Flag</th>
+<th style="text-align: left;">Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>TheIsland?listen</code></td>
+<td style="text-align: left;">Sets the map and starts the listener.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>-servergamelog</code></td>
+<td style="text-align: left;"><strong>Required.</strong> Forces Ark to write console output to the log files RSM reads.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>-RCONEnabled</code></td>
+<td style="text-align: left;"><strong>Required.</strong> Opens the RCON communication channel.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>-RCONPort=27020</code></td>
+<td style="text-align: left;">Defines the port RSM uses to send commands.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>-ServerAdminPassword=...</code></td>
+<td style="text-align: left;">Sets the credentials for RSM to log in.</td>
+</tr>
+</tbody>
+</table>
+<h2 class="rsm-header" id="adding-to-rsm">🚀 Adding to RSM</h2>
+<ol>
+<li><strong>Open Manager:</strong> Click <strong>Add Server</strong> and select the <strong>Ark: Survival</strong> card.</li>
+</ol>
+<div class="rsm-screenshot">
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/images/ark-steps/adding-ark-server-step-1.png" data-desc-position="bottom"><img alt="Adding Ark Server" src="../../assets/images/ark-steps/adding-ark-server-step-1.png"></a>
+<i>Figure 1: Selecting Ark in the Registry</i></p>
+</div>
+<ol>
+<li><strong>Fill Fields:</strong> Paste your <code>ShooterGameServer.exe</code> path. RSM will attempt to auto-fill the Working Directory for you.</li>
+<li><strong>Verify RCON:</strong> Double-check that your <code>RCON Port</code> in RSM matches the one in your arguments string.</li>
+<li><strong>Save &amp; Start:</strong> Once saved, hit <strong>Start</strong>. <ul>
+<li><em>Note: Ark servers often take 30-60 seconds to create the first log file. If the console is blank initially, just wait for the server to finish "Primal Game Data" loading.</em></li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2 class="rsm-header" id="troubleshooting">🔍 Troubleshooting</h2>
+<ul>
+<li><strong>Console is empty:</strong> Ensure <code>-servergamelog</code> is in your arguments. Check that the <code>Log Path</code> in RSM points to a folder containing <code>.log</code> files.</li>
+<li><strong>Commands don't work:</strong> Verify the <code>Admin Password</code> matches your <code>-ServerAdminPassword</code>. Ensure the RCON port isn't being blocked by an Antivirus or Firewall.</li>
+<li><strong>Server crashes on Start:</strong> Ensure the <code>Working Directory</code> is set to the <code>Win64</code> folder, not the base <code>Ark</code> folder. The executable needs to be "inside" its library environment to run.</li>
+</ul>
+<hr>
+<p align="center">
+  <i><b>Note:</b> Ark logs are "buffered" by the game engine. There may be a 2-5 second delay between an in-game action and it appearing in the RSM console.</i>
+</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.indexes", "navigation.expand", "navigation.tracking", "toc.follow", "content.code.copy", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>
