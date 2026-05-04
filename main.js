@@ -6,44 +6,28 @@ const { spawn, exec, execSync } = require('child_process');
 const si = require('systeminformation');
 const os = require('os');
 const { isNullOrUndefined } = require('util');
+
 let mainWindow;
 let tray = null;
 const activeProcesses = {};
 const serverStats = {}; // { [srvId]: { cpu, ramMB } } — updated each heartbeat tick
 const DATA_FILE = path.join(app.getPath('userData'), 'servers.json');
 const debugPrefix = "[RSM-DEBUG]";
-const DebugActive = true; // Set to true to enable verbose logging for debugging purposes
-const DebugLogging = false; // Set to true to enable debug logging for all operations (not just critical ones)
-const DebugCPURAM = false; // Set to true to enable detailed CPU/RAM logging in the performance update loop
+const DebugActive = true;    // Set to true to enable verbose logging for debugging purposes
+const DebugLogging = false;  // Set to true to enable debug logging for all operations
+const DebugCPURAM = false;   // Set to true to enable detailed CPU/RAM logging in the perf loop
 
-//      ___ _   _ ___ _____ ___    _    _     ___ __________
-//     |_ _| \ | |_ _|_   _|_ _|  / \  | |   |_ _|__  / ____|
-//      | ||  \| || |  | |  | |  / _ \ | |    | |  / /|  _|
-//      | || |\  || |  | |  | | / ___ \| |___ | | / /_| |___
-//     |___|_| \_|___| |_| |___/_/   \_\_____|___/____|_____|
+let managedServers = loadServers(); // hoisted from DATA section below
+
+//      _    ____  ____    ___ _   _ ___ _____
+//     / \  |  _ \|  _ \  |_ _| \ | |_ _|_   _|
+//    / _ \ | |_) | |_) |  | ||  \| || |  | |
+//   / ___ \|  __/|  __/   | || |\  || |  | |
+//  /_/   \_\_|   |_|     |___|_| \_|___| |_|
 //
-
-// --- DATA PERSISTENCE ---
-function loadServers() {
-    if (fs.existsSync(DATA_FILE)) {
-        try {
-            const servers = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-            // Always start with every server Offline — syncActiveServers() will
-            // re-link any that are genuinely still running after the app loads.
-            return servers.map(s => ({ ...s, status: 'Offline', pid: null }));
-        } catch (e) {
-            console.error("[RSM] Failed to load servers.json:", e);
-            return [];
-        }
-    }
-    return [];
-}
-
-let managedServers = loadServers();
 
 // --- WINDOW CREATION & CONFIGURATION ---
 function createWindow() {
-    // If window already exists, don't create a new one
     if (mainWindow) return;
 
     mainWindow = new BrowserWindow({
@@ -63,7 +47,6 @@ function createWindow() {
 
     mainWindow.loadFile(path.join(__dirname, 'public/index.html'));
 
-    // Handle "Close to Tray" logic
     mainWindow.on('close', (event) => {
         if (!app.isQuiting) {
             event.preventDefault();
@@ -74,7 +57,6 @@ function createWindow() {
 
 // --- SYSTEM TRAY CREATION & LOGIC ---
 function createTray() {
-    // 1. Create the Tray Icon
     const iconPath = path.join(__dirname, 'icon.png');
     tray = new Tray(fs.existsSync(iconPath) ? iconPath : path.join(__dirname, 'public/index.html'));
 
@@ -91,12 +73,10 @@ function createTray() {
     tray.setToolTip('RoninManager: Servers Running');
     tray.setContextMenu(contextMenu);
 
-    // 2. Handle Tray Click
     tray.on('click', () => {
         mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show();
     });
 
-    // 3. The "Minimize to Tray" Logic
     mainWindow.on('close', (event) => {
         if (!app.isQuiting) {
             event.preventDefault();
@@ -107,18 +87,15 @@ function createTray() {
 }
 
 // --- STARTUP SYNC AND PROCESS RE-LINKING ---
-function syncActiveServers() { //
+function syncActiveServers() {
     console.log("[RSM] Scanning for orphaned server processes...");
 
-    // Command to get process list with titles and PIDs in CSV format
     exec('tasklist /v /fo csv', (err, stdout) => {
         if (err) return;
 
         const lines = stdout.split('\n');
         managedServers.forEach(srv => {
             const fileName = path.basename(srv.path).toLowerCase();
-
-            // Look for a line containing the executable name
             const match = lines.find(line => line.toLowerCase().includes(fileName));
 
             if (match) {
@@ -126,11 +103,8 @@ function syncActiveServers() { //
                 const pid = parseInt(parts[1]);
 
                 console.log(`[RSM] Found existing process for ${srv.name} (PID: ${pid})`);
-
-                // Re-link internally
                 activeProcesses[srv.id] = { pid: pid };
 
-                // Tell the UI to update the status dot
                 if (mainWindow) {
                     mainWindow.webContents.send('status-change', {
                         id: srv.id,
@@ -146,28 +120,56 @@ function syncActiveServers() { //
     console.log("[RSM] Startup scan complete.");
 }
 
+// --- APP LIFECYCLE EVENTS ---
+app.whenReady().then(() => {
+    createWindow();
+    createTray();
 
-// --- ADMIN CHECK (For features that require elevated permissions, like certain server types or log access) ---
-ipcMain.handle('check-admin', async () => {
-    return new Promise((resolve) => {
-        exec('net session', (err) => {
-            resolve(!err); // If no error, we are admin
-        });
-    });
+    // Give the UI 3 seconds to load before reporting re-linked processes
+    setTimeout(syncActiveServers, 3000);
 });
 
-// --- GET SERVER LIST & SETTINGS ---
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') app.quit();
+});
+
+// Clear any previously registered startup entry so the app only launches on
+// boot when the user explicitly enables it in Settings.
+app.setLoginItemSettings({ openAtLogin: false });
+
+
+//      ____    _  _____  _       _        _ __   ____  ____
+//     |  _ \  / \|_   _|/ \     | |      / \\ \ / /  _\ |  _ \
+//     | | | |/ _ \ | | / _ \    | |     / _ \\ V /| |_) | |_) |
+//     | |_| / ___ \| |/ ___ \   | |___ / ___ \| | |  __/|  __/
+//     |____/_/   \_\_/_/   \_\  |_____/_/   \_\_| |_|   |_|
+//
+
+// --- SERVER LIST LOADING ---
+function loadServers() {
+    if (fs.existsSync(DATA_FILE)) {
+        try {
+            const servers = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+            // Always start with every server Offline — syncActiveServers() will
+            // re-link any that are genuinely still running after the app loads.
+            return servers.map(s => ({ ...s, status: 'Offline', pid: null }));
+        } catch (e) {
+            console.error("[RSM] Failed to load servers.json:", e);
+            return [];
+        }
+    }
+    return [];
+}
+
+// --- GET SERVER LIST ---
 ipcMain.handle('get-servers', () => managedServers);
 
-// --- SAVE SERVER LIST & SETTINGS (With Persistence Logic) ---
+// --- SAVE SERVER LIST (with persistence logic for running servers) ---
 ipcMain.on('save-servers', (event, updatedList) => {
     managedServers = updatedList.map(newSrv => {
-        // Look for the existing version of this server in our memory
         const existing = managedServers.find(s => s.id === newSrv.id);
-
         return {
             ...newSrv,
-            // If it's already running, keep its PID and status!
             pid: existing ? existing.pid : null,
             status: existing ? existing.status : 'Offline',
             logs: existing ? existing.logs : ""
@@ -182,9 +184,18 @@ ipcMain.on('save-servers', (event, updatedList) => {
 ipcMain.on('update-startup-settings', (event, isEnabled) => {
     app.setLoginItemSettings({
         openAtLogin: isEnabled,
-        path: app.getPath('exe') // Points to your app's location
+        path: app.getPath('exe')
     });
     console.log(`[RSM] Launch on startup set to: ${isEnabled}`);
+});
+
+// --- ADMIN CHECK ---
+ipcMain.handle('check-admin', async () => {
+    return new Promise((resolve) => {
+        exec('net session', (err) => {
+            resolve(!err);
+        });
+    });
 });
 
 
@@ -215,12 +226,10 @@ ipcMain.on('start-server', (event, srv) => {
     let logWatcher = null;
     if (DebugActive) console.log('[RSM-DEBUG] reset server to default state');
 
-    // --- LIFECYCLE ---
     function finalizeProcess(pid) {
         if (srv.status === 'Online' && srv.pid === pid) return;
         DebugLog(`Finalizing process for ${srv.name}: PID ${pid}`);
 
-        // Stop the search interval immediately — don't wait for the next tick
         if (searchRetry) {
             clearInterval(searchRetry);
             searchRetry = null;
@@ -242,18 +251,12 @@ ipcMain.on('start-server', (event, srv) => {
             if (DebugActive) console.warn(`[RSM-DEBUG] Could not find ${srv.name} in managedServers to update PID and status.`);
         }
 
-        // 1. Update the UI state
         event.reply('status-change', { id: srv.id, status: 'Online', pid: pid });
 
-        // 2. Hybrid Log Logic: if (DebugActive) console.log(`[RSM-DEBUG] 
-        // Direct Consoles already have child.stdout active.
-        // Dedicated EXEs need the File Watcher.
         if (serverCategory !== 'DIRECT_CONSOLE') {
             if (srv.logPath && fs.existsSync(srv.logPath)) {
-                // Note: Make sure startLogging returns the interval!
                 logWatcher = startLogging(srv.logPath, event, srv);
             } else DebugLog(`[RSM-DEBUG] No valid logPath found for ${srv.name}. Watcher not started.`);
-            
         } else {
             DebugLog(`[RSM-DEBUG] ${srv.name} is a UI based server. Using shell pipe instead of file watcher.`);
         }
@@ -261,38 +264,30 @@ ipcMain.on('start-server', (event, srv) => {
         activeProcesses[srv.id] = { pid: pid, shell: child, cleanup: stopServerCleanup };
         DebugLog(`Registered ${srv.name} in activeProcesses.`);
 
-        // 3. Start your Heartbeat monitor
-        // (Assuming you have a heartbeat function that checks if srv.pid is still running)
         startHeartbeat(pid, srv);
     }
 
-    // --- RRSM Unified Cleanup Function ---
-    // This handles stopping the heartbeat, closing logs, and updating the UI
     const stopServerCleanup = () => {
         DebugLog(`Initiating cleanup for ${srv.name}...`);
 
-        // 1. Stop the Heartbeat
         if (monitorInterval) {
             clearInterval(monitorInterval);
             monitorInterval = null;
             DebugLog(`Stopped heartbeat monitor for ${srv.name}.`);
         }
 
-        // 2. Stop the Log Watcher
         if (logWatcher) {
             clearInterval(logWatcher);
             logWatcher = null;
             DebugLog(`Stopped log watcher for ${srv.name}.`);
         }
 
-        // 3. Stop any pending Deep Search
         if (searchRetry) {
             clearInterval(searchRetry);
             searchRetry = null;
             DebugLog(`Stopped search retry interval for ${srv.name}.`);
         }
 
-        // 4. Update the Global State and UI
         delete activeProcesses[srv.id];
         delete serverStats[srv.id];
         event.reply('status-change', { id: srv.id, status: 'Offline' });
@@ -301,12 +296,9 @@ ipcMain.on('start-server', (event, srv) => {
         DebugLog(`Cleanup complete for ${srv.name}. Status: Offline.`);
     };
 
-    // This checks every 15 seconds if the actual game process is still in the Windows Task List.
-    // If the PID disappears (crash or manual close), it triggers the cleanup logic.
     const startHeartbeat = (pid, serverObject) => {
         if (monitorInterval) clearInterval(monitorInterval);
 
-        // Lock these in now so they are never undefined later
         const totalRamMB = Math.floor(os.totalmem() / 1024 / 1024);
         const numCores = os.cpus().length;
         const srvId = serverObject.id;
@@ -338,13 +330,11 @@ ipcMain.on('start-server', (event, srv) => {
 
                 const parts = stdout.split('","');
                 if (parts.length >= 5) {
-                    // RAM Calculation
                     const memRaw = parts[4].replace(/[^\d]/g, '');
                     const memMB = Math.floor(parseInt(memRaw) / 1024);
                     const displayMem = memMB > 1024 ? (memMB / 1024).toFixed(2) + " GB" : memMB + " MB";
                     const ramPercent = Math.min(Math.floor((memMB / totalRamMB) * 100), 100);
 
-                    // CPU Check — diff KernelModeTime+UserModeTime between ticks
                     exec(`wmic process where processid=${pid} get KernelModeTime,UserModeTime /value`, (cpuErr, cpuStdout) => {
                         let cpuPercent = 0;
 
@@ -367,11 +357,9 @@ ipcMain.on('start-server', (event, srv) => {
                             }
                         }
 
-                        // DATA SAFETY: Ensure we are only sending numbers
                         const finalCpu = isNaN(cpuPercent) ? 0 : cpuPercent;
                         const finalRam = isNaN(ramPercent) ? 0 : ramPercent;
 
-                        // Update aggregate map for the home screen totals
                         serverStats[srvId] = { cpu: finalCpu, ramMB: memMB };
 
                         if (mainWindow && !mainWindow.isDestroyed()) {
@@ -391,7 +379,7 @@ ipcMain.on('start-server', (event, srv) => {
     };
 
     if (DebugActive) console.log("[RSM-DEBUG] Category identified as:", serverCategory);
-    // --- EXECUTION ---
+
     if (serverCategory === 'DIRECT_CONSOLE') {
         const isJar = srv.path.toLowerCase().endsWith('.jar');
         const command = isJar ? 'java' : srv.path;
@@ -404,26 +392,23 @@ ipcMain.on('start-server', (event, srv) => {
     } else {
         child = spawn('powershell.exe', [
             '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
-            `$p = Start-Process -FilePath '${srv.path}' -ArgumentList '${psArgs}' -WorkingDirectory '${workingDir}' -WindowStyle Hidden -PassThru; 
-            Write-Output "PID_MARKER:$($p.Id)"; 
+            `$p = Start-Process -FilePath '${srv.path}' -ArgumentList '${psArgs}' -WorkingDirectory '${workingDir}' -WindowStyle Hidden -PassThru;
+            Write-Output "PID_MARKER:$($p.Id)";
             while($null -ne (Get-Process -Id $p.Id -ErrorAction SilentlyContinue)) { Start-Sleep -Seconds 5 }`
         ], { cwd: workingDir, shell: true, stdio: ['pipe', 'pipe', 'pipe'] });
         DebugLog(`Launched PowerShell bridge for ${srv.name} with PID ${child.pid}`);
     }
 
-    // --- SINGLE CONSOLIDATED STDOUT HANDLER ---
     child.stdout.on('data', (data) => {
         let msg = data.toString();
         if (!msg.endsWith('\n')) msg += '\n';
 
         DebugConsoleLogs(`[STDOUT][${srv.name}]: ${msg.trim()}`);
 
-        // 2. Direct Console (Minecraft) pipe
         if (serverCategory === 'DIRECT_CONSOLE') {
             event.reply('console-out', { id: srv.id, msg: msg });
         }
 
-        // 3. PID Marker Detection
         if (msg.includes('PID_MARKER:')) {
             const pidMatch = msg.match(/PID_MARKER:(\d+)/);
             if (pidMatch && pidMatch[1]) {
@@ -433,7 +418,7 @@ ipcMain.on('start-server', (event, srv) => {
                 } else {
                     DebugLog(`PID ${foundPid} already finalized. Skipping loop.`);
                 }
-            } else if (DebugActive) { 
+            } else if (DebugActive) {
                 DebugLog(`PID marker not found in message: ${msg.trim()}`);
             }
         }
@@ -447,7 +432,6 @@ ipcMain.on('start-server', (event, srv) => {
         }
     });
 
-    // --- INITIALIZATION DELAY ---
     setTimeout(() => {
         if (!child || !child.pid) return;
         if (actualGamePid === 0) {
@@ -455,7 +439,7 @@ ipcMain.on('start-server', (event, srv) => {
                 finalizeProcess(child.pid);
             } else {
                 searchRetry = setInterval(() => {
-                    if (srv.status !== 'Online') { // Only search if we aren't online yet
+                    if (srv.status !== 'Online') {
                         performSearch(child.pid, exeName, workingDir, finalizeProcess, event);
                     } else {
                         DebugLog(`Search stopped: ${srv.name} is Online.`);
@@ -468,27 +452,25 @@ ipcMain.on('start-server', (event, srv) => {
     }, 5000);
 });
 
-//      ____ _____ ___  ____    ____  _____ ______     _______ ____
+
+//      ____  _____ ___  ____    ____  _____ ______     _______ ____
 //     / ___|_   _/ _ \|  _ \  / ___|| ____|  _ \ \   / / ____|  _ \
 //     \___ \ | || | | | |_) | \___ \|  _| | |_) \ \ / /|  _| | |_) |
 //      ___) || || |_| |  __/   ___) | |___|  _ < \ V / | |___|  _ <
 //     |____/ |_| \___/|_|     |____/|_____|_| \_\ \_/  |_____|_| \_\
-//                                                                   
+//
 
 // --- SERVER STOP LOGIC ---
 ipcMain.on('stop-server', (event, srvId) => {
-    // 1. Initial Logging
     DebugLog(`Received stop-server request for ID: ${srvId}`);
     event.reply('system-info', `[RSM] Stop signal received for: ${srvId}`);
 
-    // 2. Robust Lookup
     let processInfo = activeProcesses[srvId] || activeProcesses[srvId.toString()];
     DebugLog(`Initial lookup for ${srvId}:`, processInfo ? `PID ${processInfo.pid}` : "Not found");
 
     if (!processInfo) {
         const foundKey = Object.keys(activeProcesses).find(key =>
             activeProcesses[key].pid.toString() === srvId.toString()
-
         );
         if (foundKey) processInfo = activeProcesses[foundKey];
         DebugLog(`Attempted alternative lookup for ${srvId}. Found key: ${foundKey || "None"}`);
@@ -504,23 +486,21 @@ ipcMain.on('stop-server', (event, srvId) => {
     event.reply('system-info', `[RSM] Identifying PID ${pid}. Sending graceful shutdown sequence...`);
     DebugLog(`Preparing to stop PID ${pid} with shell:`, !!shell);
 
-    // --- TRACK A: Command Injection (Minecraft/Java) ---
+    // Track A: Command Injection (Minecraft/Java)
     try {
         if (shell && shell.stdin && shell.stdin.writable) {
-            shell.stdin.write("/save-all\r\n"); // This command is recognized by Minecraft and many Java-based servers to trigger an immediate save of all world data. By sending this before "stop", we give the server a chance to save progress before shutting down.
+            shell.stdin.write("/save-all\r\n");
             console.log(`[RSM-DEBUG] Sent 'save-all' command to PID ${pid} stdin.`);
-            shell.stdin.write("/stop\r\n"); // This is the standard Minecraft server command to save and stop. For other Java-based servers, "stop" is often recognized as well. This allows us to trigger a graceful shutdown that lets the server save progress and close properly.
+            shell.stdin.write("/stop\r\n");
             console.log(`[RSM-DEBUG] Sent 'stop' command to PID ${pid} stdin.`);
-            shell.stdin.write("/exit\r\n"); // This ensures that if the server is running in a shell that requires an explicit exit command, it will close after processing the stop command. This is a safety measure to help ensure the process terminates as expected.
+            shell.stdin.write("/exit\r\n");
             event.reply('system-info', `[RSM] Sent 'Exit' commands to stdin.`);
         }
     } catch (e) {
         console.log("[RSM] Stdin write skipped.");
     }
 
-    // --- TRACK B: Windows Signal (Space Engineers/General) ---
-    // UPDATED: We use Stop-Process without -Force first. 
-    // This allows the application to catch the 'Closing' event and save.
+    // Track B: Windows Signal (Space Engineers / General)
     const stopCmd = `
         $p = Get-Process -Id ${pid} -ErrorAction SilentlyContinue;
         if ($p) {
@@ -538,8 +518,6 @@ ipcMain.on('stop-server', (event, srvId) => {
         } else {
             event.reply('system-info', `[RSM] Windows OS has acknowledged the stop request for PID ${pid}.`);
         }
-        // Trigger cleanup immediately after the stop command completes rather than
-        // waiting for the 10-second verification timeout — the heartbeat is a safety net.
         if (typeof cleanup === 'function') {
             cleanup();
         }
@@ -548,13 +526,12 @@ ipcMain.on('stop-server', (event, srvId) => {
     event.reply('system-info', `[RSM] Shutdown signals sent. Monitoring for exit...`);
 });
 
-// --- FORCE KILL LOGIC (For Unresponsive Servers) ---
+// --- FORCE KILL LOGIC ---
 ipcMain.on('kill-server', (event, pid) => {
     if (!pid) return;
 
     event.reply('system-info', `Sending TaskKill command to PID ${pid}...`);
 
-    // /F = Force, /T = Tree (kills children), /PID = process id
     exec(`taskkill /F /T /PID ${pid}`, (err) => {
         if (err) {
             console.error(`Failed to kill process ${pid}:`, err);
@@ -564,133 +541,15 @@ ipcMain.on('kill-server', (event, pid) => {
     });
 });
 
-//      _____ ___  _     ____  _____ ____    _   _    _    _   _ ____  _     ___ _   _  ____
-//     |  ___/ _ \| |   |  _ \| ____|  _ \  | | | |  / \  | \ | |  _ \| |   |_ _| \ | |/ ___|
-//     | |_ | | | | |   | | | |  _| | |_) | | |_| | / _ \ |  \| | | | | |    | ||  \| | |  _
-//     |  _|| |_| | |___| |_| | |___|  _ <  |  _  |/ ___ \| |\  | |_| | |___ | || |\  | |_| |
-//     |_|   \___/|_____|____/|_____|_| \_\ |_| |_/_/   \_\_| \_|____/|_____|___|_| \_|\____|
-//                                                                                           
 
-// --- OPENING FILE DIALOGS (For selecting server executables) ---
-ipcMain.handle('open-dialog', async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
-        properties: ['openFile'],
-        filters: [
-            { name: 'Game Servers', extensions: ['exe', 'bat', 'cmd', 'jar', 'ps1', 'ps', 'sh'] },
-            { name: 'All Files', extensions: ['*'] }
-        ]
-    });
-    return result.canceled ? null : result.filePaths[0];
-});
-
-// --- OPENING FOLDER DIALOGS (For selecting working directories or log folders) ---
-ipcMain.handle('select-folder', async () => {
-    // mainWindow ensures the dialog is modal and centered
-    const result = await dialog.showOpenDialog(mainWindow, {
-        properties: ['openDirectory']
-    });
-    return result.canceled ? null : result.filePaths[0];
-});
-
-// --- CONFIG FILE READ/WRITE ---
-ipcMain.handle('read-config-file', async (event, filePath) => {
-    try {
-        const content = fs.readFileSync(filePath, 'utf8');
-        return { success: true, content };
-    } catch (err) {
-        return { success: false, error: err.message };
-    }
-});
-
-ipcMain.handle('write-config-file', async (event, { filePath, content }) => {
-    try {
-        fs.writeFileSync(filePath, content, 'utf8');
-        return { success: true };
-    } catch (err) {
-        return { success: false, error: err.message };
-    }
-});
-
-// --- OPEN FOLDER IN EXPLORER (For the "Open Folder" button in the UI) ---
-ipcMain.on('open-folder', (event, rawData) => {
-    let targetPath = (typeof rawData === 'object') ? (rawData.workingDir || rawData.exePath || rawData.path) : rawData;
-
-    if (!targetPath) return;
-    targetPath = path.resolve(targetPath.replace(/["]+/g, '').trim());
-
-    if (fs.existsSync(targetPath)) {
-        const isFile = fs.lstatSync(targetPath).isFile();
-
-        // Use spawn instead of exec for 'fire and forget' processes
-        // If it's a file, we use /select to highlight it
-        const args = isFile ? ['/select,', targetPath] : [targetPath];
-
-        spawn('explorer.exe', args, {
-            detached: true,
-            stdio: 'ignore'
-        }).unref(); // This tells Node to let the process live independently
-
-        event.reply('system-info', `[RSM] Explorer opened at: ${targetPath}`);
-    } else {
-        event.reply('system-error', `Path not found: ${targetPath}`);
-    }
-});
-
-// --- OPENING SERVER GUI (For servers that have a separate GUI launcher, like Space Engineers) ---
-ipcMain.on('show-server-gui', (event, srv) => {
-    // 1. Resolve the paths based on whether 'srv' is an object or a string
-    let exePath = '';
-    let instancePath = '';
-
-    if (srv && typeof srv === 'object') {
-        exePath = srv.path;
-        instancePath = srv.logPath;
-    } else {
-        exePath = srv;
-    }
-
-    // 2. Validation to prevent the "type of string" error
-    if (!exePath || typeof exePath !== 'string') {
-        console.error(`[RSM] Cannot open GUI: Invalid path received.`);
-        return;
-    }
-
-    const exeName = path.basename(exePath);
-    const workingDir = path.dirname(exePath);
-
-    // 3. Build the command
-    let command = `start "" "${exeName}"`;
-
-    // 4. Universal Adjustment: 
-    // Only append -path if instancePath exists AND it looks like a Space Engineers executable.
-    // This prevents sending "-path" to things like Minecraft or generic batch files.
-    if (instancePath) {
-        const isSE = exeName.toLowerCase().includes('spaceengineers');
-        if (isSE) {
-            command += ` -path "${instancePath}"`;
-        }
-        // If you add other games later, you can add 'else if' blocks here for their specific flags
-    }
-
-    // 5. Execution
-    exec(command, { cwd: workingDir }, (err) => {
-        if (err) {
-            console.error(`[RSM] Failed to launch GUI: ${err}`);
-            event.reply('system-info', `[RSM] Error launching GUI: ${err.message}`);
-        } else {
-            event.reply('system-info', `[RSM] Opening GUI for ${exeName}...`);
-        }
-    });
-});
-
-//      _   _ _____ _     ____  _____ ____  ____
-//     | | | | ____| |   |  _ \| ____|  _ \/ ___|
-//     | |_| |  _| | |   | |_) |  _| | |_) \___ \
-//     |  _  | |___| |___|  __/| |___|  _ < ___) |
-//     |_| |_|_____|_____|_|   |_____|_| \_\____/
+//      ___ ___  _   _ ____  ___  _     _____     ____  ___  __  __ __  __    _    _   _ ____  ____
+//     / __/ _ \| \ | / ___||_ _|| |   | ____|   / ___/ _ \|  \/  |  \/  |  / \  | \ | |  _ \/ ___|
+//    | (_| | | |  \| \___ \ | | | |   |  _|    | |  | | | | |\/| | |\/| | / _ \ |  \| | | | \___ \
+//    \__ | |_| | |\  |___) || | | |___| |___   | |__| |_| | |  | | |  | |/ ___ \| |\  | |_| |___) |
+//    |___/\___/|_| \_|____/|___||_____|_____|   \____\___/|_|  |_|_|  |_/_/   \_|_| \_|____/|____/
 //
 
-// --- LOG TAILING FUNCTION (For servers that write to log files, like Space Engineers) ---
+// --- LOG TAILING FUNCTION ---
 const startLogging = (logFolderPath, event, srv) => {
     const encodingMap = {
         'spaceengineers': 'utf16le',
@@ -702,7 +561,6 @@ const startLogging = (logFolderPath, event, srv) => {
 
     DebugConsoleLogs(`[RSM-DEBUG] Initializing Log Watcher`);
     DebugConsoleLogs(`[RSM-DEBUG] Target: ${srv.name} | Type: ${srv.type} | Encoding: ${selectedEncoding}`);
-    
 
     try {
         const getNewestLog = () => {
@@ -739,16 +597,13 @@ const startLogging = (logFolderPath, event, srv) => {
 
                     lastSize = stats.size;
 
-                    // 1. Decode
                     const incomingText = buffer.toString(selectedEncoding).replace(/\0/g, '');
 
                     if (DebugLogging) {
                         console.log(`[RSM-DEBUG] Captured ${bufferSize} bytes from ${srv.name}`);
-                        // Shows first 50 chars of raw text to verify encoding success
                         console.log(`[RSM-DEBUG] Raw Preview: ${incomingText.substring(0, 50).replace(/\n/g, '\\n')}...`);
                     }
 
-                    // 2. Filter
                     const rawLines = incomingText.split(/\r?\n/);
                     const cleanLines = rawLines.filter(line => {
                         const low = line.toLowerCase();
@@ -763,12 +618,10 @@ const startLogging = (logFolderPath, event, srv) => {
 
                     DebugConsoleLogs(`[RSM-DEBUG] Lines processed: ${rawLines.length} | Lines kept: ${cleanLines.length}`);
 
-                    // 3. Format
                     const formattedOutput = cleanLines.map(line => {
                         return line.replace(/Thread:\s+\d+\s+->\s+/, '| ');
                     }).join('\n');
 
-                    // 4. Dispatch
                     if (formattedOutput.trim()) {
                         event.reply('console-out', { id: srv.id, msg: formattedOutput + '\n' });
                     }
@@ -784,7 +637,7 @@ const startLogging = (logFolderPath, event, srv) => {
     }
 };
 
-// --- COMMAND INJECTION LOGIC (For servers that support direct console input) ---
+// --- COMMAND INJECTION LOGIC ---
 ipcMain.on('send-command', async (event, { srvId, command }) => {
     const processInfo = activeProcesses[srvId];
     if (!processInfo || !processInfo.shell) {
@@ -795,19 +648,17 @@ ipcMain.on('send-command', async (event, { srvId, command }) => {
     const srv = managedServers.find(s => s.id === srvId);
     if (!srv) return;
 
-    // Clean up the command (remove extra spaces)
     const cleanCmd = command.trim();
     if (!cleanCmd) return;
 
     const serverCategory = findServType(srv);
 
-    // --- Direct Input (Shell servers {minecraft, 7daystodie, etc}) ---
+    // Direct Input (Shell servers: Minecraft, 7DaysToDie, etc.)
     if (serverCategory === 'DIRECT_CONSOLE') {
         const childProc = processInfo.shell;
 
         if (childProc.stdin && childProc.stdin.writable) {
             try {
-                // Minecraft needs \n or \r\n to execute
                 childProc.stdin.write(cleanCmd + "\n");
                 event.reply('console-out', { id: srvId, msg: `> ${cleanCmd}\n` });
             } catch (err) {
@@ -817,7 +668,7 @@ ipcMain.on('send-command', async (event, { srvId, command }) => {
             event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] Console input is blocked or not available.\n` });
         }
     }
-    // --- Space Engineers (VRage Remote HTTP API) ---
+    // Space Engineers (VRage Remote HTTP API)
     else if (srv.type === 'space-engineers') {
         if (!srv.apiPort || !srv.apiPass) {
             event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] API Port and Password are required for Space Engineers commands.\n` });
@@ -845,7 +696,7 @@ ipcMain.on('send-command', async (event, { srvId, command }) => {
             event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] SE API Failed: ${errorMsg}\n` });
         }
     }
-    // --- RCON Protocol (Ark and other POWERSHELL_BRIDGE servers) ---
+    // RCON Protocol (Ark and other POWERSHELL_BRIDGE servers)
     else if (serverCategory === 'POWERSHELL_BRIDGE') {
         if (!srv.apiPort || !srv.apiPass) {
             event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] RCON Port and Password are required to send commands.\n` });
@@ -881,15 +732,14 @@ ipcMain.on('get-player-count', async (event, srvId) => {
 
     const type = (srv.type || '').toLowerCase();
 
-    // --- Minecraft: write 'list' to stdin; the response travels through the normal
-    //     console-out pipeline and is parsed in the renderer's console-out handler ---
+    // Minecraft: write 'list' to stdin; parsed in renderer's console-out handler
     if (type === 'minecraft') {
         const shell = processInfo.shell;
         if (shell?.stdin?.writable) shell.stdin.write('list\n');
         return;
     }
 
-    // --- Space Engineers: HTTP API returns session info + player list in one call ---
+    // Space Engineers: HTTP API returns session info + player list in one call
     if (type === 'space-engineers') {
         try {
             const port = srv.apiPort || 8080;
@@ -910,14 +760,13 @@ ipcMain.on('get-player-count', async (event, srvId) => {
         return;
     }
 
-    // --- Ark: RCON 'ListPlayers' returns a plain-text list, one player per line ---
+    // Ark: RCON 'ListPlayers' returns a plain-text list, one player per line
     if (type === 'ark') {
         try {
             const rcon = new Rcon({ host: 'localhost', port: parseInt(srv.apiPort) || 27020, password: srv.apiPass || '' });
             await rcon.connect();
             const response = await rcon.send('ListPlayers');
             await rcon.end();
-            // Response is "No Players Connected" or a numbered list of players
             const lines = response.trim().split('\n').filter(l => l.match(/^\d+\./));
             event.reply('player-count-update', {
                 id: srvId,
@@ -930,15 +779,158 @@ ipcMain.on('get-player-count', async (event, srvId) => {
         return;
     }
 
-    // --- Fallback: no data available for this game type ---
     event.reply('player-count-update', { id: srvId, players: null, world: null });
 });
 
-// ---SERVER TYPE HELPER FUNCTION---
-// Add New Server Types Here based on their unique requirements. This keeps the main logic cleaner and makes it easier to manage different server behaviors in one place.
-// This determines how we will interact with the server process (direct console input vs. log file tailing) and also helps us know what kind of commands or interactions are possible with that server type.
+
+//      _____ ___  _     ____  _____ ____    _   _    _    _   _ ____  _     ___ _   _  ____
+//     |  ___/ _ \| |   |  _ \| ____|  _ \  | | | |  / \  | \ | |  _ \| |   |_ _| \ | |/ ___|
+//     | |_ | | | | |   | | | |  _| | |_) | | |_| | / _ \ |  \| | | | | |    | ||  \| | |  _
+//     |  _|| |_| | |___| |_| | |___|  _ <  |  _  |/ ___ \| |\  | |_| | |___ | || |\  | |_| |
+//     |_|   \___/|_____|____/|_____|_| \_\ |_| |_/_/   \_\_| \_|____/|_____|___|_| \_|\____|
+//
+
+// --- OPENING FILE DIALOGS ---
+ipcMain.handle('open-dialog', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openFile'],
+        filters: [
+            { name: 'Game Servers', extensions: ['exe', 'bat', 'cmd', 'jar', 'ps1', 'ps', 'sh'] },
+            { name: 'All Files', extensions: ['*'] }
+        ]
+    });
+    return result.canceled ? null : result.filePaths[0];
+});
+
+// --- OPENING FOLDER DIALOGS ---
+ipcMain.handle('select-folder', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory']
+    });
+    return result.canceled ? null : result.filePaths[0];
+});
+
+// --- CONFIG FILE READ/WRITE ---
+ipcMain.handle('read-config-file', async (event, filePath) => {
+    try {
+        const content = fs.readFileSync(filePath, 'utf8');
+        return { success: true, content };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('write-config-file', async (event, { filePath, content }) => {
+    try {
+        fs.writeFileSync(filePath, content, 'utf8');
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+// --- OPEN FOLDER IN EXPLORER ---
+ipcMain.on('open-folder', (event, rawData) => {
+    let targetPath = (typeof rawData === 'object') ? (rawData.workingDir || rawData.exePath || rawData.path) : rawData;
+
+    if (!targetPath) return;
+    targetPath = path.resolve(targetPath.replace(/["]+/g, '').trim());
+
+    if (fs.existsSync(targetPath)) {
+        const isFile = fs.lstatSync(targetPath).isFile();
+        const args = isFile ? ['/select,', targetPath] : [targetPath];
+
+        spawn('explorer.exe', args, {
+            detached: true,
+            stdio: 'ignore'
+        }).unref();
+
+        event.reply('system-info', `[RSM] Explorer opened at: ${targetPath}`);
+    } else {
+        event.reply('system-error', `Path not found: ${targetPath}`);
+    }
+});
+
+// --- OPENING SERVER GUI (e.g. Space Engineers dedicated server GUI) ---
+ipcMain.on('show-server-gui', (event, srv) => {
+    let exePath = '';
+    let instancePath = '';
+
+    if (srv && typeof srv === 'object') {
+        exePath = srv.path;
+        instancePath = srv.logPath;
+    } else {
+        exePath = srv;
+    }
+
+    if (!exePath || typeof exePath !== 'string') {
+        console.error(`[RSM] Cannot open GUI: Invalid path received.`);
+        return;
+    }
+
+    const exeName = path.basename(exePath);
+    const workingDir = path.dirname(exePath);
+
+    let command = `start "" "${exeName}"`;
+
+    if (instancePath) {
+        const isSE = exeName.toLowerCase().includes('spaceengineers');
+        if (isSE) {
+            command += ` -path "${instancePath}"`;
+        }
+    }
+
+    exec(command, { cwd: workingDir }, (err) => {
+        if (err) {
+            console.error(`[RSM] Failed to launch GUI: ${err}`);
+            event.reply('system-info', `[RSM] Error launching GUI: ${err.message}`);
+        } else {
+            event.reply('system-info', `[RSM] Opening GUI for ${exeName}...`);
+        }
+    });
+});
+
+
+//      ____  _____ ____  _____ ___  ____  __  __    _    _   _  ____ _____
+//     |  _ \| ____|  _ \|  ___/ _ \|  _ \|  \/  |  / \  | \ | |/ ___| ____|
+//     | |_) |  _| | |_) | |_ | | | | |_) | |\/| | / _ \ |  \| | |   |  _|
+//     |  __/| |___|  _ <|  _|| |_| |  _ <| |  | |/ ___ \| |\  | |___| |___
+//     |_|   |_____|_| \_\_|   \___/|_| \_|_|  |_/_/   \_|_| \_|\____|_____|
+//
+
+setInterval(() => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        const entries = Object.values(serverStats);
+
+        const cpuTotal = Math.min(
+            entries.reduce((sum, s) => sum + (s.cpu || 0), 0),
+            100
+        );
+
+        const totalSystemRamMB = Math.floor(os.totalmem() / 1024 / 1024);
+        const serverRamMB = entries.reduce((sum, s) => sum + (s.ramMB || 0), 0);
+        const ramTotal = Math.min(Math.round((serverRamMB / totalSystemRamMB) * 100), 100);
+
+        mainWindow.webContents.send('total-performance-update', {
+            cpu: cpuTotal,
+            ram: ramTotal
+        });
+        DebugCpuRam(`Server Totals: CPU ${cpuTotal}% | RAM ${serverRamMB} MB (${ramTotal}%)`);
+    }
+}, 2000);
+
+
+//      _   _ _____ _     ____  _____ ____  ____
+//     | | | | ____| |   |  _ \| ____|  _ \/ ___|
+//     | |_| |  _| | |   | |_) |  _| | |_) \___ \
+//     |  _  | |___| |___|  __/| |___|  _ < ___) |
+//     |_| |_|_____|_____|_|   |_____|_| \_\____/
+//
+
+// --- SERVER TYPE HELPER ---
+// Determines how RSM interacts with a server process (direct stdin vs. PowerShell bridge).
+// Add new server types here when needed.
 function findServType(srv) {
-    // Default to 'bridge' if no type is found, to stay safe
     const type = (srv.type || '').toLowerCase();
     DebugLog(`Determining server category for type: '${type}'`);
 
@@ -947,21 +939,21 @@ function findServType(srv) {
         case '7daystodie':
         case 'terraria':
             DebugLog(`Category assigned: DIRECT_CONSOLE, for type: '${type}'`);
-            return 'DIRECT_CONSOLE'; // These use the direct Java/EXE pipe
+            return 'DIRECT_CONSOLE';
 
         case 'space-engineers':
         case 'ark':
         case 'starfield':
             DebugLog(`Category assigned: POWERSHELL_BRIDGE, for type: '${type}'`);
-            return 'POWERSHELL_BRIDGE'; // These need the PID search and Log Tailing
+            return 'POWERSHELL_BRIDGE';
 
         default:
             DebugLog(`Category assigned: DIRECT_CONSOLE, for type: '${type}' due to default case`);
-            return 'DIRECT_CONSOLE'; // Default fallback
+            return 'DIRECT_CONSOLE';
     }
 }
 
-// --- UNIVERSAL PROCESS SEARCH FUNCTION (Used for finding the actual game process when using the PowerShell bridge method) ---
+// --- UNIVERSAL PROCESS SEARCH (finds the real game PID after PowerShell bridge launches it) ---
 function performSearch(parentPid, exeName, workingDir, finalizeCallback, event) {
     const { exec } = require('child_process');
     const searchExe = exeName.toLowerCase();
@@ -972,16 +964,13 @@ function performSearch(parentPid, exeName, workingDir, finalizeCallback, event) 
         Object.values(activeProcesses).map(p => p.pid).filter(Boolean)
     );
 
-    // STEP 1: Search children of our PowerShell bridge, filtered by EXE name.
-    // Using CSV format for reliable parsing. Filters by EXE name in CommandLine
-    // so we don't latch onto conhost.exe or other PS child processes.
+    // Step 1: Search children of the PowerShell bridge filtered by EXE name
     exec(`wmic process where "ParentProcessId=${parentPid}" get CommandLine,ProcessId /format:csv`, (err, stdout) => {
         if (!err && stdout) {
             const lines = stdout.trim().split('\n').filter(l => l.trim());
             for (const line of lines) {
                 if (!line.toLowerCase().includes(searchExe)) continue;
 
-                // CSV: Node,CommandLine,ProcessId — ProcessId is always the last field
                 const lastComma = line.lastIndexOf(',');
                 if (lastComma !== -1) {
                     const foundPid = parseInt(line.substring(lastComma + 1).trim());
@@ -994,9 +983,7 @@ function performSearch(parentPid, exeName, workingDir, finalizeCallback, event) 
             }
         }
 
-        // STEP 2: Search all processes matching the EXE name, filtered by instance
-        // working directory. No dir match = no claim. If the process hasn't appeared
-        // yet the retry interval will try again in 3 seconds.
+        // Step 2: Search all processes matching EXE name, filtered by working directory
         exec(`wmic process where "Name='${exeName}'" get CommandLine,ProcessId /format:csv`, (err2, stdout2) => {
             if (err2 || !stdout2) return;
 
@@ -1025,6 +1012,7 @@ function performSearch(parentPid, exeName, workingDir, finalizeCallback, event) 
     });
 }
 
+// --- DEBUG HELPERS ---
 function DebugLog(message) {
     if (DebugActive) console.log(`${debugPrefix} ${message}`);
 }
@@ -1036,44 +1024,3 @@ function DebugConsoleLogs(message) {
 function DebugCpuRam(message) {
     if (DebugCPURAM) console.log(`${debugPrefix} ${message}`);
 }
-
-setInterval(() => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-        const entries = Object.values(serverStats);
-
-        // Sum CPU across active servers, cap at 100
-        const cpuTotal = Math.min(
-            entries.reduce((sum, s) => sum + (s.cpu || 0), 0),
-            100
-        );
-
-        // Sum RAM across active servers as % of total system RAM
-        const totalSystemRamMB = Math.floor(os.totalmem() / 1024 / 1024);
-        const serverRamMB = entries.reduce((sum, s) => sum + (s.ramMB || 0), 0);
-        const ramTotal = Math.min(Math.round((serverRamMB / totalSystemRamMB) * 100), 100);
-
-        mainWindow.webContents.send('total-performance-update', {
-            cpu: cpuTotal,
-            ram: ramTotal
-        });
-        DebugCpuRam(`Server Totals: CPU ${cpuTotal}% | RAM ${serverRamMB} MB (${ramTotal}%)`);
-    }
-}, 2000);
-
-// --- APP LIFECYCLE EVENTS ---
-app.whenReady().then(() => {
-    createWindow();
-    createTray();
-
-    // Give the UI 3 seconds to load before reporting re-linked processes
-    setTimeout(syncActiveServers, 3000);
-});
-
-// --- Graceful Exit on macOS (When all windows are closed, we usually want to quit the app) ---
-app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
-});
-
-// Clear any previously registered startup entry so the app only launches on
-// boot when the user explicitly enables it in Settings.
-app.setLoginItemSettings({ openAtLogin: false });
