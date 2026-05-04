@@ -235,7 +235,7 @@ function findServType(srv) {
     * You want live console output without a log file
     * Commands can be sent by writing to stdin (e.g. `list\n`)
 
-    **Examples:** Minecraft, 7 Days to Die
+    **Examples:** Minecraft, 7 Days to Die, Terraria
 
 === ":material-powershell: POWERSHELL_BRIDGE"
     RSM launches the EXE hidden via PowerShell (`Start-Process -WindowStyle Hidden`), captures the spawned PID, then monitors the process via WMIC heartbeat. Console output is read by tailing the server's log file on disk.
@@ -246,7 +246,7 @@ function findServType(srv) {
     * The server needs to run headless in the background
     * Commands are sent via RCON or an HTTP API (not stdin)
 
-    **Examples:** Space Engineers, Ark, Terraria
+    **Examples:** Space Engineers, Ark
 
 ---
 
@@ -350,7 +350,6 @@ RSM uses Electron's IPC to communicate between the **main process** (`main.js`) 
 | `send-command` | send | Send a console command `{ srvId, command }` |
 | `save-servers` | send | Persist current server list to disk |
 | `open-folder` | send | Open a path in Windows Explorer |
-| `show-server-gui` | send | Re-open the server's own GUI window |
 | `log-to-system` | send | Write a message to the system log |
 | `console-out` | receive | Server console line `{ id, msg }` |
 | `status-change` | receive | Status update `{ id, status, pid? }` |

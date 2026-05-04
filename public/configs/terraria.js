@@ -4,7 +4,7 @@ export const terraria = {
         icon: "logos/trLogo.png"
     },
     backend: {
-        category: "POWERSHELL_BRIDGE"
+        category: "DIRECT_CONSOLE"
     },
     label: "SERVER EXECUTABLE (TerrariaServer.exe)",
     blocks: {

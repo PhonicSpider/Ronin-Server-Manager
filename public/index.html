@@ -50,22 +50,20 @@
 
             <div class="stats-grid" style="width: 100%;">
                 <div class="card gauge-box">
-                    <span class="stat-label">TOTAL CPU (ALL SERVERS)</span>
-                    <svg class="gauge-svg" viewBox="0 0 120 70">
-                        <path class="gauge-bg" d="M 10 60 A 50 50 0 0 1 110 60" />
-                        <path id="total-cpu-gauge" class="gauge-fill" d="M 10 60 A 50 50 0 0 1 110 60" />
+                    <svg class="gauge-svg" viewBox="0 0 120 75">
+                        <path class="gauge-bg" d="M 5 65 A 55 55 0 0 1 115 65" />
+                        <path id="total-cpu-gauge" class="gauge-fill" d="M 5 65 A 55 55 0 0 1 115 65" />
+                        <text x="60" y="30" class="gauge-label-text" text-anchor="middle">TOTAL CPU</text>
+                        <text x="60" y="55" class="gauge-val-text" id="total-cpu-val" text-anchor="middle">0%</text>
                     </svg>
-                    <div class="gauge-val" id="total-cpu-val">0.0%</div>
-                    <p class="tiny-label">Combined Processor Load</p>
                 </div>
                 <div class="card gauge-box">
-                    <span class="stat-label">TOTAL RAM (ALL SERVERS)</span>
-                    <svg class="gauge-svg" viewBox="0 0 120 70">
-                        <path class="gauge-bg" d="M 10 60 A 50 50 0 0 1 110 60" />
-                        <path id="total-ram-gauge" class="gauge-fill ram-color" d="M 10 60 A 50 50 0 0 1 110 60" />
+                    <svg class="gauge-svg" viewBox="0 0 120 75">
+                        <path class="gauge-bg" d="M 5 65 A 55 55 0 0 1 115 65" />
+                        <path id="total-ram-gauge" class="gauge-fill ram-color" d="M 5 65 A 55 55 0 0 1 115 65" />
+                        <text x="60" y="30" class="gauge-label-text" text-anchor="middle">TOTAL RAM</text>
+                        <text x="60" y="55" class="gauge-val-text gauge-val-ram" id="total-ram-val" text-anchor="middle">0%</text>
                     </svg>
-                    <div class="gauge-val" id="total-ram-val" style="color: var(--success);">0 MB</div>
-                    <p class="tiny-label">Total Memory Allocation</p>
                 </div>
             </div>
             <!--
@@ -93,38 +91,53 @@
                 </div>
             </header>
 
-            <div class="stats-grid" style="width: 100%;">
-                <div class="card gauge-box">
-                    <span class="stat-label">INSTANCE CPU USAGE</span>
-                    <svg class="gauge-svg" viewBox="0 0 120 70">
-                        <path class="gauge-bg" d="M 10 60 A 50 50 0 0 1 110 60" />
-                        <path id="cpu-gauge" class="gauge-fill" d="M 10 60 A 50 50 0 0 1 110 60" />
-                    </svg>
-                    <div class="gauge-val" id="cpu-val">0.0%</div>
-                    <p class="tiny-label">Processor Load</p>
+            <div class="card stats-combined-card">
+                <div class="stats-gauges-row">
+                    <div class="gauge-box">
+                        <svg class="gauge-svg" viewBox="0 0 120 75">
+                            <path class="gauge-bg" d="M 5 65 A 55 55 0 0 1 115 65" />
+                            <path id="cpu-gauge" class="gauge-fill" d="M 5 65 A 55 55 0 0 1 115 65" />
+                            <text x="60" y="30" class="gauge-label-text" text-anchor="middle">CPU USAGE</text>
+                            <text x="60" y="55" class="gauge-val-text" id="cpu-val" text-anchor="middle">0%</text>
+                        </svg>
+                    </div>
+                    <div class="gauge-box">
+                        <svg class="gauge-svg" viewBox="0 0 120 75">
+                            <path class="gauge-bg" d="M 5 65 A 55 55 0 0 1 115 65" />
+                            <path id="ram-gauge" class="gauge-fill ram-color" d="M 5 65 A 55 55 0 0 1 115 65" />
+                            <text x="60" y="30" class="gauge-label-text" text-anchor="middle">RAM USAGE</text>
+                            <text x="60" y="55" class="gauge-val-text gauge-val-ram" id="ram-val" text-anchor="middle">0 MB</text>
+                        </svg>
+                    </div>
                 </div>
 
-                <div class="card gauge-box">
-                    <span class="stat-label">INSTANCE RAM USAGE</span>
-                    <svg class="gauge-svg" viewBox="0 0 120 70">
-                        <path class="gauge-bg" d="M 10 60 A 50 50 0 0 1 110 60" />
-                        <path id="ram-gauge" class="gauge-fill ram-color" d="M 10 60 A 50 50 0 0 1 110 60" />
-                    </svg>
-                    <div class="gauge-val" id="ram-val" style="color: var(--success);">0 MB</div>
-                    <p class="tiny-label">Memory Allocation</p>
+                <div class="stats-pills-row">
+                    <div class="stat-pill">
+                        <span class="stat-pill-label">PLAYERS</span>
+                        <span class="stat-pill-value" id="stat-players">— / —</span>
+                    </div>
+                    <div class="stat-pill">
+                        <span class="stat-pill-label">PID</span>
+                        <span class="stat-pill-value" id="stat-pid">—</span>
+                    </div>
+                    <div class="stat-pill">
+                        <span class="stat-pill-label">UPTIME</span>
+                        <span class="stat-pill-value" id="stat-uptime">—</span>
+                    </div>
                 </div>
             </div>
 
             <div class="action-bar card">
+                <span class="stat-label">SERVER CONTROLS</span>
                 <div class="btn-group">
-                    <button class="btn btn-primary" onclick="startServer()" title=" Launch Server">Launch Server</button>
-                    <button id="show-gui-btn" class="btn btn-outline" onclick="showServerGUI()" title="Show Server Window" disabled>Show GUI</button>
-                    <button class="btn btn-danger" onclick="stopServer()" title="Shutdown Server">Shutdown</button>
-                    <button class="btn btn-danger" onclick="killServer()" title="Force Terminate Process">Force Kill</button>
-                </div>
-                <div class="toggle-group">
-                    <input type="checkbox" id="auto-restart-chk">
-                    <label for="auto-restart-chk">Auto-Restart</label>
+                    <button class="btn btn-launch" onclick="startServer()" title="Launch Server">Launch Server</button>
+                    <button class="btn btn-folder" onclick="openActiveFolder()" title="Open Server Folder">Open Folder</button>
+                    <button class="btn btn-stop" onclick="stopServer()" title="Shutdown Server">Shutdown</button>
+                    <button class="btn btn-kill" onclick="killServer()" title="Force Terminate Process">Force Kill</button>
+                    <div class="toggle-group">
+                        <input type="checkbox" id="auto-restart-chk">
+                        <label for="auto-restart-chk">Auto-Restart</label>
+                    </div>
                 </div>
             </div>
 
