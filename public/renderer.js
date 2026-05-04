@@ -1199,8 +1199,9 @@ function resolveCfgPath(srv, fileEntry) {
     const workingDir = (srv.workingDir || '').replace(/[/\\]+$/, '');
     const config = ServerTypeRegistry[srv.type];
     const subDir = config?.gameFiles?.configPath || '';
+    const isAbsolute = /^[A-Za-z]:[/\\]/.test(subDir);
     const base = subDir
-        ? workingDir + '\\' + subDir.replace(/[/\\]/g, '\\').replace(/^\\+|\\+$/g, '')
+        ? (isAbsolute ? subDir.replace(/[/\\]+$/, '') : workingDir + '\\' + subDir.replace(/[/\\]/g, '\\').replace(/^\\+|\\+$/g, ''))
         : workingDir;
     return base + '\\' + fileEntry.file;
 }
