@@ -48,6 +48,14 @@ async function init() {
     const startupChk = document.getElementById('launch-startup-chk');
     if (startupChk) startupChk.checked = startupPref;
 
+    if (!cfgBackupDir) {
+        const desktop = await window.api.invoke('get-desktop-path');
+        cfgBackupDir = desktop + '\\RSM-Backups';
+        localStorage.setItem('cfg-backup-dir', cfgBackupDir);
+    }
+    const backupInput = document.getElementById('backup-folder-input');
+    if (backupInput) backupInput.value = cfgBackupDir;
+
     window.updateSystemLog("Ronin Server Manager initialized successfully.");
 }
 
@@ -1060,6 +1068,7 @@ window.toggleStartup = (isEnabled) => {
 let cfgActiveTabIndex = 0;
 let cfgOriginalContent = '';
 let cfgCurrentFilePath = '';
+let cfgBackupDir = localStorage.getItem('cfg-backup-dir') || '';
 
 // Resolves the full absolute path for a config file entry, supporting both
 // relative subfolders and absolute paths (e.g. %USERPROFILE% style games)
@@ -1150,13 +1159,16 @@ function updateCfgLineNumbers() {
 }
 
 window.saveConfigFile = async () => {
+    const srv = servers.find(s => s.id === activeId);
     const editor = document.getElementById('cfg-editor');
     const content = editor.value;
     const statusEl = document.getElementById('cfg-save-status');
 
     const result = await window.api.invoke('write-config-file', {
         filePath: cfgCurrentFilePath,
-        content
+        content,
+        backupDir: cfgBackupDir || null,
+        serverName: srv?.name || null
     });
 
     if (result.success) {
@@ -1182,6 +1194,15 @@ window.discardConfigChanges = () => {
 
 window.closeConfigEditor = () => {
     document.getElementById('config-modal').style.display = 'none';
+};
+
+window.browseBackupFolder = async () => {
+    const selected = await window.api.invoke('select-folder');
+    if (!selected) return;
+    cfgBackupDir = selected;
+    localStorage.setItem('cfg-backup-dir', cfgBackupDir);
+    const el = document.getElementById('backup-folder-input');
+    if (el) el.value = cfgBackupDir;
 };
 
 
