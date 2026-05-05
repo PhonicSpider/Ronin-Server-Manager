@@ -179,6 +179,18 @@
             <h1>Global Settings</h1>
         </header>
 
+        <!-- Config Backup Folder -->
+        <div class="card" style="margin-bottom: 25px; border: 1px solid var(--border); background: rgba(255,255,255,0.02);">
+            <div class="setting-info">
+                <h4>Config Backup Folder</h4>
+                <p>Before saving any config file, RSM writes a timestamped backup to this folder. Backups are sorted into subfolders by server name — e.g. <code>RSM-Backups\MyServer\server.properties-2026-05-04T15-30-00.bak</code></p>
+            </div>
+            <div class="path-group" style="margin-top: 12px;">
+                <input type="text" id="backup-folder-input" readonly placeholder="Loading…">
+                <button class="btn btn-outline" onclick="browseBackupFolder()">Browse</button>
+            </div>
+        </div>
+
         <!-- Theme presets -->
         <div class="card" style="margin-bottom: 25px; border: 1px solid var(--border); background: rgba(255,255,255,0.02);">
             <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
