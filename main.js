@@ -811,6 +811,8 @@ ipcMain.handle('select-folder', async () => {
 });
 
 // --- CONFIG FILE READ/WRITE ---
+ipcMain.handle('get-desktop-path', () => app.getPath('desktop'));
+
 ipcMain.handle('read-config-file', async (event, filePath) => {
     try {
         const content = fs.readFileSync(filePath, 'utf8');
@@ -820,9 +822,22 @@ ipcMain.handle('read-config-file', async (event, filePath) => {
     }
 });
 
-ipcMain.handle('write-config-file', async (event, { filePath, content }) => {
+ipcMain.handle('write-config-file', async (event, { filePath, content, backupDir, serverName }) => {
     try {
-        fs.writeFileSync(filePath, content, 'utf8');
+        if (backupDir && serverName) {
+            try {
+                const serverBackupDir = path.join(backupDir, serverName);
+                fs.mkdirSync(serverBackupDir, { recursive: true });
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                const baseName = path.basename(filePath);
+                const backupPath = path.join(serverBackupDir, `${baseName}-${timestamp}.bak`);
+                const existing = fs.readFileSync(filePath, 'utf8');
+                fs.writeFileSync(backupPath, existing, 'utf8');
+            } catch (backupErr) {
+                console.warn(`[RSM] Backup failed (save will continue): ${backupErr.message}`);
+            }
+        }
+        await fs.promises.writeFile(filePath, content, 'utf8');
         return { success: true };
     } catch (err) {
         return { success: false, error: err.message };
