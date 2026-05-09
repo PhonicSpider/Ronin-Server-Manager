@@ -116,9 +116,9 @@ Before adding a server to RSM, make sure it has been launched manually at least 
 !!! info "Not sure which fields to fill in?"
     Every game type has its own setup guide under **Server Setup** in the left navigation. Each guide explains the exact paths to look for and any game-specific quirks. If your server is not listed in the guide, don't worry. RSM will still be able to manage it!
 
-    First, send us a message in discord or in the discussions and we can see about adding the game as one that can be selected. *(if you know coding or how the server is set up, you can do it too through github! notes on how to are in the [Contributing](docs/contributing.md) page)*
+    First, send us a message in discord or in the discussions and we can see about adding the game as one that can be selected. *(if you know coding or how the server is set up, you can do it too through github! notes on how to are in the "[Contributing](contributing.md)" page)*
 
-    Second, just select **Other** when choosing your game type. It will show all fields that RSM is able to save to run a server. Fill out as best you can based on the info provided here and RSM will handle the rest for you!
+    Second, just select **"Other"** when choosing your game type. It will show all fields that RSM is able to save to run a server. Fill out as best you can based on the info provided here and RSM will handle the rest for you!
 
 ---
 
