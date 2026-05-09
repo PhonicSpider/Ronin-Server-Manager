@@ -824,6 +824,7 @@ ipcMain.handle('read-config-file', async (event, filePath) => {
 
 ipcMain.handle('write-config-file', async (event, { filePath, content, backupDir, serverName }) => {
     let backedUp = false;
+    let backupError = null;
     try {
         if (backupDir && serverName) {
             try {
@@ -836,13 +837,14 @@ ipcMain.handle('write-config-file', async (event, { filePath, content, backupDir
                 fs.writeFileSync(backupPath, existing, 'utf8');
                 backedUp = true;
             } catch (backupErr) {
+                backupError = backupErr.message;
                 console.warn(`[RSM] Backup failed (save will continue): ${backupErr.message}`);
             }
         }
         await fs.promises.writeFile(filePath, content, 'utf8');
-        return { success: true, backedUp };
+        return { success: true, backedUp, backupError };
     } catch (err) {
-        return { success: false, backedUp, error: err.message };
+        return { success: false, backedUp, backupError, error: err.message };
     }
 });
 
