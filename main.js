@@ -35,7 +35,8 @@ function createWindow() {
         height: 850,
         title: "Ronin Server Manager",
         icon: path.join(__dirname, 'icon.png'),
-        backgroundColor: '#0f111a',
+        transparent: true,
+        backgroundColor: '#00000000',
         hasShadow: true,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
@@ -851,6 +852,11 @@ ipcMain.handle('write-config-file', async (event, { filePath, content, backupDir
 // --- OPEN DOCS IN BROWSER ---
 ipcMain.on('open-docs', () => {
     shell.openExternal('https://phonicspider.github.io/Ronin-Server-Manager/');
+});
+
+// --- WINDOW OPACITY ---
+ipcMain.on('update-window-opacity', (event, value) => {
+    mainWindow.setOpacity(parseFloat(value));
 });
 
 // --- OPEN FOLDER IN EXPLORER ---
