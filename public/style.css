@@ -1211,6 +1211,8 @@ textarea:focus {
 
 /* Footer row */
 .cfg-file-path-row {
+    display: flex;
+    align-items: center;
     padding: 6px 24px;
     border-top: 1px solid var(--border);
     flex-shrink: 0;
@@ -1221,6 +1223,34 @@ textarea:focus {
     font-size: 11px;
     color: var(--dim);
     opacity: 0.6;
+    cursor: pointer;
+    transition: color 0.15s, opacity 0.15s;
+}
+.cfg-file-path:hover {
+    color: var(--accent);
+    opacity: 1;
+}
+
+.cfg-cursor-pos {
+    font-family: 'Consolas', monospace;
+    font-size: 11px;
+    color: var(--dim);
+    opacity: 0.6;
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+.cfg-tab.cfg-tab-dirty::after {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-left: 6px;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
 }
 
 .config-modal-footer {
