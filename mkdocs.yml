@@ -25,6 +25,7 @@ theme:
 
 nav:
   - 🏠 Home: index.md
+  - 🚀 Getting Started: getting-started.md
   - 🖥️ Server Setup:
       - 🏗️ Overview: servers/index.md
       - 🟩 Minecraft: servers/minecraft.md
@@ -59,4 +60,4 @@ plugins:
   - glightbox
 
 repo_url: https://github.com/PhonicSpider/Ronin-Server-Manager
-edit_uri: edit/main/docs/
+edit_uri: edit/master/docs/
