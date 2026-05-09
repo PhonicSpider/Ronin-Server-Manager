@@ -35,8 +35,7 @@ function createWindow() {
         height: 850,
         title: "Ronin Server Manager",
         icon: path.join(__dirname, 'icon.png'),
-        transparent: true,
-        backgroundColor: '#00000000',
+        backgroundColor: '#0f111a',
         hasShadow: true,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
