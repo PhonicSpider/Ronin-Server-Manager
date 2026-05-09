@@ -1239,3 +1239,8 @@ textarea:focus {
     transition: opacity 0.3s;
 }
 .cfg-save-status.visible { opacity: 1; }
+
+#cfg-discard-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
