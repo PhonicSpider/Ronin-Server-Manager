@@ -1074,7 +1074,23 @@ let cfgIsDirty = false;
 function updateCfgDirtyState() {
     const btn = document.getElementById('cfg-discard-btn');
     if (btn) btn.disabled = !cfgIsDirty;
+    const activeTab = document.querySelector('.cfg-tab.active');
+    if (activeTab) activeTab.classList.toggle('cfg-tab-dirty', cfgIsDirty);
 }
+
+function updateCfgCursorPos() {
+    const editor = document.getElementById('cfg-editor');
+    const posEl = document.getElementById('cfg-cursor-pos');
+    if (!editor || !posEl) return;
+    const text = editor.value.substring(0, editor.selectionStart);
+    const lines = text.split('\n');
+    posEl.textContent = `Ln ${lines.length}, Col ${lines[lines.length - 1].length + 1}`;
+}
+
+window.openConfigFileFolder = () => {
+    if (!cfgCurrentFilePath) return;
+    window.api.send('open-folder', cfgCurrentFilePath.replace(/[^/\\]+$/, ''));
+};
 
 // Resolves the full absolute path for a config file entry, supporting both
 // relative subfolders and absolute paths (e.g. %USERPROFILE% style games)
@@ -1271,7 +1287,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Wire up config editor line numbers, dirty tracking, Ctrl+S, and scroll sync
+// Wire up config editor: line numbers, dirty tracking, Ctrl+S, cursor pos, Esc, scroll sync
 document.addEventListener('DOMContentLoaded', () => {
     const editor = document.getElementById('cfg-editor');
     const lineNumbers = document.getElementById('cfg-line-numbers');
@@ -1291,6 +1307,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.ctrlKey && e.key === 's') {
             e.preventDefault();
             window.saveConfigFile();
+        }
+    });
+    editor.addEventListener('click', updateCfgCursorPos);
+    editor.addEventListener('keyup', updateCfgCursorPos);
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('config-modal');
+            if (modal && modal.style.display === 'flex') window.closeConfigEditor();
         }
     });
 });
