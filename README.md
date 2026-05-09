@@ -21,44 +21,63 @@
 
 ## 🖥️ What is RSM?
 
-**Ronin Server Manager** is a lightweight, local-first application designed to take the headache out of managing dedicated game servers. By leveraging **Electron**, RSM provides a clean Windows-native interface to handle everything from installation to real-time process monitoring.
+**Ronin Server Manager** is a lightweight, local-first application designed to take the headache out of managing dedicated game servers. By leveraging **Electron**, RSM provides a clean Windows-native interface to handle everything from startup to real-time process monitoring — no web hosting, no cloud accounts, no fuss.
 
 > [!IMPORTANT]  
-> This is a **client-side desktop application**. No web hosting or external databases are required—all server files and configurations stay exactly where they belong: on your machine.
+> This is a **client-side desktop application**. No web hosting or external databases are required — all server files and configurations stay exactly where they belong: on your machine.
 
-### 🌟 Key Features
+---
+
+## 🌟 Features
 
 * **📦 One-Click Management:** Start, stop, and restart server instances from a unified dashboard.
-* **Centralized Server List:** See the status of every server right in the manager, along with their own pages to. checkout their consoles, and resource usage.
-* **🔎 Active Resource Monitoring:** Monitor the CPU and RAM usage of your servers individually and overall right in the GUI.
-* **🏠 Local-First:** High-speed performance with direct filesystem access via Node.js.
-* **🛠️ Automated Configs (WIP):** No more digging through `.ini` or `.json` files; edit settings directly in the GUI.
-* **📝 Live Logs:** Integrated console output to monitor your server's health and player activity.
-* **🔡 Centralized Command Center(WIP):** Send command to Each server right in their own consoles.
-* **📖 Built-in Wiki:** Comprehensive guides powered by MkDocs and Markdown.
+* **📊 Server Status Dashboard:** See every server's online/offline state and player counts at a glance from the home view.
+* **🔎 Active Resource Monitoring:** Per-server and aggregate CPU and RAM gauges update in real time.
+* **📝 Live Console:** Integrated console output per server — read logs and send commands without leaving the app.
+* **⚡ Quick Actions:** Per-game shortcut buttons (save world, list players, etc.) that fire common commands while a server is running.
+* **✏️ In-App Config Editor:** Open and edit a server's config files (`.properties`, `.ini`, `.cfg`) directly in RSM — no file manager needed.
+* **🏠 Local-First:** High-speed performance with direct filesystem access via Node.js — nothing leaves your machine.
+* **📖 Built-in Docs:** Comprehensive guides powered by MkDocs and hosted at the link above.
+
+---
+
+## 🎮 Supported Games
+
+| Game | Launch Mode | Config Editor | Quick Actions |
+|---|---|---|---|
+| **Minecraft (Java)** | Direct console | `server.properties`, `ops.json` | ✅ |
+| **Space Engineers** | PowerShell bridge | `SpaceEngineers-Dedicated.cfg` | ✅ |
+| **Ark: Survival Evolved** | PowerShell bridge | `GameUserSettings.ini`, `Game.ini` | ✅ |
+| **Terraria** | Direct console | `serverconfig.txt` | — |
+| **Custom / Other** | Direct console | — | — |
+
+> Need a game that isn't listed? Use the **Custom / Other** card in the Add Server wizard and fill in the paths manually.
 
 ---
 
 ## 🚀 Quick Start
 
-1. **Download the Executable:** Head over to the [Releases](https://github.com/PhonicSpider/Ronin-Server-Manager/releases) page.
-2. **Run the App:** Open `Ronin-Server-Manager.exe`.
-3. **Configure Your Game:** Point RSM to your game directory and start your first instance!
+1. **Download the installer** from the [Releases](https://github.com/PhonicSpider/Ronin-Server-Manager/releases) page and run it.
+2. **Open RSM** — you'll land on the home dashboard.
+3. **Click + Add New Server** in the sidebar and pick your game from the card grid.
+4. **Fill in the wizard fields** (executable path, working directory, and any game-specific options).
+5. **Hit Save Configuration** — your server will appear in the sidebar ready to start.
+
+> [!TIP]
+> Make sure your server has been launched manually at least once before adding it to RSM. RSM manages servers — it does not install or configure them. See the [Server Setup docs](https://phonicspider.github.io/Ronin-Server-Manager/servers/) for details.
 
 ---
 
 ## 🛠️ Development & Tech Stack
 
-If you want to build the project from source or contribute:
-
 * **Runtime:** [Node.js](https://nodejs.org/)
 * **Framework:** [Electron](https://www.electronjs.org/) (JavaScript)
-* **Documentation:** [MkDocs](https://www.mkdocs.org/) (Markdown)
+* **Documentation:** [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) (Markdown)
 
 ### Local Setup
 ```bash
 # Clone the repo
-git clone [https://github.com/PhonicSpider/Ronin-Server-Manager.git](https://github.com/PhonicSpider/Ronin-Server-Manager.git)
+git clone https://github.com/PhonicSpider/Ronin-Server-Manager.git
 
 # Install dependencies
 npm install
@@ -69,52 +88,49 @@ npm start
 
 ---
 
-## 🤝 Contributing to RSM
+## 🤝 Contributing
 
-We love contributions! Whether you're fixing a bug, adding a new game server module, or improving the UI, here is how you can help:
+Bug fixes, new game modules, and UI improvements are all welcome. Here's how to get started:
 
-### 1. 🏗️ Setting Up Your Environment
-Before you start coding, ensure you have the following installed:
-* **Node.js** (v18 or higher recommended)
-* **npm** (comes with Node.js)
-* **Python** (Required only for previewing the MkDocs documentation)
+### 1. 🏗️ Prerequisites
+* **Node.js** v18 or higher
+* **npm** (bundled with Node.js)
+* **Python** — only needed if you want to preview the MkDocs documentation locally
 
 ### 2. 🌿 Branching Strategy
 * **Fork** the repository to your own GitHub account.
-* Create a feature branch from `main`: 
+* Create a feature branch off `master`:
   ```bash
-  git checkout -b feature/your-feature-name```
+  git checkout -b feature/your-feature-name
+  ```
+* Keep commits concise and descriptive — one logical change per commit.
 
-* ​Keep your commits concise and descriptive.
+### 3. 💻 Coding Standards
+* **JavaScript/Electron:** Follow standard JS naming conventions (camelCase for variables and functions).
+* **Local-First:** New features must not introduce cloud dependencies or external database requirements.
+* **Modularity:** Game-specific logic lives in `public/configs/<game>.js`. Keep the core orchestrator clean.
 
-### ​3. 💻 Coding Standards
-* ​**JavaScript/Electron:** Follow standard JS naming conventions (camelCase for variables/functions).
-* ​**Local-First:** Ensure any new features maintain the application's local-only architecture—avoid adding cloud or external database requirements.
-* ​**Modularity:** Keep game-specific logic separated so the manager remains a clean orchestrator.
-
-### ​4. 📝 Documentation Contributions
-​The documentation is located in the /docs folder and is built using MkDocs.
-* To preview documentation changes locally:
+### 4. 📝 Documentation
+The docs live in `/docs` and are built with MkDocs Material. To preview locally:
 ```bash
 pip install mkdocs-material
 mkdocs serve
 ```
-* Edit the .md files in the docs/ directory to update the live site.
 
 ### 5. 🚀 Submitting a Pull Request
-* ​Push your changes to your fork.
-* ​Open a Pull Request (PR) against the main branch.
-* ​Describe your changes in detail: What does this PR solve? Are there any breaking changes?
-* ​We will review your PR as soon as possible!
+* Push your branch to your fork and open a PR against `master`.
+* Describe what the PR solves and call out any breaking changes.
+* We'll review it as soon as we can!
 
 ---
 
-### ​🆘 Need Help?
-​If you're unsure where to start, check the Issues tab or open a new discussion to chat about your ideas.
+### 🆘 Need Help?
+
+Check the [Issues](https://github.com/PhonicSpider/Ronin-Server-Manager/issues) tab or open a new discussion if you want to talk through an idea first.
 
 ---
 
 ## ⚖️ License
-This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. 
-This ensures the software remains free and open-source, and any derivative works 
-must also be shared under the same protective terms.
+
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.  
+This ensures the software remains free and open-source, and any derivative works must also be shared under the same terms.

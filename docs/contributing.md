@@ -359,6 +359,8 @@ RSM uses Electron's IPC to communicate between the **main process** (`main.js`) 
 | `system-error` | receive | Error message for the system log |
 | `server-status-updated` | receive | Full server list refresh |
 | `load-servers` | receive | Initial server list on app start |
+| `read-config-file` | invoke | Read a config file from disk `filePath → { success, content }` |
+| `write-config-file` | invoke | Write content to a config file `{ filePath, content } → { success }` |
 | `get-servers` | invoke | Fetch current server list |
 | `get-settings` | invoke | Fetch app settings |
 | `check-admin` | invoke | Check if RSM is running as Administrator |

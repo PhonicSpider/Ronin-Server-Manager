@@ -102,3 +102,15 @@ Need to test adding server and all saves/configurations done
 // (04-23-26) \\
 - Need to install and test out adding ARK to the RSM
 - Need to get screen shots for the ARK Docs
+
+// (05-06-26) \\ 
+- Add images to new "Getting Started" Page
+- Correct language in page to correlate how things actually work
+- Fix opacity slider (Keep card opacity, but try to add background opacity too)
+Add Network monitor
+- Add API and commands
+- Add API support for Tox Bot
+- Do Security audit
+- Add Auto Installer for gamne servers (Links will be added to configurations)
+- Add auto updaters (links will be added to configuration most likely or user default ones)
+- Add more games to support

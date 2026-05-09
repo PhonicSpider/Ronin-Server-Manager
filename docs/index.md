@@ -4,7 +4,7 @@
     **Ronin Server Manager** is a high-performance, lightweight management suite designed for gamers who host their own dedicated servers. Built on Electron and powered by PowerShell, RSM provides a professional-grade interface for controlling, monitoring, and maintaining game servers without the overhead of heavy enterprise software.
 
     [Download Latest Release](https://github.com/PhonicSpider/Ronin-Server-Manager){ .md-button .md-button--primary }
-    [Setup Guide](adding-servers.md){ .md-button }
+    [Setup Guide](getting-started.md){ .md-button }
 
 ---
 
@@ -77,7 +77,7 @@ While RSM is a "Universal Launcher," it is specifically optimized for these envi
     * :material-check-circle: Automatic `.jar` execution.
     * :material-alert-decagram: **EULA Note:** Requires one manual run to accept terms.
 
-    [Minecraft Setup Guide](adding-servers.md#minecraft){ .md-button .md-button--primary }
+    [Minecraft Setup Guide](servers/minecraft.md){ .md-button .md-button--primary }
 
 === ":material-rocket-launch: Space Engineers"
 
@@ -87,7 +87,7 @@ While RSM is a "Universal Launcher," it is specifically optimized for these envi
     * :material-check-circle: Specialized tracking for `SpaceEngineersDedicated.exe`.
     * :material-check-circle: Automatic process tree attachment.
 
-    [Space Engineers Guide](adding-servers.md#space-engineers){ .md-button .md-button--primary }
+    [Space Engineers Guide](servers/space-engineers.md){ .md-button .md-button--primary }
 
 === ":material-steam: SteamCMD & Universal"
 
@@ -97,7 +97,7 @@ While RSM is a "Universal Launcher," it is specifically optimized for these envi
     * :material-check-circle: **Universal:** Supports `.bat`, `.exe`, `.ps1`, and `.jar`.
     * :material-information: Console output varies by game engine.
 
-    [Universal Setup Guide](adding-servers.md#universal){ .md-button .md-button--primary }
+    [Universal Setup Guide](servers/index.md){ .md-button .md-button--primary }
 
 ---
 
@@ -131,7 +131,7 @@ While RSM is a "Universal Launcher," it is specifically optimized for these envi
 
 1.  **Download:** Grab the latest installer from the [Releases](https://github.com/PhonicSpider/Ronin-Server-Manager/releases) page.
 2.  **Install:** Run the `.exe` (Click *More Info* -> *Run Anyway* if Windows warns you).
-3.  **Configure:** Use our [Setup Guide](adding-servers.md) to add your first world.
+3.  **Configure:** Use our [Setup Guide](getting-started.md) to add your first world.
 
 ---
 

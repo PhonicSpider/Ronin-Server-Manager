@@ -3,7 +3,7 @@
     meta: {
         displayName: "Game Name",
         icon: "logos/gameLogo.png" // or a regular emoji will work as well (e.g. "🎮")
-    }
+    },
     backend: {
         // DIRECT_CONSOLE  — process is spawned directly; PID is captured immediately, no deep search needed.
         //                   Use for Java/script-based servers (Minecraft, etc.).
@@ -15,6 +15,20 @@
         //                   For self-relaunching games, make sure workingDir also appears in customArgs
         //                   (e.g. SE uses -path "<workingDir>") so each instance can be told apart.
         category: "DIRECT_CONSOLE"
+    },
+    // --- Optional: Config files accessible via the in-app config editor. ---
+    // Omit this block entirely if the game has no editable config files.
+    gameFiles: {
+        // Optional subfolder relative to workingDir where the configs live.
+        // If omitted, files are looked up directly in workingDir.
+        configPath: "relative/subfolder",
+
+        // Each entry becomes a tab in the config editor.
+        // 'label' is the tab name shown in the UI; 'file' is the filename inside configPath (or workingDir).
+        configs: [
+            { label: "Server Config", file: "config.ini" },
+            // { label: "Second File",  file: "other.cfg" },
+        ]
     },
 
     // --- Fields for configuring how the server setup modal should look and function for this game. ---

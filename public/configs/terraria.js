@@ -6,6 +6,11 @@ export const terraria = {
     backend: {
         category: "DIRECT_CONSOLE"
     },
+    gameFiles: {
+        configs: [
+            { label: "Server Config", file: "serverconfig.txt" },
+        ]
+    },
     label: "SERVER EXECUTABLE (TerrariaServer.exe)",
     blocks: {
         path: 'block',

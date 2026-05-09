@@ -6,6 +6,11 @@ export const spaceEngineers = {
     backend: {
         category: "POWERSHELL_BRIDGE"
     },
+    gameFiles: {
+        configs: [
+            { label: "Dedicated Config", file: "SpaceEngineers-Dedicated.cfg" },
+        ]
+    },
     label: "SERVER EXECUTABLE (.exe)",
     blocks: {
         path: 'block',
