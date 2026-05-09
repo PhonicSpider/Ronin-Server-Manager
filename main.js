@@ -848,6 +848,11 @@ ipcMain.handle('write-config-file', async (event, { filePath, content, backupDir
     }
 });
 
+// --- OPEN DOCS IN BROWSER ---
+ipcMain.on('open-docs', () => {
+    shell.openExternal('https://phonicspider.github.io/Ronin-Server-Manager/');
+});
+
 // --- OPEN FOLDER IN EXPLORER ---
 ipcMain.on('open-folder', (event, rawData) => {
     let targetPath = (typeof rawData === 'object') ? (rawData.workingDir || rawData.exePath || rawData.path) : rawData;
