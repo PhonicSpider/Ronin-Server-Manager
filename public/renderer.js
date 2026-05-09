@@ -50,11 +50,18 @@ async function init() {
 
     if (!cfgBackupDir) {
         const desktop = await window.api.invoke('get-desktop-path');
-        cfgBackupDir = desktop + '\\RSM-Backups';
+        cfgBackupDir = desktop + '\\RSM-Files\\RSM-Backups';
         localStorage.setItem('cfg-backup-dir', cfgBackupDir);
     }
     const backupInput = document.getElementById('backup-folder-input');
     if (backupInput) backupInput.value = cfgBackupDir;
+
+    const savedWinOpacity = parseFloat(localStorage.getItem('preferred-win-opacity') || '1.0');
+    window.api.send('update-window-opacity', savedWinOpacity);
+    const winSlider = document.getElementById('win-opacity-slider');
+    const winLabel  = document.getElementById('win-opacity-label');
+    if (winSlider) winSlider.value = savedWinOpacity;
+    if (winLabel)  winLabel.innerText = Math.round(savedWinOpacity * 100) + '%';
 
     window.updateSystemLog("Ronin Server Manager initialized successfully.");
 }
@@ -985,8 +992,19 @@ window.updateOpacity = (type, value) => {
         if (label) label.innerText = Math.round(value * 100) + "%";
 
         localStorage.setItem('preferred-bg-opacity', value);
-        window.updateSystemLog(`Opacity adjusted to ${Math.round(value * 100)}%`);
+        window.updateSystemLog(`Background opacity adjusted to ${Math.round(value * 100)}%`);
     }
+};
+
+window.updateWindowOpacity = (value) => {
+    const parsed = parseFloat(value);
+    window.api.send('update-window-opacity', parsed);
+
+    const label = document.getElementById('win-opacity-label');
+    if (label) label.innerText = Math.round(parsed * 100) + '%';
+
+    localStorage.setItem('preferred-win-opacity', value);
+    window.updateSystemLog(`Window opacity adjusted to ${Math.round(parsed * 100)}%`);
 };
 
 // Updates the 'active' white border/glow on color swatches
