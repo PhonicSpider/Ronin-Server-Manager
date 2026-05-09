@@ -1,3 +1,6 @@
+# --- Claude Code ---
+.claude/
+
 # --- Visual Studio 2026 Specifics ---
 .vs/
 [Dd]ebug/
@@ -6,6 +9,7 @@ x64/
 x86/
 [Bb]in/
 [Oo]bj/
+/RoninServerControllerApp.code-workspace
 
 # User-specific files
 *.rsuser
