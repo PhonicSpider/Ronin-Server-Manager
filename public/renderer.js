@@ -1069,6 +1069,12 @@ let cfgActiveTabIndex = 0;
 let cfgOriginalContent = '';
 let cfgCurrentFilePath = '';
 let cfgBackupDir = localStorage.getItem('cfg-backup-dir') || '';
+let cfgIsDirty = false;
+
+function updateCfgDirtyState() {
+    const btn = document.getElementById('cfg-discard-btn');
+    if (btn) btn.disabled = !cfgIsDirty;
+}
 
 // Resolves the full absolute path for a config file entry, supporting both
 // relative subfolders and absolute paths (e.g. %USERPROFILE% style games)
@@ -1119,6 +1125,8 @@ async function switchCfgTab(index) {
     const srv = servers.find(s => s.id === activeId);
     if (!srv) return;
 
+    if (cfgIsDirty && !confirm('You have unsaved changes. Discard them and switch tabs?')) return;
+
     const tabs = document.querySelectorAll('.cfg-tab');
     tabs.forEach((t, i) => t.classList.toggle('active', i === index));
 
@@ -1146,6 +1154,8 @@ async function loadCfgTab(srv, index) {
         cfgOriginalContent = '';
     }
 
+    cfgIsDirty = false;
+    updateCfgDirtyState();
     updateCfgLineNumbers();
     editor.scrollTop = 0;
     document.getElementById('cfg-line-numbers').scrollTop = 0;
@@ -1173,7 +1183,9 @@ window.saveConfigFile = async () => {
 
     if (result.success) {
         cfgOriginalContent = content;
-        statusEl.textContent = '✓ Saved';
+        cfgIsDirty = false;
+        updateCfgDirtyState();
+        statusEl.textContent = result.backedUp ? '✓ Saved  ·  backup created' : '✓ Saved';
         statusEl.style.color = 'var(--success)';
         statusEl.classList.add('visible');
         setTimeout(() => statusEl.classList.remove('visible'), 2500);
@@ -1187,12 +1199,17 @@ window.saveConfigFile = async () => {
 window.discardConfigChanges = () => {
     const editor = document.getElementById('cfg-editor');
     editor.value = cfgOriginalContent;
+    cfgIsDirty = false;
+    updateCfgDirtyState();
     updateCfgLineNumbers();
     const statusEl = document.getElementById('cfg-save-status');
     statusEl.classList.remove('visible');
 };
 
 window.closeConfigEditor = () => {
+    if (cfgIsDirty && !confirm('You have unsaved changes. Close without saving?')) return;
+    cfgIsDirty = false;
+    updateCfgDirtyState();
     document.getElementById('config-modal').style.display = 'none';
 };
 
@@ -1246,14 +1263,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Wire up config editor line numbers scroll sync
+// Wire up config editor line numbers, dirty tracking, Ctrl+S, and scroll sync
 document.addEventListener('DOMContentLoaded', () => {
     const editor = document.getElementById('cfg-editor');
     const lineNumbers = document.getElementById('cfg-line-numbers');
     if (!editor || !lineNumbers) return;
 
-    editor.addEventListener('input', updateCfgLineNumbers);
+    editor.addEventListener('input', () => {
+        updateCfgLineNumbers();
+        if (!cfgIsDirty) {
+            cfgIsDirty = true;
+            updateCfgDirtyState();
+        }
+    });
     editor.addEventListener('scroll', () => {
         lineNumbers.scrollTop = editor.scrollTop;
+    });
+    editor.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            window.saveConfigFile();
+        }
     });
 });
