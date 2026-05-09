@@ -823,6 +823,7 @@ ipcMain.handle('read-config-file', async (event, filePath) => {
 });
 
 ipcMain.handle('write-config-file', async (event, { filePath, content, backupDir, serverName }) => {
+    let backedUp = false;
     try {
         if (backupDir && serverName) {
             try {
@@ -833,14 +834,15 @@ ipcMain.handle('write-config-file', async (event, { filePath, content, backupDir
                 const backupPath = path.join(serverBackupDir, `${baseName}-${timestamp}.bak`);
                 const existing = fs.readFileSync(filePath, 'utf8');
                 fs.writeFileSync(backupPath, existing, 'utf8');
+                backedUp = true;
             } catch (backupErr) {
                 console.warn(`[RSM] Backup failed (save will continue): ${backupErr.message}`);
             }
         }
         await fs.promises.writeFile(filePath, content, 'utf8');
-        return { success: true };
+        return { success: true, backedUp };
     } catch (err) {
-        return { success: false, error: err.message };
+        return { success: false, backedUp, error: err.message };
     }
 });
 
