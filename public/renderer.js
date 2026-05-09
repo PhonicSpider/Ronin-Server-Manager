@@ -1185,8 +1185,16 @@ window.saveConfigFile = async () => {
         cfgOriginalContent = content;
         cfgIsDirty = false;
         updateCfgDirtyState();
-        statusEl.textContent = result.backedUp ? '✓ Saved  ·  backup created' : '✓ Saved';
-        statusEl.style.color = 'var(--success)';
+        if (result.backedUp) {
+            statusEl.textContent = '✓ Saved  ·  backup created';
+            statusEl.style.color = 'var(--success)';
+        } else if (result.backupError) {
+            statusEl.textContent = `✓ Saved  ·  backup failed: ${result.backupError}`;
+            statusEl.style.color = '#f59e0b';
+        } else {
+            statusEl.textContent = '✓ Saved';
+            statusEl.style.color = 'var(--success)';
+        }
         statusEl.classList.add('visible');
         setTimeout(() => statusEl.classList.remove('visible'), 2500);
     } else {
