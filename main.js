@@ -6,12 +6,17 @@ const { spawn, exec, execSync } = require('child_process');
 const si = require('systeminformation');
 const os = require('os');
 const { isNullOrUndefined } = require('util');
+const axios = require('axios');
+const http = require('http');
+const crypto = require('crypto');
 
 let mainWindow;
 let tray = null;
 const activeProcesses = {};
 const serverStats = {}; // { [srvId]: { cpu, ramMB } } — updated each heartbeat tick
 const DATA_FILE = path.join(app.getPath('userData'), 'servers.json');
+const API_CONFIG_FILE = path.join(app.getPath('userData'), 'rsm-api.json');
+let apiConfig = null;
 const debugPrefix = "[RSM-DEBUG]";
 const DebugActive = true;    // Set to true to enable verbose logging for debugging purposes
 const DebugLogging = false;  // Set to true to enable debug logging for all operations
@@ -122,8 +127,10 @@ function syncActiveServers() {
 
 // --- APP LIFECYCLE EVENTS ---
 app.whenReady().then(() => {
+    apiConfig = loadApiConfig();
     createWindow();
     createTray();
+    startApiServer();
 
     // Give the UI 3 seconds to load before reporting re-linked processes
     setTimeout(syncActiveServers, 3000);
@@ -639,89 +646,8 @@ const startLogging = (logFolderPath, event, srv) => {
 
 // --- COMMAND INJECTION LOGIC ---
 ipcMain.on('send-command', async (event, { srvId, command }) => {
-    const processInfo = activeProcesses[srvId];
-    if (!processInfo || !processInfo.shell) {
-        event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] Server is not active. Cannot send command.\n` });
-        return;
-    }
-
-    const srv = managedServers.find(s => s.id === srvId);
-    if (!srv) return;
-
-    const cleanCmd = command.trim();
-    if (!cleanCmd) return;
-
-    const serverCategory = findServType(srv);
-
-    // Direct Input (Shell servers: Minecraft, 7DaysToDie, etc.)
-    if (serverCategory === 'DIRECT_CONSOLE') {
-        const childProc = processInfo.shell;
-
-        if (childProc.stdin && childProc.stdin.writable) {
-            try {
-                childProc.stdin.write(cleanCmd + "\n");
-                event.reply('console-out', { id: srvId, msg: `> ${cleanCmd}\n` });
-            } catch (err) {
-                event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] Failed to write to console: ${err.message}\n` });
-            }
-        } else {
-            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] Console input is blocked or not available.\n` });
-        }
-    }
-    // Space Engineers (VRage Remote HTTP API)
-    else if (srv.type === 'space-engineers') {
-        if (!srv.apiPort || !srv.apiPass) {
-            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] API Port and Password are required for Space Engineers commands.\n` });
-            return;
-        }
-
-        const port = srv.apiPort || 8080;
-        const password = srv.apiPass || "";
-        const url = `http://localhost:${port}/vrageremote/v1/server/command`;
-
-        try {
-            await axios.post(url,
-                { "Command": cleanCmd },
-                {
-                    headers: {
-                        'Remote-Control-Http-Password': password,
-                        'Content-Type': 'application/json'
-                    },
-                    timeout: 2000
-                }
-            );
-            event.reply('console-out', { id: srvId, msg: `> ${cleanCmd}\n` });
-        } catch (err) {
-            const errorMsg = err.response ? `Code ${err.response.status}` : err.message;
-            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] SE API Failed: ${errorMsg}\n` });
-        }
-    }
-    // RCON Protocol (Ark and other POWERSHELL_BRIDGE servers)
-    else if (serverCategory === 'POWERSHELL_BRIDGE') {
-        if (!srv.apiPort || !srv.apiPass) {
-            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] RCON Port and Password are required to send commands.\n` });
-            return;
-        }
-
-        const port = parseInt(srv.apiPort);
-        const password = srv.apiPass || "";
-
-        try {
-            const rcon = await Rcon.connect({
-                host: 'localhost',
-                port: port,
-                password: password,
-                timeout: 2000
-            });
-
-            const response = await rcon.send(cleanCmd);
-            rcon.end();
-            event.reply('console-out', { id: srvId, msg: `> ${cleanCmd}\n${response ? response + '\n' : ''}` });
-
-        } catch (err) {
-            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] RCON Failed: ${err.message}\n` });
-        }
-    }
+    const result = await sendCommandInternal(srvId, command);
+    event.reply('console-out', { id: srvId, msg: result.output + (result.output.endsWith('\n') ? '' : '\n') });
 });
 
 // --- PLAYER COUNT & SESSION INFO ---
@@ -1040,6 +966,201 @@ function performSearch(parentPid, exeName, workingDir, finalizeCallback, event) 
         });
     });
 }
+
+//      _    ____ ___   ____  _____ ______     _______ ____
+//     / \  |  _ \_ _| / ___|| ____|  _ \ \   / / ____|  _ \
+//    / _ \ | |_) | |  \___ \|  _| | |_) \ \ / /|  _| | |_) |
+//   / ___ \|  __/| |   ___) | |___|  _ < \ V / | |___|  _ <
+//  /_/   \_|_|  |___| |____/|_____|_| \_\ \_/  |_____|_| \_\
+//
+
+// --- CONFIG LOADER ---
+// Reads rsm-api.json from userData, generating a fresh key + port on first run.
+function loadApiConfig() {
+    if (fs.existsSync(API_CONFIG_FILE)) {
+        try { return JSON.parse(fs.readFileSync(API_CONFIG_FILE, 'utf8')); } catch { /* fall through */ }
+    }
+    const config = { port: 3002, apiKey: crypto.randomBytes(32).toString('hex') };
+    fs.writeFileSync(API_CONFIG_FILE, JSON.stringify(config, null, 2));
+    console.log(`[RSM-API] New API key generated. Config saved to: ${API_CONFIG_FILE}`);
+    return config;
+}
+
+// --- SYNTHETIC EVENT ---
+// Creates a fake IPC event that forwards replies to the renderer window.
+// Used by the HTTP API so that existing start-server / stop-server handlers
+// continue to push status updates to the UI even when triggered remotely.
+function apiSyntheticEvent() {
+    return {
+        reply: (channel, data) => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send(channel, data);
+            }
+        }
+    };
+}
+
+// --- SEND COMMAND (internal) ---
+// Extracted so both the ipcMain handler and the HTTP API can call it.
+// Returns { success: boolean, output: string } instead of replying to an event.
+async function sendCommandInternal(srvId, command) {
+    const processInfo = activeProcesses[srvId];
+    if (!processInfo || !processInfo.shell) {
+        return { success: false, output: '[RSM-ERROR] Server is not active. Cannot send command.' };
+    }
+
+    const srv = managedServers.find(s => s.id === srvId);
+    if (!srv) return { success: false, output: '[RSM-ERROR] Server not found.' };
+
+    const cleanCmd = command.trim();
+    if (!cleanCmd) return { success: false, output: '[RSM-ERROR] Empty command.' };
+
+    const serverCategory = findServType(srv);
+
+    if (serverCategory === 'DIRECT_CONSOLE') {
+        const childProc = processInfo.shell;
+        if (childProc.stdin && childProc.stdin.writable) {
+            try {
+                childProc.stdin.write(cleanCmd + '\n');
+                return { success: true, output: `> ${cleanCmd}` };
+            } catch (err) {
+                return { success: false, output: `[RSM-ERROR] Failed to write to console: ${err.message}` };
+            }
+        }
+        return { success: false, output: '[RSM-ERROR] Console input is blocked or not available.' };
+    }
+
+    if (srv.type === 'space-engineers') {
+        if (!srv.apiPort || !srv.apiPass) {
+            return { success: false, output: '[RSM-ERROR] API Port and Password are required for Space Engineers commands.' };
+        }
+        try {
+            await axios.post(
+                `http://localhost:${srv.apiPort}/vrageremote/v1/server/command`,
+                { Command: cleanCmd },
+                { headers: { 'Remote-Control-Http-Password': srv.apiPass, 'Content-Type': 'application/json' }, timeout: 2000 }
+            );
+            return { success: true, output: `> ${cleanCmd}` };
+        } catch (err) {
+            return { success: false, output: `[RSM-ERROR] SE API Failed: ${err.response ? `Code ${err.response.status}` : err.message}` };
+        }
+    }
+
+    // RCON (ARK, Starfield, and other POWERSHELL_BRIDGE servers)
+    if (!srv.apiPort || !srv.apiPass) {
+        return { success: false, output: '[RSM-ERROR] RCON Port and Password are required to send commands.' };
+    }
+    try {
+        const rcon = await Rcon.connect({ host: 'localhost', port: parseInt(srv.apiPort), password: srv.apiPass || '', timeout: 2000 });
+        const response = await rcon.send(cleanCmd);
+        rcon.end();
+        return { success: true, output: `> ${cleanCmd}${response ? '\n' + response : ''}` };
+    } catch (err) {
+        return { success: false, output: `[RSM-ERROR] RCON Failed: ${err.message}` };
+    }
+}
+
+// --- HTTP API SERVER ---
+// Listens on apiConfig.port (default 3002). All requests require the
+// x-api-key header matching the key in rsm-api.json.
+//
+// Endpoints:
+//   GET  /api/servers              — list all servers + live stats
+//   GET  /api/servers/:id          — single server detail
+//   POST /api/servers/:id/start    — start a server (202 Accepted)
+//   POST /api/servers/:id/stop     — stop a server  (202 Accepted)
+//   POST /api/servers/:id/command  — send console command, returns output
+function startApiServer() {
+    const server = http.createServer(async (req, res) => {
+        res.setHeader('Content-Type', 'application/json');
+
+        if (req.headers['x-api-key'] !== apiConfig.apiKey) {
+            res.writeHead(401);
+            res.end(JSON.stringify({ error: 'Unauthorized' }));
+            return;
+        }
+
+        const url = new URL(req.url, 'http://localhost');
+        const parts = url.pathname.split('/').filter(Boolean);
+
+        let body = {};
+        if (req.method === 'POST') {
+            body = await new Promise(resolve => {
+                let raw = '';
+                req.on('data', chunk => { raw += chunk; });
+                req.on('end', () => { try { resolve(JSON.parse(raw || '{}')); } catch { resolve({}); } });
+            });
+        }
+
+        // GET /api/servers
+        if (req.method === 'GET' && parts[0] === 'api' && parts[1] === 'servers' && !parts[2]) {
+            res.writeHead(200);
+            res.end(JSON.stringify({
+                servers: managedServers.map(s => ({
+                    id: s.id, name: s.name, type: s.type, status: s.status, pid: s.pid || null,
+                    cpu: serverStats[s.id]?.cpu ?? null, ramMB: serverStats[s.id]?.ramMB ?? null,
+                })),
+            }));
+            return;
+        }
+
+        // GET /api/servers/:id
+        if (req.method === 'GET' && parts[0] === 'api' && parts[1] === 'servers' && parts[2] && !parts[3]) {
+            const srv = managedServers.find(s => s.id === parts[2]);
+            if (!srv) { res.writeHead(404); res.end(JSON.stringify({ error: 'Server not found' })); return; }
+            res.writeHead(200);
+            res.end(JSON.stringify({
+                id: srv.id, name: srv.name, type: srv.type, status: srv.status, pid: srv.pid || null,
+                cpu: serverStats[srv.id]?.cpu ?? null, ramMB: serverStats[srv.id]?.ramMB ?? null,
+            }));
+            return;
+        }
+
+        // POST /api/servers/:id/start
+        if (req.method === 'POST' && parts[0] === 'api' && parts[1] === 'servers' && parts[2] && parts[3] === 'start') {
+            const srv = managedServers.find(s => s.id === parts[2]);
+            if (!srv) { res.writeHead(404); res.end(JSON.stringify({ error: 'Server not found' })); return; }
+            if (srv.status === 'Online') { res.writeHead(409); res.end(JSON.stringify({ error: 'Server is already online' })); return; }
+            ipcMain.emit('start-server', apiSyntheticEvent(), srv);
+            res.writeHead(202);
+            res.end(JSON.stringify({ message: `Start signal sent for ${srv.name}` }));
+            return;
+        }
+
+        // POST /api/servers/:id/stop
+        if (req.method === 'POST' && parts[0] === 'api' && parts[1] === 'servers' && parts[2] && parts[3] === 'stop') {
+            const srv = managedServers.find(s => s.id === parts[2]);
+            if (!srv) { res.writeHead(404); res.end(JSON.stringify({ error: 'Server not found' })); return; }
+            if (srv.status !== 'Online') { res.writeHead(409); res.end(JSON.stringify({ error: 'Server is not online' })); return; }
+            ipcMain.emit('stop-server', apiSyntheticEvent(), srv.id);
+            res.writeHead(202);
+            res.end(JSON.stringify({ message: `Stop signal sent for ${srv.name}` }));
+            return;
+        }
+
+        // POST /api/servers/:id/command
+        if (req.method === 'POST' && parts[0] === 'api' && parts[1] === 'servers' && parts[2] && parts[3] === 'command') {
+            const { command } = body;
+            if (!command) { res.writeHead(400); res.end(JSON.stringify({ error: '"command" is required' })); return; }
+            const result = await sendCommandInternal(parts[2], command);
+            res.writeHead(result.success ? 200 : 400);
+            res.end(JSON.stringify(result));
+            return;
+        }
+
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Not found' }));
+    });
+
+    server.listen(apiConfig.port, '0.0.0.0', () => {
+        console.log(`[RSM-API] Listening on port ${apiConfig.port}. Key: ${API_CONFIG_FILE}`);
+    });
+
+    server.on('error', err => console.error(`[RSM-API] Server error: ${err.message}`));
+}
+
+// Exposes the API config to the renderer so the Settings page can display it.
+ipcMain.handle('get-api-config', () => ({ port: apiConfig?.port, apiKey: apiConfig?.apiKey }));
 
 // --- DEBUG HELPERS ---
 function DebugLog(message) {
