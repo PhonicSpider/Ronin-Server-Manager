@@ -945,6 +945,37 @@ setInterval(() => {
             ram: ramTotal
         });
         DebugCpuRam(`Server Totals: CPU ${cpuTotal}% | RAM ${serverRamMB} MB (${ramTotal}%)`);
+
+        si.networkStats().then(netStats => {
+            if (!netStats || !netStats.length) return;
+            // Sum all non-loopback interfaces for total machine throughput
+            let rxSec = 0, txSec = 0;
+            for (const iface of netStats) {
+                if (iface.iface && iface.iface.toLowerCase().includes('loopback')) continue;
+                rxSec += iface.rx_sec || 0;
+                txSec += iface.tx_sec || 0;
+            }
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('network-stats-update', { rxSec, txSec });
+            }
+        }).catch(() => {});
+
+        // Parse netstat once and emit per-server TCP connection counts
+        const activeEntries = Object.entries(activeProcesses);
+        if (activeEntries.length > 0) {
+            exec('netstat -ano', (nsErr, nsOut) => {
+                if (nsErr || !nsOut || !mainWindow || mainWindow.isDestroyed()) return;
+                const lines = nsOut.split('\n');
+                for (const [srvId, info] of activeEntries) {
+                    const pid = String(info.pid);
+                    const count = lines.filter(line => {
+                        const parts = line.trim().split(/\s+/);
+                        return parts[3] === 'ESTABLISHED' && parts[4] === pid;
+                    }).length;
+                    mainWindow.webContents.send('server-connections-update', { id: srvId, connections: count });
+                }
+            });
+        }
     }
 }, 2000);
 

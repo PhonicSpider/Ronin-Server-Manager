@@ -259,7 +259,6 @@ sidebar-footer {
     position: relative;
     z-index: 1;
     overflow-y: auto;
-    padding-bottom: 20px;
     box-sizing: border-box;
 }
 
@@ -268,7 +267,21 @@ sidebar-footer {
     flex-direction: column;
     flex: 1;
     min-height: 0;
+    gap: 8px;
 }
+
+/* Reliable bottom spacer — padding-bottom is consumed by flex:1 children in Chromium */
+#manager-ui::after {
+    content: '';
+    display: block;
+    min-height: 24px;
+    flex-shrink: 0;
+}
+
+/* Remove individual card margins so the gap value is the only spacing */
+#manager-ui .stats-combined-card  { margin-bottom: 0; }
+#manager-ui .action-bar           { margin-bottom: 0; }
+#manager-ui .terminal-container   { margin-top: 0; margin-bottom: 0; }
 
 #manager-ui .terminal-container {
     flex: 1;
@@ -302,11 +315,19 @@ sidebar-footer {
     gap: 20px;
 }
 
-#no-selection::-webkit-scrollbar { width: 8px; }
-#no-selection::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
+#no-selection::after {
+    content: '';
+    display: block;
+    min-height: 24px;
+    flex-shrink: 0;
 }
+
+/* ── Global modern scrollbar ── */
+::-webkit-scrollbar              { width: 5px; height: 5px; }
+::-webkit-scrollbar-track        { background: transparent; }
+::-webkit-scrollbar-thumb        { background: rgba(255,255,255,0.12); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover  { background: var(--accent); }
+::-webkit-scrollbar-corner       { background: transparent; }
 
 #status-summary-list {
     margin-top: 8px;
@@ -321,11 +342,6 @@ sidebar-footer {
     flex-direction: column;
 }
 
-#status-summary-list::-webkit-scrollbar { width: 6px; }
-#status-summary-list::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 10px;
-}
 
 
 /* ══════════════════════════════════════════════════════════════════
@@ -514,6 +530,26 @@ input[type="checkbox"] {
     gap: 0;
     padding: 16px 24px 10px;
     margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Connections graph rendered as a faded background layer */
+.stats-bg-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.22;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Gauge and pill rows float above the canvas */
+.stats-gauges-row,
+.stats-pills-row {
+    position: relative;
+    z-index: 1;
 }
 
 .stats-gauges-row {
@@ -550,6 +586,63 @@ input[type="checkbox"] {
     color: var(--accent);
     white-space: nowrap;
     text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.5);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+    NETWORK GRAPH
+   ══════════════════════════════════════════════════════════════════ */
+
+.network-graph-card {
+    padding: 12px 16px 10px;
+}
+
+.network-graph-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.network-graph-legend {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-family: var(--font-mono, monospace);
+}
+
+.net-legend-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.rx-dot { background: var(--accent); }
+.tx-dot { background: #4a9eff; }
+
+.net-legend-label {
+    color: var(--dim);
+}
+
+.net-legend-val {
+    min-width: 68px;
+    text-align: right;
+    color: var(--text);
+    font-weight: 600;
+}
+
+.network-graph-canvas {
+    display: block;
+    width: 100%;
+    height: 72px;
+    border-radius: 4px;
+}
+
+.conn-timespan-label {
+    margin-left: 4px;
+    opacity: 0.5;
 }
 
 

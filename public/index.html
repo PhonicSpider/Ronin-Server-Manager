@@ -76,6 +76,22 @@
             </div>
         </div>
 
+        <!-- System-wide network throughput graph -->
+        <div class="card network-graph-card">
+            <div class="network-graph-header">
+                <span class="stat-label">SYSTEM NETWORK</span>
+                <div class="network-graph-legend">
+                    <span class="net-legend-dot rx-dot"></span>
+                    <span class="net-legend-label">↓ DL</span>
+                    <span id="net-rx-val" class="net-legend-val">—</span>
+                    <span class="net-legend-dot tx-dot"></span>
+                    <span class="net-legend-label">↑ UL</span>
+                    <span id="net-tx-val" class="net-legend-val">—</span>
+                </div>
+            </div>
+            <canvas id="network-graph" class="network-graph-canvas"></canvas>
+        </div>
+
         <div class="terminal-container">
             <div class="terminal-header">SYSTEM &amp; BOOT LOGS</div>
             <div id="system-console" class="terminal-body">
@@ -97,8 +113,9 @@
             </div>
         </header>
 
-        <!-- Stats gauges + status pills -->
+        <!-- Stats gauges + status pills (connections graph renders as background) -->
         <div class="card stats-combined-card">
+            <canvas id="connections-graph" class="stats-bg-canvas"></canvas>
             <div class="stats-gauges-row">
                 <div class="gauge-box">
                     <svg class="gauge-svg" viewBox="0 0 120 75">
@@ -122,6 +139,10 @@
                 <div class="stat-pill">
                     <span class="stat-pill-label">PLAYERS</span>
                     <span class="stat-pill-value" id="stat-players">— / —</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="stat-pill-label">CONNECTIONS</span>
+                    <span class="stat-pill-value" id="stat-connections">—</span>
                 </div>
                 <div class="stat-pill">
                     <span class="stat-pill-label">PID</span>

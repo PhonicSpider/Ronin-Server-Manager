@@ -22,6 +22,15 @@ let uptimeStart = null;        // Timestamp (ms) when the active server went Onl
 let uptimeInterval = null;     // setInterval handle for the uptime clock
 let playerPollInterval = null; // setInterval handle for player count polling
 
+// Network graph rolling history (60 samples × 2s = 2 min window)
+const NET_HISTORY_LEN = 60;
+let netRxHistory = new Array(NET_HISTORY_LEN).fill(0);
+let netTxHistory = new Array(NET_HISTORY_LEN).fill(0);
+
+// Connection graph rolling history (450 samples × 2s = 15 min window)
+const CONN_HISTORY_LEN = 450;
+let connHistory = new Array(CONN_HISTORY_LEN).fill(null);
+
 
 //      ___ _   _ ___ _____
 //     |_ _| \ | |_ _|_   _|
@@ -293,6 +302,11 @@ function selectServer(id) {
 
     const pidEl = document.getElementById('stat-pid');
     if (pidEl) pidEl.innerText = srv.pid || '—';
+
+    // Clear connection history when switching servers — old server's data is not relevant
+    connHistory = new Array(CONN_HISTORY_LEN).fill(null);
+    const connEl = document.getElementById('stat-connections');
+    if (connEl) connEl.innerText = '—';
 
     renderSidebar();
 
@@ -630,6 +644,8 @@ function stopStatusDashboard() {
 
     document.getElementById('stat-players').innerText = '— / —';
     document.getElementById('stat-uptime').innerText = '—';
+    document.getElementById('stat-connections').innerText = '—';
+    connHistory = new Array(CONN_HISTORY_LEN).fill(null);
 }
 
 
@@ -738,6 +754,143 @@ window.api.receive('total-performance-update', (data) => {
 
 window.api.receive('system-error', (errorMsg) => window.updateSystemLog(`ERROR: ${errorMsg}`));
 window.api.receive('system-info', (infoMsg) => window.updateSystemLog(`INFO: ${infoMsg}`));
+
+window.api.receive('server-connections-update', ({ id, connections }) => {
+    if (id !== activeId) return;
+    connHistory.push(connections);
+    connHistory.shift();
+    drawConnectionsGraph();
+});
+
+function drawConnectionsGraph() {
+    const canvas = document.getElementById('connections-graph');
+    if (!canvas) return;
+
+    const W = canvas.offsetWidth;
+    const H = canvas.offsetHeight;
+    if (W === 0 || H === 0) return;
+
+    canvas.width = W;
+    canvas.height = H;
+
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, W, H);
+
+    // Only draw points that have data (non-null)
+    const known = connHistory.filter(v => v !== null);
+    const maxVal = known.length > 0 ? Math.max(...known, 1) : 1;
+
+    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#007bff';
+
+    // Build point list — skip leading nulls
+    const pts = [];
+    for (let i = 0; i < connHistory.length; i++) {
+        if (connHistory[i] === null) continue;
+        pts.push({
+            x: (i / (connHistory.length - 1)) * W,
+            y: H - (connHistory[i] / maxVal) * (H - 8) - 4
+        });
+    }
+
+    const current = [...connHistory].reverse().find(v => v !== null);
+    const el = document.getElementById('stat-connections');
+    if (el) el.textContent = current ?? '—';
+
+    if (pts.length < 2) return;
+
+    // Filled area — strong alpha; CSS opacity on the canvas element fades it overall
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, H);
+    pts.forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.lineTo(pts[pts.length - 1].x, H);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(0,123,255,0.55)';
+    ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    ctx.strokeStyle = accentColor;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    ctx.stroke();
+}
+
+window.api.receive('network-stats-update', ({ rxSec, txSec }) => {
+    netRxHistory.push(rxSec);
+    netRxHistory.shift();
+    netTxHistory.push(txSec);
+    netTxHistory.shift();
+    drawNetworkGraph();
+});
+
+function formatBytesPerSec(bps) {
+    if (bps < 1024) return `${Math.round(bps)} B/s`;
+    if (bps < 1024 * 1024) return `${(bps / 1024).toFixed(1)} KB/s`;
+    return `${(bps / 1048576).toFixed(2)} MB/s`;
+}
+
+function drawNetworkGraph() {
+    const canvas = document.getElementById('network-graph');
+    if (!canvas) return;
+
+    const W = canvas.offsetWidth;
+    const H = canvas.offsetHeight;
+    if (W === 0 || H === 0) return;
+
+    canvas.width = W;
+    canvas.height = H;
+
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, W, H);
+
+    // Faint horizontal grid lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 4; i++) {
+        const y = Math.round((H * i) / 4) + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(W, y);
+        ctx.stroke();
+    }
+
+    const maxVal = Math.max(...netRxHistory, ...netTxHistory, 1024);
+    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#007bff';
+
+    const drawLine = (history, color, fill) => {
+        if (history.length < 2) return;
+        const pts = history.map((v, i) => ({
+            x: (i / (history.length - 1)) * W,
+            y: H - (v / maxVal) * (H - 4) - 2
+        }));
+
+        // Filled area under line
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, H);
+        pts.forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.lineTo(pts[pts.length - 1].x, H);
+        ctx.closePath();
+        ctx.fillStyle = fill;
+        ctx.fill();
+
+        // Line stroke
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.lineJoin = 'round';
+        pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+        ctx.stroke();
+    };
+
+    drawLine(netTxHistory, '#4a9eff', 'rgba(74,158,255,0.08)');
+    drawLine(netRxHistory, accentColor, 'rgba(0,123,255,0.10)');
+
+    const rxEl = document.getElementById('net-rx-val');
+    const txEl = document.getElementById('net-tx-val');
+    if (rxEl) rxEl.textContent = formatBytesPerSec(netRxHistory[netRxHistory.length - 1]);
+    if (txEl) txEl.textContent = formatBytesPerSec(netTxHistory[netTxHistory.length - 1]);
+}
 
 
 //       ____    _   _   _  ____ ___ ____
