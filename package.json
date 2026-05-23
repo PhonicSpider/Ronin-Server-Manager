@@ -45,6 +45,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "api-server.js",
       "public/**/*",
       "node_modules/**/*"
     ]

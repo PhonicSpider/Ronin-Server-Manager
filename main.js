@@ -2,16 +2,32 @@ const { app, BrowserWindow, shell, ipcMain, dialog, Tray, Menu, Notification } =
 const { Rcon } = require('rcon-client');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const { spawn, exec, execSync } = require('child_process');
 const si = require('systeminformation');
 const os = require('os');
 const { isNullOrUndefined } = require('util');
+const axios = require('axios');
+const apiServer = require('./api-server');
+
+// Wire up api-server dependencies at module load time so they are always set
+// before any HTTP request or IPC handler can reach the server.
+// The closures capture module-level variables by reference — always current.
+apiServer.init({
+    getManagedServers:  () => managedServers,
+    getActiveProcesses: () => activeProcesses,
+    getServerStats:     () => serverStats,
+    getMainWindow:      () => mainWindow,
+    findServType,
+    ipcMain
+});
 
 let mainWindow;
 let tray = null;
 const activeProcesses = {};
 const serverStats = {}; // { [srvId]: { cpu, ramMB } } — updated each heartbeat tick
-const DATA_FILE = path.join(app.getPath('userData'), 'servers.json');
+const DATA_FILE       = path.join(app.getPath('userData'), 'servers.json');
+const API_CONFIG_FILE = path.join(app.getPath('userData'), 'api-config.json');
 const debugPrefix = "[RSM-DEBUG]";
 const DebugActive = true;    // Set to true to enable verbose logging for debugging purposes
 const DebugLogging = false;  // Set to true to enable debug logging for all operations
@@ -127,11 +143,19 @@ app.whenReady().then(() => {
 
     // Give the UI 3 seconds to load before reporting re-linked processes
     setTimeout(syncActiveServers, 3000);
+
+    // Boot the REST API if the user has it enabled
+    const apiCfg = loadApiConfig();
+    if (apiCfg.enabled && apiCfg.apiKey) {
+        apiServer.start(apiCfg.port || 3002, apiCfg.apiKey);
+    }
 });
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
 });
+
+app.on('will-quit', () => apiServer.stop());
 
 // Clear any previously registered startup entry so the app only launches on
 // boot when the user explicitly enables it in Settings.
@@ -161,6 +185,33 @@ function loadServers() {
     return [];
 }
 
+// --- API CONFIG LOAD / SAVE ---
+function loadApiConfig() {
+    if (fs.existsSync(API_CONFIG_FILE)) {
+        try {
+            return JSON.parse(fs.readFileSync(API_CONFIG_FILE, 'utf8'));
+        } catch (e) {
+            console.error('[RSM] Failed to load api-config.json:', e);
+        }
+    }
+    return { enabled: false, port: 3002, apiKey: '' };
+}
+
+function saveApiConfig(config) {
+    fs.writeFileSync(API_CONFIG_FILE, JSON.stringify(config, null, 2));
+    // Write a convenience file ArkenBot / external tools can read to get the key
+    try {
+        const rsmApiPath = path.join(app.getPath('appData'), 'rsm-api.json');
+        fs.writeFileSync(rsmApiPath, JSON.stringify({
+            url: `http://localhost:${config.port || 3002}`,
+            apiKey: config.apiKey || '',
+            port: config.port || 3002
+        }, null, 2));
+    } catch (e) {
+        console.warn('[RSM] Could not write rsm-api.json:', e.message);
+    }
+}
+
 // --- GET SERVER LIST ---
 ipcMain.handle('get-servers', () => managedServers);
 
@@ -187,6 +238,31 @@ ipcMain.on('update-startup-settings', (event, isEnabled) => {
         path: app.getPath('exe')
     });
     console.log(`[RSM] Launch on startup set to: ${isEnabled}`);
+});
+
+// --- API SERVER SETTINGS ---
+ipcMain.handle('get-api-config', () => loadApiConfig());
+
+ipcMain.on('save-api-config', (event, config) => {
+    saveApiConfig(config);
+    if (config.enabled && config.apiKey) {
+        apiServer.start(config.port || 3002, config.apiKey);
+    } else {
+        apiServer.stop();
+    }
+    console.log(`[RSM] API server ${config.enabled ? `started on port ${config.port}` : 'stopped'}.`);
+});
+
+ipcMain.handle('regenerate-api-key', () => {
+    const config = loadApiConfig();
+    config.apiKey = apiServer.generateApiKey();
+    if (!config.port) config.port = 3002;
+    saveApiConfig(config);
+    if (config.enabled) {
+        apiServer.start(config.port, config.apiKey);
+    }
+    console.log('[RSM] API key regenerated.');
+    return config;
 });
 
 // --- ADMIN CHECK ---

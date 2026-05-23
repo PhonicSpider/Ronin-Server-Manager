@@ -357,6 +357,44 @@
                 <input type="checkbox" id="launch-startup-chk" onchange="toggleStartup(this.checked)">
             </div>
         </div>
+
+        <!-- Remote API -->
+        <div class="card" style="margin-top: 20px;">
+            <h3>Remote API</h3>
+            <div class="setting-info">
+                <p style="margin: 0 0 14px;">Expose a local REST API so external tools (e.g. Discord bots) can list, start, stop, and send commands to your servers.</p>
+            </div>
+
+            <div class="setting-row" style="margin-bottom: 16px;">
+                <span>Enable API Server</span>
+                <input type="checkbox" id="api-enabled-chk" onchange="toggleApiEnabled(this.checked)">
+            </div>
+
+            <div id="api-settings-body">
+                <div style="margin-bottom: 14px;">
+                    <label class="tiny-label">PORT</label>
+                    <div class="path-group" style="gap: 8px;">
+                        <input type="number" id="api-port-input" min="1024" max="65535" placeholder="3002"
+                               style="max-width: 110px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 6px 10px;">
+                        <button class="btn btn-outline" onclick="saveApiPort()">Save</button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="tiny-label">API KEY</label>
+                    <div class="path-group" style="gap: 8px;">
+                        <input type="text" id="api-key-display" readonly
+                               style="font-family: monospace; font-size: 11px; letter-spacing: 0.5px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 6px 10px;">
+                        <button class="btn btn-outline" onclick="copyApiKey()">Copy</button>
+                        <button class="btn btn-outline" onclick="regenerateApiKey()">Regenerate</button>
+                    </div>
+                    <p style="font-size: 11px; color: var(--dim); margin-top: 8px; line-height: 1.5;">
+                        Pass this key in the <code>x-api-key</code> header.
+                        A copy is automatically saved to <code>%APPDATA%\rsm-api.json</code> for easy access.
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
 
 </main>
