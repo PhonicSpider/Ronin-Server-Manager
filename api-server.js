@@ -234,13 +234,23 @@ async function executeCommand(srv, processInfo, command) {
     const serverCategory = _findServType(srv);
 
     // DIRECT_CONSOLE servers (Minecraft, Terraria, 7DaysToDie) — write to stdin
+    // and capture whatever the server echoes back on stdout within 1.5 s.
     if (serverCategory === 'DIRECT_CONSOLE') {
         const child = processInfo.shell;
-        if (child?.stdin?.writable) {
+        if (!child?.stdin?.writable) throw new Error('Console stdin is not available');
+
+        return new Promise((resolve) => {
+            const chunks = [];
+            const onData = (data) => chunks.push(data.toString());
+            child.stdout.on('data', onData);
             child.stdin.write(command + '\n');
-            return 'Command sent';
-        }
-        throw new Error('Console stdin is not available');
+
+            setTimeout(() => {
+                child.stdout.off('data', onData);
+                const output = chunks.join('').trim();
+                resolve(output || '(no output)');
+            }, 1500);
+        });
     }
 
     // Space Engineers — VRage Remote HTTP API
