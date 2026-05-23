@@ -74,10 +74,11 @@ function createWindow() {
 // --- SYSTEM TRAY CREATION & LOGIC ---
 function createTray() {
     const iconPath = path.join(__dirname, 'icon.png');
-    tray = new Tray(fs.existsSync(iconPath) ? iconPath : path.join(__dirname, 'public/index.html'));
+    tray = new Tray(iconPath);
 
     const contextMenu = Menu.buildFromTemplate([
         { label: 'Show App', click: () => mainWindow.show() },
+        { type: 'separator' },
         {
             label: 'Quit RoninManager', click: () => {
                 app.isQuiting = true;
@@ -86,12 +87,15 @@ function createTray() {
         }
     ]);
 
-    tray.setToolTip('RoninManager: Servers Running');
+    tray.setToolTip('Ronin Server Manager');
     tray.setContextMenu(contextMenu);
 
     tray.on('click', () => {
         mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show();
     });
+
+    // Windows does not always show setContextMenu on right-click automatically
+    tray.on('right-click', () => tray.popUpContextMenu(contextMenu));
 
     mainWindow.on('close', (event) => {
         if (!app.isQuiting) {

@@ -46,6 +46,7 @@
       "main.js",
       "preload.js",
       "api-server.js",
+      "icon.png",
       "public/**/*",
       "node_modules/**/*"
     ]
