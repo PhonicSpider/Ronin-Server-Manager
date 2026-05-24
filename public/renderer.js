@@ -294,6 +294,7 @@ function handleSort(fromIndex, toIndex) {
 
 // Populates the dashboard with logs and info for the selected server
 function selectServer(id) {
+    console.log(`[RSM] selectServer — id: ${id}`);
     activeId = id;
     const srv = servers.find(s => s.id === id);
     if (!srv) return;
@@ -365,6 +366,7 @@ function selectServer(id) {
 }
 
 function renderFirewallPorts(srv, config) {
+    console.log(`[RSM] renderFirewallPorts — srv: "${srv.name}" | portDefs: ${config?.firewallPorts?.length || 0}`);
     const card = document.getElementById('firewall-ports-card');
     const rows = document.getElementById('firewall-ports-rows');
     if (!card || !rows) return;
@@ -412,6 +414,7 @@ function renderFirewallPorts(srv, config) {
 window.saveFirewallPortOverrides = async function () {
     const srv = servers.find(s => s.id === activeId);
     if (!srv) return;
+    console.log(`[RSM] saveFirewallPortOverrides — srv: "${srv.name}"`);
 
     const config = ServerTypeRegistry[srv.type];
     const portDefs = config?.firewallPorts || [];
@@ -432,6 +435,7 @@ window.saveFirewallPortOverrides = async function () {
     // Conflict check — runs BEFORE touching any existing rules; exclude this server's own rules
     const newPorts = Object.values(overrides).map(o => o.port);
     const conflicts = await window.api.invoke('check-port-conflicts', { ports: newPorts, excludeServerName: srv.name });
+    console.log(`[RSM] saveFirewallPortOverrides — conflicts:`, conflicts);
     if (conflicts?.length) {
         const names = conflicts.map(c => `Port ${c.port} (${c.protocol}): "${c.ruleName}"`).join('; ');
         window.updateSystemLog(`[RSM] ⚠ Port conflict — the following ports are already claimed by other rules: ${names}. Review before applying.`);
@@ -480,12 +484,14 @@ function updateFirewallStatus(active) {
 }
 
 async function checkFirewallStatus(srv) {
+    console.log(`[RSM] checkFirewallStatus — srv: "${srv.name}"`);
     const statusEl = document.getElementById('fw-status');
     if (statusEl) {
         statusEl.className = 'fw-status fw-status-unknown';
         statusEl.textContent = '● Checking...';
     }
     const isActive = await window.api.invoke('check-firewall-rules', { serverName: srv.name });
+    console.log(`[RSM] checkFirewallStatus — result: ${isActive}`);
     serverFirewallStatus[srv.id] = isActive;
     updateFirewallStatus(isActive);
     renderSidebar();
@@ -494,8 +500,10 @@ async function checkFirewallStatus(srv) {
 window.applyFirewallRules = async function () {
     const srv = servers.find(s => s.id === activeId);
     if (!srv) return;
+    console.log(`[RSM] applyFirewallRules — srv: "${srv.name}"`);
 
     const isAdmin = await window.api.invoke('check-admin');
+    console.log(`[RSM] applyFirewallRules — isAdmin: ${isAdmin}`);
     if (!isAdmin) {
         window.updateSystemLog('[RSM] Cannot apply firewall rules: RSM must be run as Administrator.');
         return;
@@ -511,6 +519,7 @@ window.applyFirewallRules = async function () {
 
     window.updateSystemLog(`[RSM] Applying firewall rules for "${srv.name}"...`);
     const result = await window.api.invoke('apply-firewall-rules', { serverName: srv.name, ports });
+    console.log(`[RSM] applyFirewallRules — result:`, result);
     if (result.success) {
         window.updateSystemLog(`[RSM] Firewall rules applied for "${srv.name}".`);
         serverFirewallStatus[srv.id] = true;
@@ -524,8 +533,10 @@ window.applyFirewallRules = async function () {
 window.removeFirewallRules = async function () {
     const srv = servers.find(s => s.id === activeId);
     if (!srv) return;
+    console.log(`[RSM] removeFirewallRules — srv: "${srv.name}"`);
 
     const isAdmin = await window.api.invoke('check-admin');
+    console.log(`[RSM] removeFirewallRules — isAdmin: ${isAdmin}`);
     if (!isAdmin) {
         window.updateSystemLog('[RSM] Cannot remove firewall rules: RSM must be run as Administrator.');
         return;
@@ -533,6 +544,7 @@ window.removeFirewallRules = async function () {
 
     window.updateSystemLog(`[RSM] Removing firewall rules for "${srv.name}"...`);
     const result = await window.api.invoke('remove-firewall-rules', { serverName: srv.name });
+    console.log(`[RSM] removeFirewallRules — result:`, result);
     if (result.success) {
         window.updateSystemLog(`[RSM] Firewall rules removed for "${srv.name}".`);
         serverFirewallStatus[srv.id] = false;
@@ -621,12 +633,14 @@ async function loadPortierView() {
 }
 
 window.togglePortierRule = async function (displayName, currentlyEnabled) {
+    console.log(`[Portier] togglePortierRule — displayName: "${displayName}" | currentlyEnabled: ${currentlyEnabled}`);
     const isAdmin = await window.api.invoke('check-admin');
     if (!isAdmin) { portierLog('Error: RSM must be run as Administrator to manage firewall rules.'); return; }
 
     const newState = !currentlyEnabled;
     portierLog(`${newState ? 'Enabling' : 'Disabling'} rule "${displayName}"...`);
     const result = await window.api.invoke('toggle-firewall-rule', { displayName, enabled: newState });
+    console.log(`[Portier] togglePortierRule — result:`, result);
 
     if (result.success) {
         portierLog(`Rule "${displayName}" ${newState ? 'enabled' : 'disabled'}.`);
@@ -637,6 +651,7 @@ window.togglePortierRule = async function (displayName, currentlyEnabled) {
 };
 
 window.applyAllServerRules = async function () {
+    console.log('[Portier] applyAllServerRules — called');
     const isAdmin = await window.api.invoke('check-admin');
     if (!isAdmin) { portierLog('Error: RSM must be run as Administrator to manage firewall rules.'); return; }
 
@@ -649,6 +664,7 @@ window.applyAllServerRules = async function () {
         portierLog('No servers with configured firewall ports found.');
         return;
     }
+    console.log(`[Portier] applyAllServerRules — targets: ${targets.length}`);
 
     portierLog(`Applying firewall rules for ${targets.length} server${targets.length !== 1 ? 's' : ''}...`);
     let ok = 0, fail = 0;
@@ -1113,6 +1129,7 @@ window.api.receive('console-out', (data) => {
 
 // Updates the UI when a server starts, stops, or crashes
 window.api.receive('status-change', (data) => {
+    console.log(`[RSM] status-change — id: ${data.id} | status: ${data.status} | pid: ${data.pid || 'none'}`);
     const srv = servers.find(s => s.id === data.id);
     if (srv) {
         srv.status = data.status;
@@ -1500,6 +1517,7 @@ window.saveNewServer = async () => {
     const name = document.getElementById('newName').value;
     const path = document.getElementById('exePath').value;
     const type = window.selectedType || "other";
+    console.log(`[RSM] saveNewServer — name: "${name}" | type: "${type}" | editingId: ${window.editingServerId || 'new'}`);
     const config = ServerTypeRegistry[type] || {};
     const category = config ? config.backend?.category : "DIRECT_CONSOLE";
 
@@ -1536,6 +1554,7 @@ window.saveNewServer = async () => {
             ? servers.find(s => s.id.toString() === window.editingServerId.toString())?.name
             : null;
         const conflicts = await window.api.invoke('check-port-conflicts', { ports: portsToCheck, excludeServerName: existingName });
+        console.log(`[RSM] saveNewServer — conflicts:`, conflicts);
         if (conflicts?.length) {
             const banner = document.getElementById('wizard-fw-conflict-banner');
             if (banner) {
@@ -1579,6 +1598,7 @@ window.saveNewServer = async () => {
     }
 
     window.api.send('save-servers', servers);
+    console.log(`[RSM] saveNewServer — server saved: "${name}"`);
     renderSidebar();
 
     const fieldsToClear = ['newName', 'exePath', 'portId', 'portPass', 'workingDir', 'customArgs', 'logPath', 'mcRam', 'seInstance'];
@@ -1822,6 +1842,7 @@ async function switchCfgTab(index) {
 }
 
 async function loadCfgTab(srv, index) {
+    console.log(`[RSM] loadCfgTab — srv: "${srv.name}" | index: ${index}`);
     const config = ServerTypeRegistry[srv.type];
     const fileEntry = config.gameFiles.configs[index];
     cfgCurrentFilePath = resolveCfgPath(srv, fileEntry);
@@ -1831,6 +1852,7 @@ async function loadCfgTab(srv, index) {
     document.getElementById('cfg-save-status').classList.remove('visible');
 
     const result = await window.api.invoke('read-config-file', cfgCurrentFilePath);
+    console.log(`[RSM] loadCfgTab — read result: success=${result.success}`);
     const editor = document.getElementById('cfg-editor');
 
     if (result.success) {
@@ -1860,6 +1882,7 @@ window.saveConfigFile = async () => {
     const editor = document.getElementById('cfg-editor');
     const content = editor.value;
     const statusEl = document.getElementById('cfg-save-status');
+    console.log(`[RSM] saveConfigFile — filePath: "${cfgCurrentFilePath}"`);
 
     const result = await window.api.invoke('write-config-file', {
         filePath: cfgCurrentFilePath,
@@ -1868,6 +1891,7 @@ window.saveConfigFile = async () => {
         serverName: srv?.name || null
     });
 
+    console.log(`[RSM] saveConfigFile — result: success=${result.success} | backedUp=${result.backedUp}`);
     if (result.success) {
         cfgOriginalContent = content;
         cfgIsDirty = false;
@@ -1928,8 +1952,10 @@ window.browseBackupFolder = async () => {
 let _apiConfig = { enabled: false, port: 3002, apiKey: '' };
 
 async function loadApiSettings() {
+    console.log('[RSM] loadApiSettings — loading...');
     try {
         _apiConfig = await window.api.invoke('get-api-config');
+        console.log('[RSM] loadApiSettings — loaded:', { enabled: _apiConfig.enabled, port: _apiConfig.port });
     } catch (e) {
         _apiConfig = { enabled: false, port: 3002, apiKey: '' };
     }
@@ -1954,6 +1980,7 @@ function _updateApiBodyOpacity(enabled) {
 }
 
 window.toggleApiEnabled = (enabled) => {
+    console.log(`[RSM] toggleApiEnabled — enabled: ${enabled}`);
     _apiConfig.enabled = enabled;
     window.api.send('save-api-config', _apiConfig);
     _updateApiBodyOpacity(enabled);
@@ -1963,6 +1990,7 @@ window.toggleApiEnabled = (enabled) => {
 window.saveApiPort = () => {
     const input = document.getElementById('api-port-input');
     const port  = parseInt(input?.value) || 3002;
+    console.log(`[RSM] saveApiPort — port: ${port}`);
     _apiConfig.port = port;
     window.api.send('save-api-config', _apiConfig);
     window.updateSystemLog(`API port set to ${port}.`);
@@ -1979,7 +2007,9 @@ window.copyApiKey = () => {
 };
 
 window.regenerateApiKey = async () => {
+    console.log('[RSM] regenerateApiKey — requesting...');
     const newConfig = await window.api.invoke('regenerate-api-key');
+    console.log('[RSM] regenerateApiKey — done');
     _apiConfig = newConfig;
     const keyDisplay = document.getElementById('api-key-display');
     if (keyDisplay) keyDisplay.value = newConfig.apiKey;
