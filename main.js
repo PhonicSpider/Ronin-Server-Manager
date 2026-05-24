@@ -196,7 +196,9 @@ function loadServers() {
 function loadApiConfig() {
     if (fs.existsSync(API_CONFIG_FILE)) {
         try {
-            return JSON.parse(fs.readFileSync(API_CONFIG_FILE, 'utf8'));
+            const cfg = JSON.parse(fs.readFileSync(API_CONFIG_FILE, 'utf8'));
+            console.log('[RSM] loadApiConfig — loaded:', { enabled: cfg.enabled, port: cfg.port });
+            return cfg;
         } catch (e) {
             console.error('[RSM] Failed to load api-config.json:', e);
         }
@@ -205,6 +207,7 @@ function loadApiConfig() {
 }
 
 function saveApiConfig(config) {
+    console.log('[RSM] saveApiConfig — saving:', { enabled: config.enabled, port: config.port });
     fs.writeFileSync(API_CONFIG_FILE, JSON.stringify(config, null, 2));
     // Write a convenience file ArkenBot / external tools can read to get the key and cert fingerprint
     try {
@@ -752,6 +755,7 @@ const startLogging = (logFolderPath, event, srv) => {
 
 // --- COMMAND INJECTION LOGIC ---
 ipcMain.on('send-command', async (event, { srvId, command }) => {
+    console.log(`[RSM] send-command — srvId: ${srvId} | command: "${command}"`);
     const processInfo = activeProcesses[srvId];
     if (!processInfo || !processInfo.shell) {
         event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] Server is not active. Cannot send command.\n` });
@@ -844,6 +848,7 @@ ipcMain.on('get-player-count', async (event, srvId) => {
     if (!srv || !processInfo) return;
 
     const type = (srv.type || '').toLowerCase();
+    console.log(`[RSM] get-player-count — srvId: ${srvId} | type: ${type}`);
 
     // Minecraft: write 'list' to stdin; parsed in renderer's console-out handler
     if (type === 'minecraft') {
@@ -928,17 +933,21 @@ ipcMain.handle('get-desktop-path', () => app.getPath('desktop'));
 
 // --- FIREWALL RULE MANAGEMENT (Portier integration) ---
 ipcMain.handle('check-firewall-rules', async (event, { serverName }) => {
+    console.log(`[RSM] check-firewall-rules — serverName: "${serverName}"`);
     const safeName = serverName.replace(/'/g, "''");
     const script = `$rules = Get-NetFirewallRule -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like 'RSM - ${safeName} - *' }\nif ($rules) { Write-Output 'ACTIVE' } else { Write-Output 'NONE' }`;
     const encoded = Buffer.from(script, 'utf16le').toString('base64');
     return new Promise((resolve) => {
         exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout) => {
-            resolve((stdout || '').trim() === 'ACTIVE');
+            const result = (stdout || '').trim() === 'ACTIVE';
+            console.log(`[RSM] check-firewall-rules — result: ${result}`);
+            resolve(result);
         });
     });
 });
 
 ipcMain.handle('apply-firewall-rules', async (event, { serverName, ports }) => {
+    console.log(`[RSM] apply-firewall-rules — serverName: "${serverName}" | ports: ${ports?.length || 0}`);
     const safeName = serverName.replace(/'/g, "''");
     const lines = [
         `Get-NetFirewallRule -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like 'RSM - ${safeName} - *' } | Remove-NetFirewallRule -ErrorAction SilentlyContinue`
@@ -952,17 +961,20 @@ ipcMain.handle('apply-firewall-rules', async (event, { serverName, ports }) => {
     const encoded = Buffer.from(lines.join('\n'), 'utf16le').toString('base64');
     return new Promise((resolve) => {
         exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout, stderr) => {
+            console.log(`[RSM] apply-firewall-rules — success: ${!err}${err ? ' | error: ' + (stderr || err.message) : ''}`);
             resolve({ success: !err, error: err ? (stderr || err.message) : null });
         });
     });
 });
 
 ipcMain.handle('remove-firewall-rules', async (event, { serverName }) => {
+    console.log(`[RSM] remove-firewall-rules — serverName: "${serverName}"`);
     const safeName = serverName.replace(/'/g, "''");
     const script = `Get-NetFirewallRule -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like 'RSM - ${safeName} - *' } | Remove-NetFirewallRule -ErrorAction SilentlyContinue`;
     const encoded = Buffer.from(script, 'utf16le').toString('base64');
     return new Promise((resolve) => {
         exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout, stderr) => {
+            console.log(`[RSM] remove-firewall-rules — success: ${!err}${err ? ' | error: ' + (stderr || err.message) : ''}`);
             resolve({ success: !err, error: err ? (stderr || err.message) : null });
         });
     });
@@ -970,6 +982,7 @@ ipcMain.handle('remove-firewall-rules', async (event, { serverName }) => {
 
 // --- PORTIER MANAGEMENT VIEW ---
 ipcMain.handle('get-firewall-rules', async () => {
+    console.log('[RSM] get-firewall-rules — fetching all Portier managed rules');
     const script = `
 $rules = Get-NetFirewallRule -Group 'Ronin Portier Rules' -ErrorAction SilentlyContinue
 if (-not $rules) { Write-Output '[]'; exit }
@@ -990,13 +1003,16 @@ $out | ConvertTo-Json -Compress`.trim();
             if (err || !stdout.trim()) return resolve([]);
             try {
                 const parsed = JSON.parse(stdout.trim());
-                resolve(Array.isArray(parsed) ? parsed : [parsed]);
+                const rules = Array.isArray(parsed) ? parsed : [parsed];
+                console.log(`[RSM] get-firewall-rules — returned ${rules.length} rule(s)`);
+                resolve(rules);
             } catch { resolve([]); }
         });
     });
 });
 
 ipcMain.handle('add-firewall-rule', async (event, { displayName, port, tcp, udp }) => {
+    console.log(`[RSM] add-firewall-rule — displayName: "${displayName}" | port: ${port} | tcp: ${tcp} | udp: ${udp}`);
     const safeName = displayName.replace(/'/g, "''");
     const lines = [];
     if (tcp) lines.push(`New-NetFirewallRule -DisplayName '${safeName}' -Direction Inbound -Protocol TCP -LocalPort ${port} -Action Allow -Group 'Ronin Portier Rules' -ErrorAction SilentlyContinue`);
@@ -1005,12 +1021,14 @@ ipcMain.handle('add-firewall-rule', async (event, { displayName, port, tcp, udp 
     const encoded = Buffer.from(lines.join('\n'), 'utf16le').toString('base64');
     return new Promise((resolve) => {
         exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout, stderr) => {
+            console.log(`[RSM] add-firewall-rule — success: ${!err}${err ? ' | error: ' + (stderr || err.message) : ''}`);
             resolve({ success: !err, error: err ? (stderr || err.message) : null });
         });
     });
 });
 
 ipcMain.handle('check-port-conflicts', async (event, { ports, excludeServerName }) => {
+    console.log(`[RSM] check-port-conflicts — ports: ${JSON.stringify(ports)} | exclude: ${excludeServerName || 'none'}`);
     if (!ports?.length) return [];
     const portList = ports.map(p => `'${p}'`).join(', ');
     // Exclude the server's own existing rules so a re-apply doesn't false-positive on itself
@@ -1039,45 +1057,55 @@ if ($out.Count -eq 0) { Write-Output '[]' } else { $out | ConvertTo-Json -Compre
             if (err || !stdout.trim()) return resolve([]);
             try {
                 const parsed = JSON.parse(stdout.trim());
-                resolve(Array.isArray(parsed) ? parsed : [parsed]);
+                const conflicts = Array.isArray(parsed) ? parsed : [parsed];
+                console.log(`[RSM] check-port-conflicts — found ${conflicts.length} conflict(s)`);
+                resolve(conflicts);
             } catch { resolve([]); }
         });
     });
 });
 
 ipcMain.handle('remove-firewall-rule', async (event, { displayName }) => {
+    console.log(`[RSM] remove-firewall-rule — displayName: "${displayName}"`);
     const safeName = displayName.replace(/'/g, "''");
     const script = `Remove-NetFirewallRule -DisplayName '${safeName}' -ErrorAction SilentlyContinue`;
     const encoded = Buffer.from(script, 'utf16le').toString('base64');
     return new Promise((resolve) => {
         exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout, stderr) => {
+            console.log(`[RSM] remove-firewall-rule — success: ${!err}${err ? ' | error: ' + (stderr || err.message) : ''}`);
             resolve({ success: !err, error: err ? (stderr || err.message) : null });
         });
     });
 });
 
 ipcMain.handle('toggle-firewall-rule', async (event, { displayName, enabled }) => {
+    console.log(`[RSM] toggle-firewall-rule — displayName: "${displayName}" | enabled: ${enabled}`);
     const safeName = displayName.replace(/'/g, "''");
     const state = enabled ? 'True' : 'False';
     const script = `Set-NetFirewallRule -DisplayName '${safeName}' -Enabled ${state} -ErrorAction SilentlyContinue`;
     const encoded = Buffer.from(script, 'utf16le').toString('base64');
     return new Promise((resolve) => {
         exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout, stderr) => {
+            console.log(`[RSM] toggle-firewall-rule — success: ${!err}${err ? ' | error: ' + (stderr || err.message) : ''}`);
             resolve({ success: !err, error: err ? (stderr || err.message) : null });
         });
     });
 });
 
 ipcMain.handle('read-config-file', async (event, filePath) => {
+    console.log(`[RSM] read-config-file — filePath: "${filePath}"`);
     try {
         const content = fs.readFileSync(filePath, 'utf8');
+        console.log(`[RSM] read-config-file — success, ${content.length} chars`);
         return { success: true, content };
     } catch (err) {
+        console.log(`[RSM] read-config-file — failed: ${err.message}`);
         return { success: false, error: err.message };
     }
 });
 
 ipcMain.handle('write-config-file', async (event, { filePath, content, backupDir, serverName }) => {
+    console.log(`[RSM] write-config-file — filePath: "${filePath}" | backupDir: ${backupDir || 'none'}`);
     let backedUp = false;
     let backupError = null;
     try {
@@ -1097,8 +1125,10 @@ ipcMain.handle('write-config-file', async (event, { filePath, content, backupDir
             }
         }
         await fs.promises.writeFile(filePath, content, 'utf8');
+        console.log(`[RSM] write-config-file — success | backedUp: ${backedUp}`);
         return { success: true, backedUp, backupError };
     } catch (err) {
+        console.log(`[RSM] write-config-file — failed: ${err.message}`);
         return { success: false, backedUp, backupError, error: err.message };
     }
 });
