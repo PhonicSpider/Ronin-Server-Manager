@@ -34,8 +34,16 @@ nav:
       - 🦕 Ark Survival: servers/ark-survival.md
       - ☢️ Rust: servers/rust.md
       - 👹 PalWorld: servers/palworld.md
+  - 🎮 Discord Integration: discord-int.md
   - 🛠️ Support: troubleshooting.md
-  - 🔥 Contributing: contributing.md
+  - 🔥 Contributing:
+      - 🏗️ Overview: contributing/index.md
+      - ⚙️ Dev Setup: contributing/dev-setup.md
+      - 🎮 Adding a Game: contributing/new-game.md
+      - 📡 IPC Channels: contributing/ipc-channels.md
+      - 🧩 UI Guide: contributing/ui-guide.md
+      - 🌐 REST API: contributing/rest-api.md
+      - ✅ Checklist: contributing/checklist.md
 
 markdown_extensions:
   - admonition
