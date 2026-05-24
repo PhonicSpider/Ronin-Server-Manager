@@ -12,6 +12,7 @@ const DebugActive = true;
 // Global application state
 let servers = [];             // Stores all server objects (name, path, status, etc.)
 let activeId = null;          // The ID of the server currently being viewed in the Dashboard
+const serverFirewallStatus = {}; // { [srvId]: true | false } — cached per-server firewall rule state
 let targetId = null;          // The ID of the server targeted by the Gear icon menu
 let draggedItemIndex = null;  // Used for reordering the sidebar list
 const GAUGE_MAX = 173;        // SVG stroke-dasharray value for a full semicircle gauge (π × r55)
@@ -52,6 +53,7 @@ async function init() {
     renderSidebar();
     renderTypeCards();
     showView('home');
+
 
     const startupPref = localStorage.getItem('launch-on-startup') === 'true';
     const startupChk = document.getElementById('launch-startup-chk');
@@ -181,9 +183,10 @@ function renderTypeCards() {
 
 window.showView = (viewName) => {
     const views = {
-        'home': document.getElementById('no-selection'),
+        'home':    document.getElementById('no-selection'),
         'manager': document.getElementById('manager-ui'),
-        'settings': document.getElementById('settings-ui')
+        'settings': document.getElementById('settings-ui'),
+        'portier': document.getElementById('portier-ui')
     };
 
     Object.values(views).forEach(v => {
@@ -195,16 +198,23 @@ window.showView = (viewName) => {
 
     const activeView = views[viewName];
     if (activeView) {
-        const displayType = (viewName === 'settings') ? 'block' : 'flex';
+        const displayType = (viewName === 'settings' || viewName === 'portier') ? 'block' : 'flex';
         activeView.style.setProperty('display', displayType, 'important');
         activeView.style.pointerEvents = 'auto';
         activeView.style.height = viewName === 'manager' ? '100%' : 'auto';
     }
 
+    // Sidebar active highlight
+    document.querySelectorAll('.nav-item').forEach(el => el.style.borderLeft = '');
+    if (viewName === 'home')    document.querySelector('.nav-item[onclick*="home"]')?.style.setProperty('border-left', '3px solid var(--accent)');
+    if (viewName === 'portier') document.getElementById('nav-portier')?.style.setProperty('border-left', '3px solid var(--accent)');
+
     if (viewName !== 'manager') {
         activeId = null;
         renderSidebar();
     }
+
+    if (viewName === 'portier') loadPortierView();
 };
 
 
@@ -236,12 +246,22 @@ function renderSidebar() {
         const icon = config ? config.meta.icon : '🖥️';
         const iconHtml = icon.includes('/') ? `<img src="${icon}" class="nav-type-icon" style="width:25px; height:25px; margin-right:5px; margin-top:5px;">` : `<span class="type-icon" style="margin-right:3px;">${icon}</span>`;
 
+        const hasFwPorts = (config?.firewallPorts?.length > 0);
+        let fwBadgeHtml = '';
+        if (hasFwPorts) {
+            const status = serverFirewallStatus[s.id];
+            const badgeState = status === true ? 'active' : status === false ? 'none' : 'inactive';
+            const badgeTip   = status === true ? 'Firewall rules active' : status === false ? 'No firewall rules applied' : 'Firewall status unknown';
+            fwBadgeHtml = `<span class="portier-nav-badge portier-srv-badge ${badgeState}" title="${badgeTip}"></span>`;
+        }
+
         item.innerHTML = `
             <div class="nav-content">
                 <span class="status-dot ${s.status === 'Online' ? 'dot-online' : 'dot-offline'}"></span>
                 ${iconHtml}
                 <span class="server-name">${s.name}</span>
             </div>
+            ${fwBadgeHtml}
             <div class="item-options-gear" onclick="toggleSidebarMenu(event, '${s.id}')" style="position:absolute; right:0;">
                 ⚙️
             </div>
@@ -338,7 +358,392 @@ function selectServer(id) {
             qaCard.style.display = 'none';
         }
     }
+
+    renderFirewallPorts(srv, config);
 }
+
+function renderFirewallPorts(srv, config) {
+    const card = document.getElementById('firewall-ports-card');
+    const rows = document.getElementById('firewall-ports-rows');
+    if (!card || !rows) return;
+
+    const portDefs = config?.firewallPorts;
+    if (!portDefs?.length) {
+        card.style.display = 'none';
+        updateFirewallStatus(null);
+        return;
+    }
+
+    // Merge config defaults with any per-server overrides saved on the server object
+    const overrides = srv.firewallPorts || {};
+
+    rows.innerHTML = '';
+    portDefs.forEach(def => {
+        const override = overrides[def.id] || {};
+        const portVal  = override.port ?? def.default;
+        const tcpVal   = override.tcp  ?? def.tcp;
+        const udpVal   = override.udp  ?? def.udp;
+
+        const row = document.createElement('div');
+        row.className = 'fw-port-row';
+        row.dataset.portId = def.id;
+        row.innerHTML = `
+            <span class="fw-port-label" title="${def.description || ''}">${def.label}</span>
+            <input class="fw-port-input" type="number" min="1" max="65535"
+                   value="${portVal}" data-id="${def.id}" />
+            <label class="fw-toggle" title="TCP">
+                <input type="checkbox" data-id="${def.id}" data-proto="tcp" ${tcpVal ? 'checked' : ''}>
+                <span>TCP</span>
+            </label>
+            <label class="fw-toggle" title="UDP">
+                <input type="checkbox" data-id="${def.id}" data-proto="udp" ${udpVal ? 'checked' : ''}>
+                <span>UDP</span>
+            </label>
+            <span class="fw-port-desc">${def.description || ''}</span>`;
+        rows.appendChild(row);
+    });
+
+    card.style.display = 'block';
+    checkFirewallStatus(srv);
+}
+
+window.saveFirewallPortOverrides = async function () {
+    const srv = servers.find(s => s.id === activeId);
+    if (!srv) return;
+
+    const config = ServerTypeRegistry[srv.type];
+    const portDefs = config?.firewallPorts || [];
+    const overrides = {};
+
+    portDefs.forEach(def => {
+        const portInput = document.querySelector(`.fw-port-input[data-id="${def.id}"]`);
+        const tcpInput  = document.querySelector(`input[data-id="${def.id}"][data-proto="tcp"]`);
+        const udpInput  = document.querySelector(`input[data-id="${def.id}"][data-proto="udp"]`);
+        if (!portInput) return;
+        overrides[def.id] = {
+            port: parseInt(portInput.value, 10) || def.default,
+            tcp:  tcpInput  ? tcpInput.checked  : def.tcp,
+            udp:  udpInput  ? udpInput.checked  : def.udp,
+        };
+    });
+
+    // Conflict check — runs BEFORE touching any existing rules; exclude this server's own rules
+    const newPorts = Object.values(overrides).map(o => o.port);
+    const conflicts = await window.api.invoke('check-port-conflicts', { ports: newPorts, excludeServerName: srv.name });
+    if (conflicts?.length) {
+        const names = conflicts.map(c => `Port ${c.port} (${c.protocol}): "${c.ruleName}"`).join('; ');
+        window.updateSystemLog(`[RSM] ⚠ Port conflict — the following ports are already claimed by other rules: ${names}. Review before applying.`);
+    }
+
+    // If rules are currently active, remove old ones and apply new ones automatically
+    const rulesActive = await window.api.invoke('check-firewall-rules', { serverName: srv.name });
+    if (rulesActive) {
+        const isAdmin = await window.api.invoke('check-admin');
+        if (isAdmin) {
+            const ports = portDefs.map(def => {
+                const ov = overrides[def.id] || {};
+                return { id: def.id, label: def.label, port: ov.port ?? def.default, tcp: ov.tcp ?? def.tcp, udp: ov.udp ?? def.udp };
+            });
+            window.updateSystemLog(`[RSM] Port config changed — removing old rules and applying updated ports for "${srv.name}"...`);
+            const result = await window.api.invoke('apply-firewall-rules', { serverName: srv.name, ports });
+            if (result.success) {
+                window.updateSystemLog(`[RSM] Firewall rules updated for "${srv.name}".`);
+                updateFirewallStatus(true);
+            } else {
+                window.updateSystemLog(`[RSM] Warning: Config saved but rules could not be updated: ${result.error || 'Unknown error'}`);
+            }
+        } else {
+            window.updateSystemLog(`[RSM] Warning: Active rules exist for "${srv.name}" but RSM needs Administrator to update them. Rules may be out of sync with saved ports.`);
+        }
+    }
+
+    srv.firewallPorts = overrides;
+    window.api.send('save-servers', servers);
+    window.updateSystemLog(`[RSM] Firewall port config saved for ${srv.name}.`);
+};
+
+function updateFirewallStatus(active) {
+    const statusEl = document.getElementById('fw-status');
+    if (!statusEl) return;
+    if (active === null) {
+        statusEl.className = 'fw-status fw-status-unknown';
+        statusEl.textContent = '';
+    } else if (active) {
+        statusEl.className = 'fw-status fw-status-active';
+        statusEl.textContent = '● Rules Active';
+    } else {
+        statusEl.className = 'fw-status fw-status-inactive';
+        statusEl.textContent = '○ No Rules';
+    }
+}
+
+async function checkFirewallStatus(srv) {
+    const statusEl = document.getElementById('fw-status');
+    if (statusEl) {
+        statusEl.className = 'fw-status fw-status-unknown';
+        statusEl.textContent = '● Checking...';
+    }
+    const isActive = await window.api.invoke('check-firewall-rules', { serverName: srv.name });
+    serverFirewallStatus[srv.id] = isActive;
+    updateFirewallStatus(isActive);
+    renderSidebar();
+}
+
+window.applyFirewallRules = async function () {
+    const srv = servers.find(s => s.id === activeId);
+    if (!srv) return;
+
+    const isAdmin = await window.api.invoke('check-admin');
+    if (!isAdmin) {
+        window.updateSystemLog('[RSM] Cannot apply firewall rules: RSM must be run as Administrator.');
+        return;
+    }
+
+    const config = ServerTypeRegistry[srv.type];
+    const portDefs = config?.firewallPorts || [];
+    const overrides = srv.firewallPorts || {};
+    const ports = portDefs.map(def => {
+        const ov = overrides[def.id] || {};
+        return { id: def.id, label: def.label, port: ov.port ?? def.default, tcp: ov.tcp ?? def.tcp, udp: ov.udp ?? def.udp };
+    });
+
+    window.updateSystemLog(`[RSM] Applying firewall rules for "${srv.name}"...`);
+    const result = await window.api.invoke('apply-firewall-rules', { serverName: srv.name, ports });
+    if (result.success) {
+        window.updateSystemLog(`[RSM] Firewall rules applied for "${srv.name}".`);
+        serverFirewallStatus[srv.id] = true;
+        updateFirewallStatus(true);
+        renderSidebar();
+    } else {
+        window.updateSystemLog(`[RSM] Failed to apply rules: ${result.error || 'Unknown error'}`);
+    }
+};
+
+window.removeFirewallRules = async function () {
+    const srv = servers.find(s => s.id === activeId);
+    if (!srv) return;
+
+    const isAdmin = await window.api.invoke('check-admin');
+    if (!isAdmin) {
+        window.updateSystemLog('[RSM] Cannot remove firewall rules: RSM must be run as Administrator.');
+        return;
+    }
+
+    window.updateSystemLog(`[RSM] Removing firewall rules for "${srv.name}"...`);
+    const result = await window.api.invoke('remove-firewall-rules', { serverName: srv.name });
+    if (result.success) {
+        window.updateSystemLog(`[RSM] Firewall rules removed for "${srv.name}".`);
+        serverFirewallStatus[srv.id] = false;
+        updateFirewallStatus(false);
+        renderSidebar();
+    } else {
+        window.updateSystemLog(`[RSM] Failed to remove rules: ${result.error || 'Unknown error'}`);
+    }
+};
+
+
+//      ____   ___  ____ _____ ___ _____ ____
+//     |  _ \ / _ \|  _ \_   _|_ _| ____|  _ \
+//     | |_) | | | | |_) || |  | ||  _| | |_) |
+//     |  __/| |_| |  _ < | |  | || |___|  _ <
+//     |_|    \___/|_| \_\|_| |___|_____|_| \_\
+//
+
+function updatePortierNavBadge(state) {
+    const badge = document.getElementById('portier-nav-badge');
+    if (!badge) return;
+    badge.className = `portier-nav-badge badge-${state}`;
+    badge.title = {
+        active:   'Firewall rules are active',
+        inactive: 'Ports configured — rules not yet applied',
+        none:     'No firewall ports configured'
+    }[state] || '';
+}
+
+function portierLog(msg) {
+    const log = document.getElementById('portier-log');
+    if (!log) return;
+    const now = new Date();
+    const ts = now.toLocaleTimeString('en-GB', { hour12: false });
+    const line = document.createElement('div');
+    line.textContent = `[${ts}] ${msg}`;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+}
+
+async function loadPortierView() {
+    const list       = document.getElementById('portier-rules-list');
+    const count      = document.getElementById('portier-rule-count');
+    const adminBadge = document.getElementById('portier-admin-badge');
+    if (!list) return;
+
+    list.innerHTML = '<span class="portier-empty">Loading...</span>';
+    if (count) count.textContent = '—';
+
+    const isAdmin = await window.api.invoke('check-admin');
+    console.log('[Portier] loadPortierView — isAdmin:', isAdmin);
+    if (adminBadge) {
+        adminBadge.textContent = isAdmin ? '● Admin' : '○ Not Admin';
+        adminBadge.className = `portier-admin-badge ${isAdmin ? 'admin-yes' : 'admin-no'}`;
+    }
+    const addBtn      = document.querySelector('.portier-add-btn');
+    const applyAllBtn = document.querySelector('.portier-apply-all-btn');
+    if (addBtn)      addBtn.disabled      = !isAdmin;
+    if (applyAllBtn) applyAllBtn.disabled = !isAdmin;
+    console.log('[Portier] addBtn found:', !!addBtn, '| disabled:', addBtn?.disabled);
+
+    const rules = await window.api.invoke('get-firewall-rules');
+
+    if (!rules || !rules.length) {
+        list.innerHTML = '<span class="portier-empty">No managed rules found.</span>';
+        if (count) count.textContent = '0 rules';
+        return;
+    }
+
+    if (count) count.textContent = `${rules.length} rule${rules.length !== 1 ? 's' : ''}`;
+    list.innerHTML = '';
+
+    rules.forEach(rule => {
+        const enabled  = rule.enabled === 'True';
+        const safeName = rule.name.replace(/'/g, "\\'");
+        const row = document.createElement('div');
+        row.className = 'portier-rule-row';
+        row.innerHTML = `
+            <span class="portier-rule-name" title="${rule.name}">${rule.name}</span>
+            <span class="portier-rule-pill portier-rule-proto">${rule.protocol || '—'}</span>
+            <span class="portier-rule-pill portier-rule-port">${rule.port || '—'}</span>
+            <button class="portier-toggle-btn ${enabled ? 'toggle-on' : 'toggle-off'}" ${!isAdmin ? 'disabled' : ''} onclick="togglePortierRule('${safeName}', ${enabled})">${enabled ? 'Enabled' : 'Disabled'}</button>
+            <button class="btn btn-outline portier-remove-btn" ${!isAdmin ? 'disabled' : ''} onclick="removePortierRule('${safeName}')">Remove</button>`;
+        list.appendChild(row);
+    });
+}
+
+window.togglePortierRule = async function (displayName, currentlyEnabled) {
+    const isAdmin = await window.api.invoke('check-admin');
+    if (!isAdmin) { portierLog('Error: RSM must be run as Administrator to manage firewall rules.'); return; }
+
+    const newState = !currentlyEnabled;
+    portierLog(`${newState ? 'Enabling' : 'Disabling'} rule "${displayName}"...`);
+    const result = await window.api.invoke('toggle-firewall-rule', { displayName, enabled: newState });
+
+    if (result.success) {
+        portierLog(`Rule "${displayName}" ${newState ? 'enabled' : 'disabled'}.`);
+        await loadPortierView();
+    } else {
+        portierLog(`Failed to toggle rule: ${result.error || 'Unknown error'}`);
+    }
+};
+
+window.applyAllServerRules = async function () {
+    const isAdmin = await window.api.invoke('check-admin');
+    if (!isAdmin) { portierLog('Error: RSM must be run as Administrator to manage firewall rules.'); return; }
+
+    const targets = servers.filter(s => {
+        const portDefs = ServerTypeRegistry[s.type]?.firewallPorts;
+        return portDefs && portDefs.length > 0;
+    });
+
+    if (!targets.length) {
+        portierLog('No servers with configured firewall ports found.');
+        return;
+    }
+
+    portierLog(`Applying firewall rules for ${targets.length} server${targets.length !== 1 ? 's' : ''}...`);
+    let ok = 0, fail = 0;
+    for (const srv of targets) {
+        const config   = ServerTypeRegistry[srv.type];
+        const portDefs = config.firewallPorts;
+        const overrides = srv.firewallPorts || {};
+        const ports = portDefs.map(def => {
+            const ov = overrides[def.id] || {};
+            return { id: def.id, label: def.label, port: ov.port ?? def.default, tcp: ov.tcp ?? def.tcp, udp: ov.udp ?? def.udp };
+        });
+        portierLog(`  → ${srv.name}...`);
+        const result = await window.api.invoke('apply-firewall-rules', { serverName: srv.name, ports });
+        if (result.success) {
+            ok++;
+            serverFirewallStatus[srv.id] = true;
+        } else {
+            fail++;
+            portierLog(`    Failed: ${result.error || 'Unknown error'}`);
+        }
+    }
+    portierLog(`Done — ${ok} succeeded${fail > 0 ? `, ${fail} failed` : ''}.`);
+    renderSidebar();
+    await loadPortierView();
+};
+
+window.addCustomRule = async function () {
+    console.log('[Portier] addCustomRule called');
+    const nameEl = document.getElementById('portier-rule-name');
+    const portEl = document.getElementById('portier-rule-port');
+    const tcp    = document.getElementById('portier-tcp')?.checked;
+    const udp    = document.getElementById('portier-udp')?.checked;
+    const addBtn = document.querySelector('.portier-add-btn');
+
+    const displayName = nameEl?.value.trim();
+    const port = parseInt(portEl?.value, 10);
+    console.log('[Portier] addCustomRule — name:', displayName, '| port:', port, '| tcp:', tcp, '| udp:', udp);
+
+    if (!displayName) { portierLog('Error: A display name is required.'); return; }
+    if (!port || port < 1 || port > 65535) { portierLog('Error: Enter a valid port (1–65535).'); return; }
+    if (!tcp && !udp) { portierLog('Error: Select at least one protocol (TCP or UDP).'); return; }
+
+    const isAdmin = await window.api.invoke('check-admin');
+    console.log('[Portier] addCustomRule — isAdmin:', isAdmin);
+    if (!isAdmin) { portierLog('Error: RSM must be run as Administrator to manage firewall rules.'); return; }
+
+    // Reset acknowledgement if the port changed since the warning was shown
+    if (window._portierAddConflictPort !== port) {
+        window._portierAddConflictAcknowledged = false;
+        if (addBtn) addBtn.textContent = '+ Add Rule';
+    }
+
+    // Conflict check — skip if user already clicked through the warning for this port
+    if (!window._portierAddConflictAcknowledged) {
+        const conflicts = await window.api.invoke('check-port-conflicts', { ports: [port] });
+        console.log('[Portier] addCustomRule — conflicts:', conflicts);
+        if (conflicts?.length) {
+            const names = conflicts.map(c => `Port ${c.port} (${c.protocol}): "${c.ruleName}"`).join('; ');
+            portierLog(`⚠ Port conflict — ${names}. Click Add Anyway to proceed.`);
+            window._portierAddConflictAcknowledged = true;
+            window._portierAddConflictPort = port;
+            if (addBtn) addBtn.textContent = 'Add Anyway';
+            return;
+        }
+    }
+    window._portierAddConflictAcknowledged = false;
+    window._portierAddConflictPort = null;
+    if (addBtn) addBtn.textContent = '+ Add Rule';
+
+    portierLog(`Adding rule "${displayName}" on port ${port}${tcp ? ' TCP' : ''}${udp ? ' UDP' : ''}...`);
+    const result = await window.api.invoke('add-firewall-rule', { displayName, port, tcp, udp });
+    console.log('[Portier] addCustomRule — add-firewall-rule result:', result);
+
+    if (result.success) {
+        portierLog(`Rule "${displayName}" added successfully.`);
+        if (nameEl) nameEl.value = '';
+        if (portEl) portEl.value = '';
+        await loadPortierView();
+    } else {
+        portierLog(`Failed to add rule: ${result.error || 'Unknown error'}`);
+    }
+};
+
+window.removePortierRule = async function (displayName) {
+    const isAdmin = await window.api.invoke('check-admin');
+    if (!isAdmin) { portierLog('Error: RSM must be run as Administrator to manage firewall rules.'); return; }
+
+    portierLog(`Removing rule "${displayName}"...`);
+    const result = await window.api.invoke('remove-firewall-rule', { displayName });
+
+    if (result.success) {
+        portierLog(`Rule "${displayName}" removed.`);
+        await loadPortierView(); // badge updated inside loadPortierView
+    } else {
+        portierLog(`Failed to remove rule: ${result.error || 'Unknown error'}`);
+    }
+};
 
 
 //       ____  _____    _    ____    __  __ _____ _   _ _   _
@@ -438,6 +843,17 @@ window.openEditModal = (serverId) => {
                 console.log(`[RSM-DEBUG] Field '${id}' not found in DOM (this may be normal depending on server type)`);
             }
         });
+        // Pre-fill wizard fw port inputs with server's saved overrides (if any)
+        if (srv.firewallPorts) {
+            const fwRows = document.getElementById('wizard-fw-ports-rows');
+            if (fwRows) {
+                Object.entries(srv.firewallPorts).forEach(([id, ov]) => {
+                    const input = fwRows.querySelector(`.wizard-fw-input[data-id="${id}"]`);
+                    if (input && ov.port) input.value = ov.port;
+                });
+            }
+        }
+
         console.log("[RSM-DEBUG] All form fields populated.");
     } catch (err) {
         console.error("[RSM-ERROR] Failed to fill form fields:", err);
@@ -929,6 +1345,11 @@ function updateGauge(type, percent, label) {
 //  /_/   \_|____/|____/  |____/|_____|_| \_\ \_/  |_____|_| \_\     \_/\_/  |___|____|\_/  \_/\_|_|\_____/
 //
 
+function resetWizardSaveBtn() {
+    const btn = document.getElementById('wizard-save-btn');
+    if (btn) { btn.textContent = 'Save Configuration'; btn.onclick = () => saveNewServer(); }
+}
+
 window.openModal = () => {
     document.getElementById('modal').style.display = 'flex';
 };
@@ -947,6 +1368,12 @@ window.openAddModal = () => {
 window.closeModal = () => {
     document.getElementById('modal').style.display = 'none';
     window.editingServerId = null;
+    window._fwConflictsAcknowledged = false;
+    const fwBlock = document.getElementById('wizard-fw-ports-block');
+    if (fwBlock) fwBlock.style.display = 'none';
+    const fwBanner = document.getElementById('wizard-fw-conflict-banner');
+    if (fwBanner) fwBanner.style.display = 'none';
+    resetWizardSaveBtn();
     window.showWizardStep(1);
 };
 
@@ -1027,6 +1454,34 @@ window.selectServerType = (type) => {
         }
     });
 
+    // Populate wizard firewall ports section
+    const fwBlock = document.getElementById('wizard-fw-ports-block');
+    const fwRows  = document.getElementById('wizard-fw-ports-rows');
+    const fwBanner = document.getElementById('wizard-fw-conflict-banner');
+    if (fwBlock && fwRows) {
+        const portDefs = config.firewallPorts;
+        if (portDefs?.length) {
+            fwRows.innerHTML = '';
+            portDefs.forEach(def => {
+                const protos = [def.tcp && 'TCP', def.udp && 'UDP'].filter(Boolean).join(' / ');
+                const row = document.createElement('div');
+                row.className = 'wizard-fw-row';
+                row.innerHTML = `
+                    <span class="fw-port-label">${def.label}</span>
+                    <input class="fw-port-input wizard-fw-input" type="number" min="1" max="65535"
+                           value="${def.default}" data-id="${def.id}" />
+                    <span class="wizard-fw-proto">${protos}</span>
+                    <span class="fw-port-desc">${def.description || ''}</span>`;
+                fwRows.appendChild(row);
+            });
+            fwBlock.style.display = 'block';
+        } else {
+            fwBlock.style.display = 'none';
+        }
+    }
+    if (fwBanner) fwBanner.style.display = 'none';
+    resetWizardSaveBtn();
+
     window.showWizardStep(2);
 };
 
@@ -1039,12 +1494,12 @@ window.openActiveFolder = () => {
 };
 
 // Adds a new server or updates an existing one in the servers list
-window.saveNewServer = () => {
+window.saveNewServer = async () => {
     const name = document.getElementById('newName').value;
     const path = document.getElementById('exePath').value;
     const type = window.selectedType || "other";
     const config = ServerTypeRegistry[type] || {};
-    const category = config ? config.backend.category : "DIRECT_CONSOLE";
+    const category = config ? config.backend?.category : "DIRECT_CONSOLE";
 
     const apiPort = document.getElementById('portId').value || "8080";
     const apiPass = document.getElementById('portPass').value || "";
@@ -1056,13 +1511,55 @@ window.saveNewServer = () => {
 
     if (!name || !path) return alert("Please provide a name and select an executable.");
 
+    // Collect wizard firewall port overrides
+    const portDefs = config.firewallPorts || [];
+    let firewallPorts = undefined;
+    if (portDefs.length) {
+        firewallPorts = {};
+        portDefs.forEach(def => {
+            const input = document.querySelector(`#wizard-fw-ports-rows .wizard-fw-input[data-id="${def.id}"]`);
+            firewallPorts[def.id] = {
+                port: parseInt(input?.value, 10) || def.default,
+                tcp: def.tcp,
+                udp: def.udp
+            };
+        });
+    }
+
+    // Port conflict check — skip if user has already acknowledged the warning
+    if (!window._fwConflictsAcknowledged && firewallPorts) {
+        const portsToCheck = Object.values(firewallPorts).map(o => o.port);
+        // When editing an existing server, exclude its own rules (they'll be replaced on apply)
+        const existingName = window.editingServerId
+            ? servers.find(s => s.id.toString() === window.editingServerId.toString())?.name
+            : null;
+        const conflicts = await window.api.invoke('check-port-conflicts', { ports: portsToCheck, excludeServerName: existingName });
+        if (conflicts?.length) {
+            const banner = document.getElementById('wizard-fw-conflict-banner');
+            if (banner) {
+                const items = conflicts.map(c => `<li>Port ${c.port} (${c.protocol}) — already used by: <em>${c.ruleName}</em></li>`).join('');
+                banner.innerHTML = `<strong>⚠ Port Conflict Detected</strong><br>
+                    The following ports are already claimed by existing Windows Firewall rules. Opening them may conflict with another service:<ul>${items}</ul>
+                    <span style="opacity:0.75;font-size:11px;">Adjust the ports above, or click <strong>Save Anyway</strong> to proceed.</span>`;
+                banner.style.display = 'block';
+            }
+            const btn = document.getElementById('wizard-save-btn');
+            if (btn) { btn.textContent = 'Save Anyway'; btn.onclick = () => { window._fwConflictsAcknowledged = true; window.saveNewServer(); }; }
+            return;
+        }
+    }
+
+    // Reset conflict state for next open
+    window._fwConflictsAcknowledged = false;
+
     if (window.editingServerId) {
         const index = servers.findIndex(s => s.id.toString() === window.editingServerId.toString());
         if (index !== -1) {
             const existing = servers[index];
             servers[index] = {
                 ...existing,
-                name, path, apiPort, apiPass, args, logPath, workingDir, mcRam, seInstance, type, category
+                name, path, apiPort, apiPass, args, logPath, workingDir, mcRam, seInstance, type, category,
+                ...(firewallPorts && { firewallPorts })
             };
             if (DebugActive) {
                 window.updateSystemLog(`---Saving server ${name} with the following settings---`);
@@ -1074,7 +1571,8 @@ window.saveNewServer = () => {
             id: Date.now().toString(),
             type, category, name, path, apiPort, apiPass, mcRam, seInstance,
             args, logPath, workingDir,
-            status: 'Offline', logs: '', pid: null
+            status: 'Offline', logs: '', pid: null,
+            ...(firewallPorts && { firewallPorts })
         });
     }
 
