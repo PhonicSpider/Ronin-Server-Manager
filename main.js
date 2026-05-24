@@ -28,6 +28,8 @@ const activeProcesses = {};
 const serverStats = {}; // { [srvId]: { cpu, ramMB } } — updated each heartbeat tick
 const DATA_FILE       = path.join(app.getPath('userData'), 'servers.json');
 const API_CONFIG_FILE = path.join(app.getPath('userData'), 'api-config.json');
+const TLS_CERT_FILE   = path.join(app.getPath('userData'), 'rsm-tls-cert.pem');
+const TLS_KEY_FILE    = path.join(app.getPath('userData'), 'rsm-tls-key.pem');
 const debugPrefix = "[RSM-DEBUG]";
 const DebugActive = true;    // Set to true to enable verbose logging for debugging purposes
 const DebugLogging = false;  // Set to true to enable debug logging for all operations
@@ -151,7 +153,8 @@ app.whenReady().then(() => {
     // Boot the REST API if the user has it enabled
     const apiCfg = loadApiConfig();
     if (apiCfg.enabled && apiCfg.apiKey) {
-        apiServer.start(apiCfg.port || 3002, apiCfg.apiKey);
+        const tls = ensureTlsCert();
+        apiServer.start(apiCfg.port || 3002, apiCfg.apiKey, { key: tls.key, cert: tls.cert });
     }
 });
 
@@ -203,17 +206,45 @@ function loadApiConfig() {
 
 function saveApiConfig(config) {
     fs.writeFileSync(API_CONFIG_FILE, JSON.stringify(config, null, 2));
-    // Write a convenience file ArkenBot / external tools can read to get the key
+    // Write a convenience file ArkenBot / external tools can read to get the key and cert fingerprint
     try {
+        const tls        = ensureTlsCert();
         const rsmApiPath = path.join(app.getPath('appData'), 'rsm-api.json');
         fs.writeFileSync(rsmApiPath, JSON.stringify({
-            url: `http://localhost:${config.port || 3002}`,
-            apiKey: config.apiKey || '',
-            port: config.port || 3002
+            url:         `https://localhost:${config.port || 3002}`,
+            apiKey:      config.apiKey || '',
+            port:        config.port || 3002,
+            fingerprint: tls.fingerprint
         }, null, 2));
     } catch (e) {
         console.warn('[RSM] Could not write rsm-api.json:', e.message);
     }
+}
+
+// Generates (or loads from cache) a self-signed TLS cert for the REST API.
+// Returns { key, cert, fingerprint } — fingerprint is SHA-256 in AA:BB:CC format.
+function ensureTlsCert() {
+    if (fs.existsSync(TLS_CERT_FILE) && fs.existsSync(TLS_KEY_FILE)) {
+        try {
+            const cert = fs.readFileSync(TLS_CERT_FILE, 'utf8');
+            const key  = fs.readFileSync(TLS_KEY_FILE,  'utf8');
+            const x509 = new crypto.X509Certificate(cert);
+            return { key, cert, fingerprint: x509.fingerprint256 };
+        } catch (e) {
+            console.warn('[RSM-TLS] Could not read existing cert, regenerating:', e.message);
+        }
+    }
+
+    const selfsigned = require('selfsigned');
+    const attrs = [{ name: 'commonName', value: 'ronin-server-manager' }];
+    const pems  = selfsigned.generate(attrs, { days: 3650, algorithm: 'sha256', keySize: 2048 });
+
+    fs.writeFileSync(TLS_CERT_FILE, pems.cert, { mode: 0o600 });
+    fs.writeFileSync(TLS_KEY_FILE,  pems.private, { mode: 0o600 });
+
+    const x509 = new crypto.X509Certificate(pems.cert);
+    console.log(`[RSM-TLS] Generated new TLS cert. Fingerprint: ${x509.fingerprint256}`);
+    return { key: pems.private, cert: pems.cert, fingerprint: x509.fingerprint256 };
 }
 
 // --- GET SERVER LIST ---
@@ -250,7 +281,8 @@ ipcMain.handle('get-api-config', () => loadApiConfig());
 ipcMain.on('save-api-config', (event, config) => {
     saveApiConfig(config);
     if (config.enabled && config.apiKey) {
-        apiServer.start(config.port || 3002, config.apiKey);
+        const tls = ensureTlsCert();
+        apiServer.start(config.port || 3002, config.apiKey, { key: tls.key, cert: tls.cert });
     } else {
         apiServer.stop();
     }
@@ -263,7 +295,8 @@ ipcMain.handle('regenerate-api-key', () => {
     if (!config.port) config.port = 3002;
     saveApiConfig(config);
     if (config.enabled) {
-        apiServer.start(config.port, config.apiKey);
+        const tls = ensureTlsCert();
+        apiServer.start(config.port, config.apiKey, { key: tls.key, cert: tls.cert });
     }
     console.log('[RSM] API key regenerated.');
     return config;

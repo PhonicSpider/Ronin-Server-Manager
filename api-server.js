@@ -1,12 +1,15 @@
 'use strict';
 
-// RSM REST API — exposes server management over HTTP so external tools
+// RSM REST API — exposes server management over HTTPS so external tools
 // (e.g. ArkenBot's rsm-manager addon) can control servers remotely.
-// Authentication: x-api-key request header.
+// Authentication: x-api-key request header (constant-time comparison).
 // All requests / responses are application/json.
 
 const http   = require('http');
+const https  = require('https');
 const crypto = require('crypto');
+
+const MAX_BODY = 1 * 1024 * 1024; // 1 MB request body cap
 
 // ── Injected dependencies ──────────────────────────────────────────────────
 let _getManagedServers;
@@ -32,7 +35,8 @@ function init(deps) {
     _ipcMain            = deps.ipcMain;
 }
 
-function start(port, apiKey) {
+// tlsOpts: { key, cert } for HTTPS, omit for plain HTTP (dev/fallback only).
+function start(port, apiKey, tlsOpts) {
     const newPort = port   || 3002;
     const newKey  = apiKey || '';
 
@@ -47,10 +51,12 @@ function start(port, apiKey) {
         _server = null;
     }
 
-    _server = http.createServer(onRequest);
+    _server = tlsOpts
+        ? https.createServer(tlsOpts, onRequest)
+        : http.createServer(onRequest);
 
     _server.listen(_port, '0.0.0.0', () => {
-        console.log(`[RSM-API] Listening on 0.0.0.0:${_port}`);
+        console.log(`[RSM-API] Listening on 0.0.0.0:${_port} (${tlsOpts ? 'HTTPS' : 'HTTP'})`);
     });
 
     _server.on('error', err => {
@@ -76,7 +82,13 @@ function onRequest(req, res) {
     // Collect body first for POST requests, then dispatch
     if (req.method === 'POST') {
         let raw = '';
-        req.on('data', chunk => { raw += chunk.toString(); });
+        req.on('data', chunk => {
+            if (raw.length + chunk.length > MAX_BODY) {
+                req.destroy();
+                return;
+            }
+            raw += chunk.toString();
+        });
         req.on('end', () => {
             let body = {};
             try { body = JSON.parse(raw); } catch {}
@@ -97,8 +109,14 @@ function dispatch(req, res, body) {
         return;
     }
 
-    // ── Auth ─────────────────────────────────────────────────────────────
-    if (!_apiKey || req.headers['x-api-key'] !== _apiKey) {
+    // ── Auth (constant-time comparison) ──────────────────────────────────
+    if (!_apiKey) {
+        send(res, 401, { error: 'Unauthorized' });
+        return;
+    }
+    const incoming = Buffer.from(req.headers['x-api-key'] || '', 'utf8');
+    const expected = Buffer.from(_apiKey, 'utf8');
+    if (incoming.length !== expected.length || !crypto.timingSafeEqual(incoming, expected)) {
         send(res, 401, { error: 'Unauthorized' });
         return;
     }
