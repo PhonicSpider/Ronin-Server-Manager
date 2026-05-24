@@ -23,6 +23,11 @@
         <span class="server-name">Network Home</span>
     </div>
 
+    <div class="nav-item" id="nav-portier" onclick="showView('portier')">
+        <span style="margin-right: 10px;">🛡️</span>
+        <span class="server-name">Firewall Manager</span>
+    </div>
+
     <div class="sidebar-label">SERVERS</div>
     <nav id="server-list" class="nav-container"></nav>
 
@@ -167,6 +172,24 @@
                 <div class="toggle-group">
                     <input type="checkbox" id="auto-restart-chk">
                     <label for="auto-restart-chk">Auto-Restart</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Firewall port management (shown only if the game config defines firewallPorts) -->
+        <div id="firewall-ports-card" class="card firewall-ports-card" style="display:none;">
+            <div class="fw-card-layout">
+                <div class="fw-card-left">
+                    <div class="fw-card-header">
+                        <span class="stat-label">FIREWALL PORTS</span>
+                        <span id="fw-status" class="fw-status fw-status-unknown"></span>
+                    </div>
+                    <div id="firewall-ports-rows" class="firewall-ports-rows"></div>
+                </div>
+                <div class="fw-btn-stack">
+                    <button class="btn btn-outline firewall-save-btn" onclick="saveFirewallPortOverrides()">Save Changes</button>
+                    <button class="btn btn-outline fw-apply-btn" onclick="applyFirewallRules()">Apply Rules</button>
+                    <button class="btn btn-outline fw-remove-btn" onclick="removeFirewallRules()">Remove Rules</button>
                 </div>
             </div>
         </div>
@@ -359,6 +382,58 @@
         </div>
     </div>
 
+    <!-- ================================================================
+          PORTIER VIEW  —  Firewall rule management
+         ================================================================ -->
+    <div id="portier-ui" style="display:none;">
+        <header class="header">
+            <div>
+                <h1>Firewall Manager</h1>
+                <p class="tiny-label">Ronin Portier — Windows Firewall Rule Management</p>
+            </div>
+            <div class="portier-header-actions">
+                <span id="portier-admin-badge" class="portier-admin-badge">—</span>
+                <button class="btn btn-outline portier-apply-all-btn" onclick="applyAllServerRules()">⚡ Apply All Servers</button>
+                <button class="btn btn-outline portier-refresh-btn" onclick="loadPortierView()">↻ Refresh</button>
+            </div>
+        </header>
+
+        <!-- Managed rules list -->
+        <div class="card portier-rules-card">
+            <div class="portier-card-header">
+                <span class="stat-label">MANAGED RULES</span>
+                <span id="portier-rule-count" class="portier-rule-count">—</span>
+            </div>
+            <div id="portier-rules-list" class="portier-rules-list">
+                <span class="portier-empty">No managed rules found.</span>
+            </div>
+        </div>
+
+        <!-- Add custom rule -->
+        <div class="card portier-add-card">
+            <span class="stat-label">ADD CUSTOM RULE</span>
+            <div class="portier-add-row">
+                <input id="portier-rule-name" class="portier-input portier-input-name" type="text" placeholder="Display name (e.g. My App Port)">
+                <input id="portier-rule-port" class="portier-input portier-input-port" type="number" min="1" max="65535" placeholder="Port">
+                <label class="fw-toggle">
+                    <input type="checkbox" id="portier-tcp" checked>
+                    <span>TCP</span>
+                </label>
+                <label class="fw-toggle">
+                    <input type="checkbox" id="portier-udp">
+                    <span>UDP</span>
+                </label>
+                <button class="btn btn-outline portier-add-btn" onclick="addCustomRule()">+ Add Rule</button>
+            </div>
+        </div>
+
+        <!-- Activity log -->
+        <div class="terminal-container">
+            <div class="terminal-header">PORTIER ACTIVITY LOG</div>
+            <div id="portier-log" class="terminal-body"></div>
+        </div>
+    </div>
+
 </main>
 
 <!-- ================================================================
@@ -434,8 +509,18 @@
                 <textarea id="customArgs"></textarea>
             </div>
 
+            <!-- Firewall ports — shown for games that define firewallPorts defaults -->
+            <div id="wizard-fw-ports-block" class="input-block" style="display:none;">
+                <label class="tiny-label">FIREWALL PORTS</label>
+                <p class="wizard-fw-note">Default ports for this server type. Edit if your server uses non-standard ports.</p>
+                <div id="wizard-fw-ports-rows" class="wizard-fw-rows"></div>
+            </div>
+
+            <!-- Conflict warning — shown when a port is already claimed by another rule -->
+            <div id="wizard-fw-conflict-banner" class="wizard-fw-conflict" style="display:none;"></div>
+
             <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 20px;">
-                <button class="btn btn-primary" style="flex: 2;" onclick="saveNewServer()">Save Configuration</button>
+                <button id="wizard-save-btn" class="btn btn-primary" style="flex: 2;" onclick="saveNewServer()">Save Configuration</button>
                 <button class="btn btn-outline" style="flex: 1;" onclick="closeModal()">Cancel</button>
             </div>
         </div>
