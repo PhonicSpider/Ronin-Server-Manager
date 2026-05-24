@@ -1178,20 +1178,17 @@ window.api.receive('status-change', (data) => {
 // Receives player count + session name from main; updates the status bar pills
 window.api.receive('player-count-update', (data) => {
     if (data.id !== activeId) return;
-    console.log(`[RSM] player-count-update — id: ${data.id} | players: ${data.players}`);
     if (data.players !== null) document.getElementById('stat-players').innerText = data.players;
 });
 
 // Receives per-server CPU/RAM data every 2 seconds; updates circular gauges
 window.api.receive('server-perf-update', (data) => {
-    console.log(`Update received for ${data.id}. Current view is ${activeId}`);
     const srv = servers.find(s => s.id === data.id);
     if (!srv) return;
 
     srv.ramMB = data.ramRaw;
 
     if (activeId === data.id) {
-        console.log(`[RSM-DEBUG] Updating gauges for server "${srv.name}": CPU ${data.cpu}% | RAM ${data.ramPercent}% (${data.ramDisplay})`);
         updateGauge('cpu', data.cpu || 0);
         updateGauge('ram', data.ramPercent, data.ramDisplay);
     }
@@ -1199,7 +1196,6 @@ window.api.receive('server-perf-update', (data) => {
 
 // Receives total machine usage for the home screen gauges
 window.api.receive('total-performance-update', (data) => {
-    console.log(`[RSM] total-performance-update — CPU: ${data.cpu}% | RAM: ${data.ram}%`);
     updateGauge('total-cpu', data.cpu);
     updateGauge('total-ram', data.ram);
 });
