@@ -2,16 +2,34 @@ const { app, BrowserWindow, shell, ipcMain, dialog, Tray, Menu, Notification } =
 const { Rcon } = require('rcon-client');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const { spawn, exec, execSync } = require('child_process');
 const si = require('systeminformation');
 const os = require('os');
 const { isNullOrUndefined } = require('util');
+const axios = require('axios');
+const apiServer = require('./api-server');
+
+// Wire up api-server dependencies at module load time so they are always set
+// before any HTTP request or IPC handler can reach the server.
+// The closures capture module-level variables by reference — always current.
+apiServer.init({
+    getManagedServers:  () => managedServers,
+    getActiveProcesses: () => activeProcesses,
+    getServerStats:     () => serverStats,
+    getMainWindow:      () => mainWindow,
+    findServType,
+    ipcMain
+});
 
 let mainWindow;
 let tray = null;
 const activeProcesses = {};
 const serverStats = {}; // { [srvId]: { cpu, ramMB } } — updated each heartbeat tick
-const DATA_FILE = path.join(app.getPath('userData'), 'servers.json');
+const DATA_FILE       = path.join(app.getPath('userData'), 'servers.json');
+const API_CONFIG_FILE = path.join(app.getPath('userData'), 'api-config.json');
+const TLS_CERT_FILE   = path.join(app.getPath('userData'), 'rsm-tls-cert.pem');
+const TLS_KEY_FILE    = path.join(app.getPath('userData'), 'rsm-tls-key.pem');
 const debugPrefix = "[RSM-DEBUG]";
 const DebugActive = true;    // Set to true to enable verbose logging for debugging purposes
 const DebugLogging = false;  // Set to true to enable debug logging for all operations
@@ -58,10 +76,11 @@ function createWindow() {
 // --- SYSTEM TRAY CREATION & LOGIC ---
 function createTray() {
     const iconPath = path.join(__dirname, 'icon.png');
-    tray = new Tray(fs.existsSync(iconPath) ? iconPath : path.join(__dirname, 'public/index.html'));
+    tray = new Tray(iconPath);
 
     const contextMenu = Menu.buildFromTemplate([
         { label: 'Show App', click: () => mainWindow.show() },
+        { type: 'separator' },
         {
             label: 'Quit RoninManager', click: () => {
                 app.isQuiting = true;
@@ -70,12 +89,15 @@ function createTray() {
         }
     ]);
 
-    tray.setToolTip('RoninManager: Servers Running');
+    tray.setToolTip('Ronin Server Manager');
     tray.setContextMenu(contextMenu);
 
     tray.on('click', () => {
         mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show();
     });
+
+    // Windows does not always show setContextMenu on right-click automatically
+    tray.on('right-click', () => tray.popUpContextMenu(contextMenu));
 
     mainWindow.on('close', (event) => {
         if (!app.isQuiting) {
@@ -127,11 +149,20 @@ app.whenReady().then(() => {
 
     // Give the UI 3 seconds to load before reporting re-linked processes
     setTimeout(syncActiveServers, 3000);
+
+    // Boot the REST API if the user has it enabled
+    const apiCfg = loadApiConfig();
+    if (apiCfg.enabled && apiCfg.apiKey) {
+        const tls = ensureTlsCert();
+        apiServer.start(apiCfg.port || 3002, apiCfg.apiKey, { key: tls.key, cert: tls.cert });
+    }
 });
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
 });
+
+app.on('will-quit', () => apiServer.stop());
 
 // Clear any previously registered startup entry so the app only launches on
 // boot when the user explicitly enables it in Settings.
@@ -161,6 +192,61 @@ function loadServers() {
     return [];
 }
 
+// --- API CONFIG LOAD / SAVE ---
+function loadApiConfig() {
+    if (fs.existsSync(API_CONFIG_FILE)) {
+        try {
+            return JSON.parse(fs.readFileSync(API_CONFIG_FILE, 'utf8'));
+        } catch (e) {
+            console.error('[RSM] Failed to load api-config.json:', e);
+        }
+    }
+    return { enabled: false, port: 3002, apiKey: '' };
+}
+
+function saveApiConfig(config) {
+    fs.writeFileSync(API_CONFIG_FILE, JSON.stringify(config, null, 2));
+    // Write a convenience file ArkenBot / external tools can read to get the key and cert fingerprint
+    try {
+        const tls        = ensureTlsCert();
+        const rsmApiPath = path.join(app.getPath('appData'), 'rsm-api.json');
+        fs.writeFileSync(rsmApiPath, JSON.stringify({
+            url:         `https://localhost:${config.port || 3002}`,
+            apiKey:      config.apiKey || '',
+            port:        config.port || 3002,
+            fingerprint: tls.fingerprint
+        }, null, 2));
+    } catch (e) {
+        console.warn('[RSM] Could not write rsm-api.json:', e.message);
+    }
+}
+
+// Generates (or loads from cache) a self-signed TLS cert for the REST API.
+// Returns { key, cert, fingerprint } — fingerprint is SHA-256 in AA:BB:CC format.
+function ensureTlsCert() {
+    if (fs.existsSync(TLS_CERT_FILE) && fs.existsSync(TLS_KEY_FILE)) {
+        try {
+            const cert = fs.readFileSync(TLS_CERT_FILE, 'utf8');
+            const key  = fs.readFileSync(TLS_KEY_FILE,  'utf8');
+            const x509 = new crypto.X509Certificate(cert);
+            return { key, cert, fingerprint: x509.fingerprint256 };
+        } catch (e) {
+            console.warn('[RSM-TLS] Could not read existing cert, regenerating:', e.message);
+        }
+    }
+
+    const selfsigned = require('selfsigned');
+    const attrs = [{ name: 'commonName', value: 'ronin-server-manager' }];
+    const pems  = selfsigned.generate(attrs, { days: 3650, algorithm: 'sha256', keySize: 2048 });
+
+    fs.writeFileSync(TLS_CERT_FILE, pems.cert, { mode: 0o600 });
+    fs.writeFileSync(TLS_KEY_FILE,  pems.private, { mode: 0o600 });
+
+    const x509 = new crypto.X509Certificate(pems.cert);
+    console.log(`[RSM-TLS] Generated new TLS cert. Fingerprint: ${x509.fingerprint256}`);
+    return { key: pems.private, cert: pems.cert, fingerprint: x509.fingerprint256 };
+}
+
 // --- GET SERVER LIST ---
 ipcMain.handle('get-servers', () => managedServers);
 
@@ -187,6 +273,33 @@ ipcMain.on('update-startup-settings', (event, isEnabled) => {
         path: app.getPath('exe')
     });
     console.log(`[RSM] Launch on startup set to: ${isEnabled}`);
+});
+
+// --- API SERVER SETTINGS ---
+ipcMain.handle('get-api-config', () => loadApiConfig());
+
+ipcMain.on('save-api-config', (event, config) => {
+    saveApiConfig(config);
+    if (config.enabled && config.apiKey) {
+        const tls = ensureTlsCert();
+        apiServer.start(config.port || 3002, config.apiKey, { key: tls.key, cert: tls.cert });
+    } else {
+        apiServer.stop();
+    }
+    console.log(`[RSM] API server ${config.enabled ? `started on port ${config.port}` : 'stopped'}.`);
+});
+
+ipcMain.handle('regenerate-api-key', () => {
+    const config = loadApiConfig();
+    config.apiKey = apiServer.generateApiKey();
+    if (!config.port) config.port = 3002;
+    saveApiConfig(config);
+    if (config.enabled) {
+        const tls = ensureTlsCert();
+        apiServer.start(config.port, config.apiKey, { key: tls.key, cert: tls.cert });
+    }
+    console.log('[RSM] API key regenerated.');
+    return config;
 });
 
 // --- ADMIN CHECK ---

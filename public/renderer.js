@@ -74,6 +74,8 @@ async function init() {
     if (winSlider) winSlider.value = savedWinOpacity;
     if (winLabel)  winLabel.innerText = Math.round(savedWinOpacity * 100) + '%';
 
+    await loadApiSettings();
+
     window.updateSystemLog("Ronin Server Manager initialized successfully.");
 }
 
@@ -1913,6 +1915,75 @@ window.browseBackupFolder = async () => {
     localStorage.setItem('cfg-backup-dir', cfgBackupDir);
     const el = document.getElementById('backup-folder-input');
     if (el) el.value = cfgBackupDir;
+};
+
+
+//        _    ____  ___   ____  _____ _____ _____ ___ _   _  ____ ____
+//       / \  |  _ \|_ _| / ___|| ____|_   _|_   _|_ _| \ | |/ ___/ ___|
+//      / _ \ | |_) || |  \___ \|  _|   | |   | |  | ||  \| | |  _\___ \
+//     / ___ \|  __/ | |   ___) | |___  | |   | |  | || |\  | |_| |___) |
+//    /_/   \_\_|   |___| |____/|_____| |_|   |_| |___|_| \_|\____|____/
+//
+
+let _apiConfig = { enabled: false, port: 3002, apiKey: '' };
+
+async function loadApiSettings() {
+    try {
+        _apiConfig = await window.api.invoke('get-api-config');
+    } catch (e) {
+        _apiConfig = { enabled: false, port: 3002, apiKey: '' };
+    }
+    const enabledChk = document.getElementById('api-enabled-chk');
+    const portInput  = document.getElementById('api-port-input');
+    const keyDisplay = document.getElementById('api-key-display');
+    if (enabledChk) enabledChk.checked   = !!_apiConfig.enabled;
+    if (portInput)  portInput.value       = String(_apiConfig.port || 3002);
+    if (keyDisplay) keyDisplay.value      = _apiConfig.apiKey || '(none — click Regenerate)';
+    _updateApiBodyOpacity(_apiConfig.enabled);
+    // Safety net: re-apply saved config so main process starts/stops the server
+    // even if the app.whenReady() auto-start path was skipped for any reason.
+    window.api.send('save-api-config', _apiConfig);
+}
+
+function _updateApiBodyOpacity(enabled) {
+    const body = document.getElementById('api-settings-body');
+    if (body) {
+        body.style.opacity       = enabled ? '1' : '0.5';
+        body.style.pointerEvents = enabled ? '' : 'none';
+    }
+}
+
+window.toggleApiEnabled = (enabled) => {
+    _apiConfig.enabled = enabled;
+    window.api.send('save-api-config', _apiConfig);
+    _updateApiBodyOpacity(enabled);
+    window.updateSystemLog(`Remote API ${enabled ? 'enabled on port ' + (_apiConfig.port || 3002) : 'disabled'}.`);
+};
+
+window.saveApiPort = () => {
+    const input = document.getElementById('api-port-input');
+    const port  = parseInt(input?.value) || 3002;
+    _apiConfig.port = port;
+    window.api.send('save-api-config', _apiConfig);
+    window.updateSystemLog(`API port set to ${port}.`);
+};
+
+window.copyApiKey = () => {
+    const key = _apiConfig.apiKey;
+    if (!key) return;
+    navigator.clipboard.writeText(key).catch(() => {
+        const el = document.getElementById('api-key-display');
+        if (el) { el.select(); document.execCommand('copy'); }
+    });
+    window.updateSystemLog('API key copied to clipboard.');
+};
+
+window.regenerateApiKey = async () => {
+    const newConfig = await window.api.invoke('regenerate-api-key');
+    _apiConfig = newConfig;
+    const keyDisplay = document.getElementById('api-key-display');
+    if (keyDisplay) keyDisplay.value = newConfig.apiKey;
+    window.updateSystemLog('API key regenerated. Update your external tools with the new key.');
 };
 
 
