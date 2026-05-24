@@ -3,7 +3,7 @@
 RSM includes a self-contained HTTPS REST API in `api-server.js`. This page covers how it is architected, how to add new endpoints, and how to wire up player-count or command support for a new game type.
 
 !!! info "User-facing API docs"
-    If you are looking for how to *use* the API from a Discord bot or external tool, see [Discord Integration](../discord-Int.md) instead. This page is for contributors who want to extend the API itself.
+    If you are looking for how to *use* the API from a Discord bot or external tool, see [Discord Integration](../discord-int.md) instead. This page is for contributors who want to extend the API itself.
 
 ---
 
@@ -186,4 +186,4 @@ Your fetch function should return `{ online: number, max: number | null, players
 
 ---
 
-<p align="center"><i>Added a new endpoint? Don't forget to document it in <a href="../discord-Int.md">Discord Integration</a> and run through the <a href="checklist.md">Checklist</a>.</i></p>
+<p align="center"><i>Added a new endpoint? Don't forget to document it in <a href="../discord-int.md">Discord Integration</a> and run through the <a href="checklist.md">Checklist</a>.</i></p>
