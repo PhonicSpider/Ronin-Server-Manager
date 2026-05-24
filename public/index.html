@@ -610,11 +610,31 @@
         <div class="config-modal-footer">
             <span id="cfg-save-status" class="cfg-save-status"></span>
             <div style="display:flex; gap:10px;">
+                <button class="btn btn-outline" onclick="openRestoreBackup()">↩ Restore Backup</button>
                 <button id="cfg-discard-btn" class="btn btn-outline" onclick="discardConfigChanges()" disabled>Discard Changes</button>
                 <button class="btn btn-launch" onclick="saveConfigFile()">Save Changes</button>
             </div>
         </div>
 
+    </div>
+</div>
+
+<!-- ================================================================
+      RESTORE BACKUP MODAL
+     ================================================================ -->
+<div id="restore-backup-modal" class="modal">
+    <div class="restore-modal-content">
+        <div class="config-modal-header">
+            <div class="config-modal-title">↩ Restore Backup</div>
+            <button class="cfg-close-btn" onclick="closeRestoreBackup()">✕</button>
+        </div>
+        <p class="restore-backup-subtitle">Select a backup to load into the editor. It won't be written to disk until you click <strong>Save Changes</strong>.</p>
+        <div id="restore-backup-empty" class="restore-backup-empty" style="display:none;">No backups found for this file.</div>
+        <div id="restore-backup-list" class="restore-backup-list"></div>
+        <div class="config-modal-footer" style="padding: 12px 20px;">
+            <span></span>
+            <button class="btn btn-outline" onclick="closeRestoreBackup()">Cancel</button>
+        </div>
     </div>
 </div>
 
