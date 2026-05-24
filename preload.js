@@ -3,7 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('api', {
     // For sending data TO main (One-way)
     send: (channel, data) => {
-        let validChannels = ['save-servers', 'log-to-system', 'start-server', 'stop-server', 'open-folder', 'kill-server', 'send-command', 'show-server-gui', 'get-player-count', 'open-docs', 'update-window-opacity'];
+        let validChannels = ['save-servers', 'log-to-system', 'start-server', 'stop-server', 'open-folder', 'kill-server', 'send-command', 'show-server-gui', 'get-player-count', 'open-docs', 'update-window-opacity', 'save-api-config'];
         if (validChannels.includes(channel)) {
             ipcRenderer.send(channel, data);
         }
@@ -17,7 +17,7 @@ contextBridge.exposeInMainWorld('api', {
     },
     // For asking main for data and getting a result (Two-way)
     invoke: (channel, data) => {
-        let validChannels = ['get-servers', 'get-settings', 'check-admin', 'open-dialog', 'select-folder', 'read-config-file', 'write-config-file', 'get-desktop-path'];
+        let validChannels = ['get-servers', 'get-settings', 'check-admin', 'open-dialog', 'select-folder', 'read-config-file', 'write-config-file', 'get-desktop-path', 'get-api-config', 'regenerate-api-key'];
         if (validChannels.includes(channel)) {
             return ipcRenderer.invoke(channel, data);
         }
