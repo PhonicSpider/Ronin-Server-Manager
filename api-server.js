@@ -155,6 +155,19 @@ function dispatch(req, res, body) {
         return;
     }
 
+    // GET /api/servers/:id/players
+    if (req.method === 'GET' && action === 'players') {
+        if (srv.status !== 'Online') {
+            send(res, 409, { error: 'Server is not running' });
+            return;
+        }
+        const processInfo = _getActiveProcesses()[srv.id];
+        fetchPlayers(srv, processInfo)
+            .then(data => send(res, 200, data))
+            .catch(err => send(res, 500, { error: err.message }));
+        return;
+    }
+
     // POST /api/servers/:id/command
     if (req.method === 'POST' && action === 'command') {
         const command = (body.command || '').trim();
@@ -284,6 +297,66 @@ async function executeCommand(srv, processInfo, command) {
     const response = await rcon.send(command);
     rcon.end();
     return response || 'Command sent';
+}
+
+async function fetchPlayers(srv, processInfo) {
+    const type = (srv.type || '').toLowerCase();
+
+    // Minecraft — write 'list' to stdin, capture stdout for 1.5 s, parse the response line
+    if (type === 'minecraft') {
+        const child = processInfo?.shell;
+        if (!child?.stdin?.writable) throw new Error('Server console is not available');
+        return new Promise((resolve) => {
+            const chunks = [];
+            const onData = (d) => chunks.push(d.toString());
+            child.stdout.on('data', onData);
+            child.stdin.write('list\n');
+            setTimeout(() => {
+                child.stdout.off('data', onData);
+                const raw = chunks.join('');
+                // Vanilla: "There are 2 of a max of 20 players online: Alice, Bob"
+                const m = raw.match(/There are (\d+) of a max(?: of)? (\d+) players online:\s*(.*)/i);
+                if (m) {
+                    const players = m[3].trim() ? m[3].split(',').map(p => p.trim()).filter(Boolean) : [];
+                    resolve({ online: parseInt(m[1]), max: parseInt(m[2]), players });
+                } else {
+                    resolve({ online: null, max: null, players: [] });
+                }
+            }, 1500);
+        });
+    }
+
+    // Space Engineers — VRage HTTP session endpoint
+    if (type === 'space-engineers') {
+        if (!srv.apiPort) throw new Error('API Port is required for Space Engineers player count');
+        const axios = require('axios');
+        const port    = srv.apiPort || 8080;
+        const pass    = srv.apiPass || '';
+        const hdrs    = pass ? { Authorization: `Basic ${Buffer.from(`:${pass}`).toString('base64')}` } : {};
+        const res     = await axios.get(`http://localhost:${port}/v1/session`, { headers: hdrs, timeout: 3000 });
+        const session = res.data?.data || res.data || {};
+        return {
+            online:  session.Players   ?? null,
+            max:     session.MaxPlayers ?? null,
+            players: []
+        };
+    }
+
+    // Ark — RCON ListPlayers
+    if (type === 'ark') {
+        if (!srv.apiPort || !srv.apiPass) throw new Error('RCON Port and Password are required');
+        const { Rcon } = require('rcon-client');
+        const rcon = await Rcon.connect({
+            host: 'localhost', port: parseInt(srv.apiPort), password: srv.apiPass, timeout: 3000
+        });
+        const response = await rcon.send('ListPlayers');
+        rcon.end();
+        const lines   = response.trim().split('\n').filter(l => /^\d+\./.test(l));
+        const players = lines.map(l => { const m = l.match(/^\d+\.\s+(.+?),/); return m ? m[1].trim() : l.replace(/^\d+\.\s*/, '').trim(); });
+        return { online: players.length, max: null, players };
+    }
+
+    return { online: null, max: null, players: [], note: 'Player list is not supported for this server type' };
 }
 
 module.exports = { init, start, stop, generateApiKey };
