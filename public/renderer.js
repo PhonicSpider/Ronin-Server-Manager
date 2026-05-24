@@ -41,19 +41,21 @@ let connHistory = new Array(CONN_HISTORY_LEN).fill(null);
 //
 
 async function init() {
+    console.log('[RSM] init — renderer initializing...');
     try {
         servers = await window.api.invoke('get-servers');
         if (!Array.isArray(servers)) servers = [];
+        console.log(`[RSM] init — loaded ${servers.length} server(s) from main process`);
     } catch (err) {
-        console.error("Failed to fetch servers:", err);
+        console.error('[RSM] init — failed to fetch servers:', err);
         servers = [];
     }
 
+    console.log('[RSM] init — applying theme and rendering sidebar');
     initTheme();
     renderSidebar();
     renderTypeCards();
     showView('home');
-
 
     const startupPref = localStorage.getItem('launch-on-startup') === 'true';
     const startupChk = document.getElementById('launch-startup-chk');
@@ -63,11 +65,13 @@ async function init() {
         const desktop = await window.api.invoke('get-desktop-path');
         cfgBackupDir = desktop + '\\RSM-Files\\Backups';
         localStorage.setItem('cfg-backup-dir', cfgBackupDir);
+        console.log(`[RSM] init — backup dir defaulted to: ${cfgBackupDir}`);
     }
     const backupInput = document.getElementById('backup-folder-input');
     if (backupInput) backupInput.value = cfgBackupDir;
 
     const savedWinOpacity = parseFloat(localStorage.getItem('preferred-win-opacity') || '1.0');
+    console.log(`[RSM] init — applying window opacity: ${savedWinOpacity}`);
     window.api.send('update-window-opacity', savedWinOpacity);
     const winSlider = document.getElementById('win-opacity-slider');
     const winLabel  = document.getElementById('win-opacity-label');
@@ -76,6 +80,7 @@ async function init() {
 
     await loadApiSettings();
 
+    console.log('[RSM] init — renderer ready');
     window.updateSystemLog("Ronin Server Manager initialized successfully.");
 }
 
@@ -942,6 +947,7 @@ window.addEventListener('mousedown', (event) => {
 window.startServer = () => {
     const srv = servers.find(s => s.id === activeId);
     if (srv && srv.status !== 'Online') {
+        console.log(`[RSM] startServer — "${srv.name}" (id: ${srv.id} | type: ${srv.type})`);
         window.updateSystemLog(`Attempting to start server "${srv.name}"...`);
         srv.status = 'Online'; // Optimistic UI update
         renderSidebar();
@@ -954,6 +960,7 @@ window.stopServer = () => {
     const srv = servers.find(s => s.id === activeId);
 
     if (srv) {
+        console.log(`[RSM] stopServer — "${srv.name}" (id: ${srv.id} | pid: ${srv.pid || 'none'})`);
         window.updateSystemLog(`Attempting to stop server "${srv.name}"...`);
         window.api.send('stop-server', srv.id);
     } else {
@@ -965,6 +972,7 @@ window.killServer = () => {
     const srv = servers.find(s => s.id === activeId);
     if (srv && srv.pid) {
         if (confirm(`FORCE KILL "${srv.name}"?`)) {
+            console.log(`[RSM] killServer — "${srv.name}" | PID: ${srv.pid}`);
             window.updateSystemLog(`Force killing server "${srv.name}"...`);
             window.api.send('kill-server', srv.pid);
         }
@@ -973,6 +981,8 @@ window.killServer = () => {
 
 // Starts or stops ALL servers from the sidebar global action buttons
 window.globalAction = (action) => {
+    const targets = servers.filter(s => action === 'start' ? s.status !== 'Online' : s.status === 'Online');
+    console.log(`[RSM] globalAction — action: "${action}" | targets: ${targets.length}`);
     servers.forEach(srv => {
         if (action === 'start' && srv.status !== 'Online') {
             window.api.send('start-server', srv);
@@ -998,6 +1008,7 @@ window.sendConsoleCommand = (event) => {
 
         if (command && activeId) {
             const srv = servers.find(s => s.id === activeId);
+            console.log(`[RSM] sendConsoleCommand — srv: "${srv?.name || activeId}" | command: "${command}"`);
             const consoleEl = document.getElementById('console');
 
             if (consoleEl) {
@@ -1024,6 +1035,7 @@ window.sendConsoleCommand = (event) => {
 window.sendQuickAction = (command) => {
     if (!activeId) return;
     const srv = servers.find(s => s.id === activeId);
+    console.log(`[RSM] sendQuickAction — srv: "${srv?.name || activeId}" | command: "${command}"`);
     const consoleEl = document.getElementById('console');
 
     if (consoleEl) {
@@ -1058,6 +1070,7 @@ function formatUptime(ms) {
 }
 
 function startStatusDashboard(srvId) {
+    console.log(`[RSM] startStatusDashboard — srvId: ${srvId}`);
     uptimeStart = Date.now();
     if (uptimeInterval) clearInterval(uptimeInterval);
     uptimeInterval = setInterval(() => {
@@ -1072,6 +1085,7 @@ function startStatusDashboard(srvId) {
 }
 
 function stopStatusDashboard() {
+    console.log('[RSM] stopStatusDashboard — clearing uptime and player poll intervals');
     if (uptimeInterval) { clearInterval(uptimeInterval); uptimeInterval = null; }
     if (playerPollInterval) { clearInterval(playerPollInterval); playerPollInterval = null; }
     uptimeStart = null;
@@ -1093,6 +1107,7 @@ function stopStatusDashboard() {
 // Appends new text from the server's console to the UI
 window.api.receive('console-out', (data) => {
     const srv = servers.find(s => s.id === data.id);
+    if (!srv) { console.warn(`[RSM] console-out — unknown server id: ${data.id}`); return; }
 
     if (srv) {
         srv.logs = (srv.logs || "") + data.msg;
@@ -1163,6 +1178,7 @@ window.api.receive('status-change', (data) => {
 // Receives player count + session name from main; updates the status bar pills
 window.api.receive('player-count-update', (data) => {
     if (data.id !== activeId) return;
+    console.log(`[RSM] player-count-update — id: ${data.id} | players: ${data.players}`);
     if (data.players !== null) document.getElementById('stat-players').innerText = data.players;
 });
 
@@ -1183,6 +1199,7 @@ window.api.receive('server-perf-update', (data) => {
 
 // Receives total machine usage for the home screen gauges
 window.api.receive('total-performance-update', (data) => {
+    console.log(`[RSM] total-performance-update — CPU: ${data.cpu}% | RAM: ${data.ram}%`);
     updateGauge('total-cpu', data.cpu);
     updateGauge('total-ram', data.ram);
 });
@@ -1799,6 +1816,7 @@ function resolveCfgPath(srv, fileEntry) {
 window.openConfigEditor = async () => {
     const srv = servers.find(s => s.id === activeId);
     if (!srv) return;
+    console.log(`[RSM] openConfigEditor — srv: "${srv.name}" | type: ${srv.type}`);
     const config = ServerTypeRegistry[srv.type];
     const configs = config?.gameFiles?.configs;
     if (!configs?.length) return;
@@ -1917,6 +1935,7 @@ window.saveConfigFile = async () => {
 };
 
 window.discardConfigChanges = () => {
+    console.log('[RSM] discardConfigChanges — reverting editor to original content');
     const editor = document.getElementById('cfg-editor');
     editor.value = cfgOriginalContent;
     cfgIsDirty = false;
@@ -1927,6 +1946,7 @@ window.discardConfigChanges = () => {
 };
 
 window.closeConfigEditor = () => {
+    console.log(`[RSM] closeConfigEditor — dirty: ${cfgIsDirty}`);
     if (cfgIsDirty && !confirm('You have unsaved changes. Close without saving?')) return;
     cfgIsDirty = false;
     updateCfgDirtyState();
@@ -1934,8 +1954,10 @@ window.closeConfigEditor = () => {
 };
 
 window.browseBackupFolder = async () => {
+    console.log('[RSM] browseBackupFolder — opening folder picker');
     const selected = await window.api.invoke('select-folder');
-    if (!selected) return;
+    if (!selected) { console.log('[RSM] browseBackupFolder — cancelled'); return; }
+    console.log(`[RSM] browseBackupFolder — selected: "${selected}"`);
     cfgBackupDir = selected;
     localStorage.setItem('cfg-backup-dir', cfgBackupDir);
     const el = document.getElementById('backup-folder-input');
@@ -1980,11 +2002,14 @@ window.openRestoreBackup = async () => {
 };
 
 window.loadBackupIntoEditor = async (backupPath) => {
+    console.log(`[RSM] loadBackupIntoEditor — path: "${backupPath}"`);
     const result = await window.api.invoke('read-config-file', backupPath);
     if (!result.success) {
+        console.error(`[RSM] loadBackupIntoEditor — failed to read backup: ${result.error}`);
         alert(`Could not read backup: ${result.error}`);
         return;
     }
+    console.log('[RSM] loadBackupIntoEditor — backup loaded into editor, awaiting save');
     const editor = document.getElementById('cfg-editor');
     editor.value = result.content;
     cfgIsDirty = true;
