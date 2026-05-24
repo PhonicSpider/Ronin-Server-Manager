@@ -33,6 +33,10 @@ export const minecraft = {
         workingDir: "placeholder",
         customArgs: "value"
     },
+    firewallPorts: [
+        { id: 'game', label: 'Game Port', default: 25565, tcp: true,  udp: true,  description: 'Player connections' },
+        { id: 'rcon', label: 'RCON',      default: 25575, tcp: true,  udp: false, description: 'Remote admin console' },
+    ],
     quickActions: [
         { label: 'List Players', command: 'list' },
         { label: 'Save World',   command: 'save-all' },
