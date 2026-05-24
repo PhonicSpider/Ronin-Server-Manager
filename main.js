@@ -112,34 +112,62 @@ function createTray() {
 function syncActiveServers() {
     console.log("[RSM] Scanning for orphaned server processes...");
 
-    exec('tasklist /v /fo csv', (err, stdout) => {
-        if (err) return;
-
-        const lines = stdout.split('\n');
-        managedServers.forEach(srv => {
-            const fileName = path.basename(srv.path).toLowerCase();
-            const match = lines.find(line => line.toLowerCase().includes(fileName));
-
-            if (match) {
-                const parts = match.split('","');
-                const pid = parseInt(parts[1]);
-
-                console.log(`[RSM] Found existing process for ${srv.name} (PID: ${pid})`);
-                activeProcesses[srv.id] = { pid: pid };
-
-                if (mainWindow) {
-                    mainWindow.webContents.send('status-change', {
-                        id: srv.id,
-                        status: 'Online',
-                        pid: pid,
-                        msg: "[RSM] Re-linked to existing process."
-                    });
-                }
-            }
-        });
+    // Group servers by EXE name — one WMIC query per unique executable
+    const byExe = {};
+    managedServers.forEach(srv => {
+        const exeName = path.basename(srv.path);
+        if (!byExe[exeName]) byExe[exeName] = [];
+        byExe[exeName].push(srv);
     });
 
-    console.log("[RSM] Startup scan complete.");
+    const exeNames = Object.keys(byExe);
+    if (exeNames.length === 0) {
+        console.log("[RSM] Startup scan complete.");
+        return;
+    }
+
+    // Prevent the same PID from being claimed by two different servers
+    const claimedPids = new Set();
+    let pending = exeNames.length;
+    const onDone = () => { if (--pending === 0) console.log("[RSM] Startup scan complete."); };
+
+    exeNames.forEach(exeName => {
+        exec(`wmic process where "Name='${exeName}'" get CommandLine,ProcessId /format:csv`, (err, stdout) => {
+            if (!err && stdout) {
+                // Each CSV line ends with the PID; CommandLine may contain commas so
+                // we always take only the very last comma-delimited field as the PID.
+                const lines = stdout.trim().split('\n').filter(l => l.trim() && !l.startsWith('Node'));
+
+                byExe[exeName].forEach(srv => {
+                    const searchDir = (srv.workingDir || path.dirname(srv.path))
+                        .toLowerCase().replace(/\\/g, '/');
+
+                    for (const line of lines) {
+                        const lineLow = line.toLowerCase().replace(/\\/g, '/');
+                        const lastComma = line.lastIndexOf(',');
+                        if (lastComma === -1) continue;
+
+                        const foundPid = parseInt(line.substring(lastComma + 1).trim());
+                        if (isNaN(foundPid) || foundPid === 0 || claimedPids.has(foundPid)) continue;
+
+                        if (lineLow.includes(searchDir)) {
+                            claimedPids.add(foundPid);
+                            console.log(`[RSM] Found existing process for ${srv.name} (PID: ${foundPid})`);
+                            activeProcesses[srv.id] = { pid: foundPid };
+                            if (mainWindow) {
+                                mainWindow.webContents.send('status-change', {
+                                    id: srv.id, status: 'Online', pid: foundPid,
+                                    msg: "[RSM] Re-linked to existing process."
+                                });
+                            }
+                            break;
+                        }
+                    }
+                });
+            }
+            onDone();
+        });
+    });
 }
 
 // --- APP LIFECYCLE EVENTS ---
