@@ -16,6 +16,7 @@
         //                   (e.g. SE uses -path "<workingDir>") so each instance can be told apart.
         category: "DIRECT_CONSOLE"
     },
+    
     // --- Optional: Config files accessible via the in-app config editor. ---
     // Omit this block entirely if the game has no editable config files.
     gameFiles: {
@@ -53,12 +54,23 @@
     varInputs: { // Determine whether defaults will be placeholders or values
         // or can use "value" if you want the default to be pre-filled instead of a placeholder
         exePath: "placeholder",
-        workingDir: "placeholder",  
+        workingDir: "placeholder",
         logPath: "placeholder",
         portId: "placeholder",
         portPass: "placeholder",
         customArgs: "value",
-    }
+    },
+
+    // --- Optional: Firewall port definitions for the Portier integration. ---
+    // Each entry creates an editable row in the server panel's Firewall Ports card.
+    // Per-server overrides are saved in the server's JSON and merged over these defaults at runtime.
+    // Omit this block entirely if the game has no firewall ports to manage.
+    firewallPorts: [
+        { id: 'game',  label: 'Game Port', default: 25565, tcp: true,  udp: true,  description: 'Player connections' },
+        // { id: 'rcon',  label: 'RCON',      default: 25575, tcp: true,  udp: false, description: 'Admin console' },
+        // { id: 'query', label: 'Query Port', default: 27015, tcp: false, udp: true,  description: 'Server browser' },
+        // { id: 'api',   label: 'API Port',   default: 8080,  tcp: true,  udp: false, description: 'HTTP API' },
+    ]
 };
 
 // --- BE SURE TO  ADD THE GAME TO THE INDEX.JS FILE AFTER CREATING THIS TEMPLATE! ---

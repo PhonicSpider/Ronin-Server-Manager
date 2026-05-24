@@ -31,5 +31,8 @@ export const terraria = {
         exePath: "placeholder",
         workingDir: "placeholder",
         customArgs: "value"
-    }
+    },
+    firewallPorts: [
+        { id: 'game', label: 'Game Port', default: 7777, tcp: true, udp: false, description: 'Player connections' },
+    ]
 };

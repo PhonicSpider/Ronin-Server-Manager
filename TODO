@@ -86,7 +86,7 @@ and understand the information provided. This will involve organizing the conten
 subheadings, and incorporating visuals such as screenshots or diagrams where appropriate to enhance comprehension.
 
 // (3-22-26) \\
-Updated files for starting the command line funstions
+Updated files for starting the command line functions
 - Adding command line input
 - Created command line logic
 
@@ -104,12 +104,16 @@ Need to test adding server and all saves/configurations done
 - Need to get screen shots for the ARK Docs
 
 // (05-06-26) \\ 
-- Add images to new "Getting Started" Page
-- Correct language in page to correlate how things actually work
-- Fix opacity slider (Keep card opacity, but try to add background opacity too)
-Add Network monitor
+- Add images to new "Getting Started" Page X
+- Correct language in page to correlate how things actually work X
+- Fix opacity slider (Keep card opacity, but try to add background opacity too) X
+- Add Network monitor - added, but showing entire network X
+- Add portier integration
+- Add mini server status card for minimised app (shows server names, status, and player count in a minimised version)
+- Add auto installer for server files and destination of files being selectable
+- Add auto updater
 - Add API and commands
-- Add API support for Tox Bot
+- Add API support for Tox Bot (Completed by t0x see PR#3)
 - Do Security audit
 - Add Auto Installer for gamne servers (Links will be added to configurations)
 - Add auto updaters (links will be added to configuration most likely or user default ones)

@@ -1,161 +1,163 @@
-# <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🏗️ Server Setup Overview</p>
+# <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🖥️ What Can RSM Do?</p>
 
-Adding a server to **Ronin Server Manager** takes just a few minutes. Click **+ Add New Server** in the sidebar, pick your game type from the card grid, fill in the paths the wizard asks for, and hit **Save Configuration**. RSM will handle the rest.
+**Ronin Server Manager** is a local-first, Windows-native desktop app built to take the hassle out of running dedicated game servers. This page is a feature-by-feature walkthrough of everything it provides — from one-click server controls to integrated Windows Firewall management.
 
-The fields shown in the wizard depend on the game — not every server needs every field. This guide explains what each one means and what to look for before you start.
+> Looking for setup instructions? Head to the [Getting Started](../getting-started.md) guide.
 
 ---
 
-## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">⚠️ Prerequisite: The "First Run"</p>
+## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">📊 Home Dashboard</p>
 
-Before adding a server to RSM, make sure it has been launched at least once **manually** and starts without errors. RSM needs a working server installation to manage — it does not install, update, or configure the game for you.
+![ServerManager Home - glow](../assets/images/server-dets/networkHome.png)
+
+The home view is the nerve centre of RSM. At a glance you can see:
+
+- **All managed servers** — name, status (Online / Starting / Offline), and current player count in a single list
+- **Aggregate CPU & RAM** — live gauges showing combined resource use across every running server
+- **System Bandwidth Graph** — a rolling network graph showing real-time receive and transmit rates for your whole machine
+- **Global Controls** — start all, stop all, and access settings without switching views
+- **System Log** — a live timestamped feed of every RSM event, error, and status change
+
+The home view adds a **System Bandwidth Graph** — a dual-line rolling chart showing system-wide receive and transmit bytes per second sampled every 2 seconds.
+
+---
+
+## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🚀 Server Management</p>
+
+![ServerManager Server - glow](..assets/images/server-dets/managerScreen.png)
+
+Select any server in the sidebar to open its dedicated panel. From here you can:
 
 <div class="grid cards" markdown>
 
--   :material-play-circle: **Run Once Manually**
+-   :material-play-pause: **Start / Stop / Force Kill**
 
     ---
+    One-click controls launch and shut down the server. The graceful stop sends the correct shutdown command for each game type. Force kill terminates the process immediately if it stops responding.
 
-    Double-click your `.bat`, `.exe`, or launch script to verify the server starts and reaches a ready state before linking it to RSM.
-
--   :material-folder-cog: **Know Your Paths**
-
-    ---
-
-    Note the full path to your server executable **and** the folder it lives in. Both are usually required. Paths with spaces must be wrapped in double quotes when used in arguments.
-
--   :material-puzzle: **Install Mods First**
+-   :material-console: **Live Console**
 
     ---
+    See the server's output stream in real time and send commands directly via the input bar — no extra terminal window required. Output is colour-coded and scrollable.
 
-    If your server uses mods or plugins, install them and confirm they load before adding the server to RSM. RSM launches the server exactly as configured — no extra steps happen on its behalf.
-
--   :material-file-check: **Accept Any EULAs**
-
-    ---
-
-    Accept any end-user license agreements the game requires (e.g. Minecraft's `eula.txt`) before your first managed launch. Servers that require EULA acceptance will exit immediately if it hasn't been done.
-
--   :material-wall: **Open Firewall Ports**
+-   :material-lightning-bolt: **Quick Actions**
 
     ---
+    Per-game one-click buttons that fire common commands while the server is running — list players, save world, kick all, and more. Only shown for game types that support them.
 
-    Open the game's required ports in Windows Firewall (e.g. `25565` for Minecraft, `7777` for Terraria, `27015`/`27020` for Ark). RSM does not modify firewall rules.
-
--   :material-ip-outline: **Configure RCON / API Access**
+-   :material-folder-open: **Open Folder**
 
     ---
-
-    For games that support remote commands (Ark, Space Engineers), enable and note your RCON port and password in the server's config file **before** adding it. RSM uses this for sending console commands and reading player counts.
+    Jump straight to the server's working directory in Windows Explorer with a single click.
 
 </div>
 
 ---
 
-## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">📋 Wizard Fields — What Goes Where</p>
+## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">📈 Real-Time Monitoring</p>
 
-The **Add Server** wizard shows only the fields relevant to each game type. Here's what each one means:
+Every server panel shows a live stats card with:
 
-| Field | What to Enter |
-|---|---|
-| **Display Name** | A friendly label shown in the sidebar — e.g. `Minecraft Survival Hub` |
-| **Executable Path** | Full path to the `.exe`, `.jar`, or `java.exe` that launches your server |
-| **Working Directory** | The root folder of your server installation — where `server.properties`, world folders, etc. live |
-| **Log File / Folder Path** | Path to the folder that contains your server's `.log` files (used by SE and Ark for console output) |
-| **Port** | RCON port (Ark) or VRage HTTP API port (Space Engineers) — needed for remote commands and player counts |
-| **Password** | RCON password (Ark) or VRage API password (Space Engineers) |
-| **Launch Arguments** | Command-line flags passed to the executable on startup — pre-filled with a working default for known game types |
+- **CPU %** — the server process's current CPU usage
+- **RAM** — current RAM consumption and percentage of total system RAM
+- **Connections Graph** — a faded background graph showing active ESTABLISHED TCP/UDP connections to the server process over the last 15 minutes, updating every 2 seconds
+- **Player Count** — current connected players (for games with RCON or API support)
+- **PID** — the operating system process ID for the running server
+- **Uptime** — how long the server has been running since the last start
 
 ---
 
-## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🎮 Select Your Game Engine</p>
+## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">✏️ In-App Config Editor</p>
 
-Pick your game below for specific pathing requirements and startup arguments.
+![ServerManager Server - glow](..assets/images/server-dets/configEdit.png)
+
+Click **Edit Config** in any server panel to open the server's configuration files directly inside RSM.
+
+- **Tabbed interface** — switch between multiple config files (e.g. `GameUserSettings.ini` and `Game.ini` for Ark) without leaving the app
+- **Line numbers** for easy navigation
+- **Running-server warning** — a banner appears if you edit while the server is online; changes take effect after the next restart
+- **Save / Discard** — write to disk or revert to the last saved state
+
+Config files are resolved relative to the server's **Working Directory**. Games that store configs outside their install folder require an absolute path in the game's config definition.
+
+
+---
+
+## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🛡️ Firewall Manager (Portier)</p>
+
+RSM includes an integrated Windows Firewall manager powered by the **Ronin Portier** engine. Firewall features are available in two places:
+
+### Per-Server Firewall Ports Card
+
+Every server panel shows a **Firewall Ports** card (for supported game types and pictured above) with:
+
+- An editable row for each port the server uses — game port, query port, RCON, API, etc.
+- TCP / UDP toggles per port
+- A status indicator showing whether rules are currently active for this server
+- **Apply Rules** — creates inbound Windows Firewall allow rules for every listed port in one click
+- **Remove Rules** — removes all RSM-managed rules for this server
+- **Save Changes** — saves any port number or protocol changes to the server's config
+
+Port defaults are defined per game type but can be overridden per server instance and saved. Dont worry, these can be changed *before* any server is run. So you can make changes and edits without having to run and then stop the server.
+
+### Firewall Manager View
+
+The dedicated **Firewall Manager** view (*🛡️ Firewall Manager* in the sidebar) provides a full overview:
+
+![ServerManager Firewall - glow](..assets/images/server-dets/firewallMngr.png)
+
+- **Managed Rules list** — every rule in the `Ronin Portier Rules` group, showing name, protocol, port, and enabled status with a per-row Remove button
+- **Add Custom Rule** — create a one-off inbound rule with a custom name, port, and protocol without being tied to a specific server
+- **Activity Log** — a timestamped console logging every add, remove, and error operation
+
+!!! warning "Administrator Required"
+    All firewall operations require RSM to be running with **Administrator privileges**. If you see an error in the activity log, re-launch RSM as Administrator. A green **Admin** badge in the top-left corner of the app confirms elevated mode.
+
+---
+
+## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🎮 Supported Games</p>
 
 <div class="grid cards" markdown>
 
 -   :material-minecraft: **Minecraft (Java)**
 
     ---
-    Launched directly via `java.exe`. Requires the **Executable Path** (java), **Working Directory** (server folder), and **Launch Arguments** (`-jar server.jar`). No log path or RCON needed.
-
-    **Config Editor:** `server.properties`, `ops.json`
+    Launched directly via `java.exe`. Full console I/O, Quick Actions, config editor, and firewall ports (Game 25565, RCON 25575).
 
     [:octicons-arrow-right-24: View Guide](minecraft.md)
 
 -   :material-rocket-launch: **Space Engineers**
 
     ---
-    Native Windows binary via PowerShell bridge. Requires all fields including **Log Folder** and **VRage API Port / Password** for remote commands. Needs Admin rights for network binding.
-
-    **Config Editor:** `SpaceEngineers-Dedicated.cfg`
+    Native Windows binary via PowerShell bridge. Headless background launch, VRage HTTP API for commands and player counts, config editor, and firewall ports (Game 27016 UDP, API 8080).
 
     [:octicons-arrow-right-24: View Guide](space-engineers.md)
 
 -   :material-axe: **Ark: Survival Evolved**
 
     ---
-    SteamCMD binary via PowerShell bridge. Requires all fields. RCON must be enabled in `GameUserSettings.ini` before adding. Config files live in a subfolder of the install.
-
-    **Config Editor:** `GameUserSettings.ini`, `Game.ini`
+    SteamCMD binary via PowerShell bridge. RCON for commands, config editor, and firewall ports (Game 7777, Query 27015, RCON 27020).
 
     [:octicons-arrow-right-24: View Guide](ark-survival.md)
 
 -   :material-sword: **Terraria**
 
     ---
-    Launched directly via `TerrariaServer.exe`. Requires **Executable Path**, **Working Directory**, and **Launch Arguments** (world, port, player count). No log path or RCON needed.
-
-    **Config Editor:** `serverconfig.txt`
+    Launched directly via `TerrariaServer.exe`. Full console I/O, config editor, and firewall ports (Game 7777 TCP).
 
     [:octicons-arrow-right-24: View Guide](terraria.md)
 
 -   :material-wrench: **Custom / Other**
 
     ---
-    Generic setup for any game not listed above. All fields are shown — fill in only what your server actually needs. Uses `DIRECT_CONSOLE` mode by default.
+    Generic setup for any game not listed. Fill in only the fields your server needs. Uses `DIRECT_CONSOLE` mode by default.
 
-    [:octicons-arrow-right-24: View Troubleshooting](#troubleshooting-paths)
+    [:octicons-arrow-right-24: Getting Started](../getting-started.md)
 
 </div>
 
 ---
 
-## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">✏️ Config Editor</p>
+## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">➕ Adding a New Game Type</p>
 
-Once a server is added, RSM can open its config files directly in the app. Click the **Edit Config** button in the server's control bar to open the in-app editor.
-
-- **Tabs** appear at the top when a game has more than one config file.
-- **Line numbers** are shown on the left for easy reference.
-- A **warning banner** appears at the top if the server is currently running — changes will take effect after the next restart.
-- Use **Save Changes** to write the file to disk, or **Discard Changes** to revert to the last saved state.
-
-!!! info "Config paths"
-    Config files are resolved relative to the **Working Directory** you entered when adding the server. Games that store configs outside their install folder (e.g. in `%APPDATA%` or a custom absolute path) require an absolute `configPath` to be set in their game config file.
-
----
-
-## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">⚡ Quick Actions</p>
-
-Minecraft, Space Engineers, and Ark each have a set of **Quick Action** buttons that appear below the server controls when a server is online. These fire common commands (save world, list players, etc.) without having to type anything in the console. Quick Actions are only active while the server is running.
-
----
-
-## <p id="troubleshooting-paths" style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🛠️ Troubleshooting Paths</p>
-
-!!! failure "Server shows 'Offline' immediately after launch"
-    1. **Run it manually first.** Open a terminal in the server folder and run the exact command RSM would use. If it fails there, RSM will fail too.
-    2. **Check your Working Directory.** Many servers look for config files relative to where they're launched from, not where the `.exe` lives. Set **Working Directory** to the server's root install folder.
-    3. **Check for spaces in paths.** Paths containing spaces must be wrapped in double quotes when passed as arguments.
-
-!!! failure "Console shows no output"
-    - **DIRECT_CONSOLE games** (Minecraft, Terraria) pipe output directly — if you see nothing, confirm the executable launched and check the **Launch Arguments**.
-    - **POWERSHELL_BRIDGE games** (Space Engineers, Ark) read from a log file. Make sure the **Log File / Folder Path** points to the correct folder and that the server is actually writing logs there.
-
-!!! failure "Commands don't work / RCON errors"
-    - Confirm RCON is **enabled in the server's config file**, not just in RSM.
-    - Double-check that the **Port** and **Password** in RSM match exactly what's in the server config.
-    - Make sure the server has fully started before sending commands — RCON connections are refused while the server is still loading.
-
-!!! failure "Edit Config button doesn't appear"
-    The button only shows for game types that have config files registered. If you added the server as **Custom / Other**, no config files are defined. Re-add the server using the correct game type card instead.
+RSM is built to be extended. Adding support for a new game involves creating a config file, dropping in an icon, and registering it in the index — no changes to the core engine needed. See the [Contributing Guide](../contributing.md) for a full step-by-step walkthrough.

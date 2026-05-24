@@ -38,6 +38,10 @@ export const spaceEngineers = {
         portPass: "placeholder",
         customArgs: "value"
     },
+    firewallPorts: [
+        { id: 'game', label: 'Game Port', default: 27016, tcp: false, udp: true,  description: 'Player connections (UDP)' },
+        { id: 'api',  label: 'API Port',  default: 8080,  tcp: true,  udp: false, description: 'Remote API / admin access' },
+    ],
     quickActions: [
         { label: 'Save World',     command: '\\save' },
         { label: 'Server Status',  command: '\\status' },

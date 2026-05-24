@@ -1152,6 +1152,404 @@ textarea:focus {
 
 
 /* ══════════════════════════════════════════════════════════════════
+    FIREWALL PORTS CARD
+   ══════════════════════════════════════════════════════════════════ */
+
+.firewall-ports-card {
+    padding: 14px 18px 10px;
+}
+
+.fw-card-layout {
+    display: flex;
+    gap: 14px;
+    align-items: stretch;
+}
+
+.fw-card-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fw-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.fw-status {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+}
+.fw-status-active   { color: var(--success, #2ecc71); }
+.fw-status-inactive { color: var(--dim); }
+.fw-status-unknown  { color: var(--dim); opacity: 0.5; }
+
+.fw-btn-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.fw-btn-stack .btn {
+    flex: 1;
+    font-size: 11px;
+    padding: 0 12px;
+    white-space: nowrap;
+}
+
+.firewall-ports-rows {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fw-port-row {
+    display: grid;
+    grid-template-columns: 90px 90px auto auto 1fr;
+    align-items: center;
+    column-gap: 16px;
+    row-gap: 6px;
+}
+
+.fw-port-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--text);
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.fw-port-input {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: var(--font-mono, monospace);
+    padding: 5px 8px;
+    text-align: center;
+    transition: border-color 0.15s;
+    -moz-appearance: textfield;
+}
+.fw-port-input::-webkit-outer-spin-button,
+.fw-port-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.fw-port-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.fw-toggle {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--dim);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+.fw-toggle input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
+.fw-toggle input[type="checkbox"]:checked + span {
+    color: var(--accent);
+}
+
+.fw-port-desc {
+    font-size: 11px;
+    color: var(--dim);
+    opacity: 0.65;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.firewall-save-btn {
+    flex-shrink: 0;
+}
+
+/* Wizard firewall ports section */
+.wizard-fw-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.wizard-fw-row {
+    display: grid;
+    grid-template-columns: 90px 90px auto 1fr;
+    align-items: center;
+    column-gap: 14px;
+}
+
+.wizard-fw-note {
+    font-size: 11px;
+    color: var(--dim);
+    margin: 2px 0 4px;
+    opacity: 0.8;
+}
+
+.wizard-fw-proto {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--dim);
+    white-space: nowrap;
+    margin-left: 12px;
+}
+
+/* Port conflict warning banner in wizard */
+.wizard-fw-conflict {
+    background: rgba(255, 180, 0, 0.08);
+    border: 1px solid rgba(255, 180, 0, 0.4);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #ffb400;
+    line-height: 1.5;
+    margin-top: 8px;
+}
+
+.wizard-fw-conflict ul {
+    margin: 6px 0 6px;
+    padding-left: 18px;
+}
+
+.wizard-fw-conflict li {
+    margin: 3px 0;
+    font-size: 11px;
+    opacity: 0.9;
+}
+
+
+/* Portier firewall badge — shield shape, three states */
+.portier-nav-badge {
+    width: 11px;
+    height: 13px;
+    flex-shrink: 0;
+    clip-path: polygon(50% 0%, 95% 18%, 95% 65%, 50% 100%, 5% 65%, 5% 18%);
+    transition: background-color 0.2s;
+}
+.portier-nav-badge.active, .portier-nav-badge.badge-active     { background: var(--success, #2ecc71); }
+.portier-nav-badge.inactive, .portier-nav-badge.badge-inactive { background: var(--dim); opacity: 0.45; }
+.portier-nav-badge.none, .portier-nav-badge.badge-none         { background: #e74c3c; }
+
+/* Per-server sidebar variant — positioned left of the ⚙️ gear */
+.portier-srv-badge {
+    position: absolute;
+    right: 26px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+    PORTIER VIEW
+   ══════════════════════════════════════════════════════════════════ */
+
+#portier-ui {
+    padding: 0 8px 32px;
+    overflow-y: auto;
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#portier-ui .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.portier-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.portier-admin-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    color: var(--dim);
+}
+.portier-admin-badge.admin-yes {
+    color: var(--success, #2ecc71);
+    background: rgba(46,204,113,0.12);
+    border-color: rgba(46,204,113,0.3);
+}
+.portier-admin-badge.admin-no {
+    color: #e74c3c;
+    background: rgba(231,76,60,0.12);
+    border-color: rgba(231,76,60,0.3);
+}
+
+.portier-apply-all-btn,
+.portier-refresh-btn {
+    font-size: 12px;
+    padding: 6px 14px;
+}
+
+/* Rules card */
+.portier-rules-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.portier-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.portier-rule-count {
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 0.05em;
+}
+
+.portier-rules-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.portier-empty {
+    font-size: 12px;
+    color: var(--dim);
+    opacity: 0.6;
+    padding: 6px 0;
+}
+
+.portier-rule-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto auto;
+    align-items: center;
+    column-gap: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.portier-rule-row:last-child { border-bottom: none; }
+
+.portier-rule-name {
+    font-size: 12px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.portier-rule-pill {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.06);
+    color: var(--dim);
+    white-space: nowrap;
+}
+
+.portier-rule-status.status-on  { color: var(--success, #2ecc71); background: rgba(46,204,113,0.12); }
+.portier-rule-status.status-off { color: var(--dim); }
+
+.portier-toggle-btn {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    border: 1px solid;
+    background: transparent;
+    transition: background 0.15s, color 0.15s, opacity 0.15s;
+    white-space: nowrap;
+}
+.portier-toggle-btn.toggle-on {
+    color: var(--success, #2ecc71);
+    border-color: rgba(46,204,113,0.4);
+}
+.portier-toggle-btn.toggle-on:hover:not(:disabled) { background: rgba(46,204,113,0.1); }
+.portier-toggle-btn.toggle-off {
+    color: var(--dim);
+    border-color: rgba(255,255,255,0.12);
+}
+.portier-toggle-btn.toggle-off:hover:not(:disabled) { background: rgba(255,255,255,0.05); }
+.portier-toggle-btn:disabled,
+.portier-remove-btn:disabled,
+.portier-add-btn:disabled,
+.portier-apply-all-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.portier-remove-btn {
+    font-size: 11px;
+    padding: 3px 10px;
+}
+
+/* Add rule card */
+.portier-add-card,
+.portier-add-card ~ .terminal-container {
+    margin-top: 14px;
+}
+
+.portier-add-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.portier-add-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.portier-input {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+    padding: 6px 10px;
+    transition: border-color 0.15s;
+}
+.portier-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+.portier-input-name { flex: 1; min-width: 180px; }
+.portier-input-port { width: 90px; text-align: center; }
+
+.portier-add-btn {
+    font-size: 12px;
+    padding: 6px 14px;
+    white-space: nowrap;
+    margin-left: auto;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
     CONFIG EDITOR MODAL
    ══════════════════════════════════════════════════════════════════ */
 
