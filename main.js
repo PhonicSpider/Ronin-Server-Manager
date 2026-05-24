@@ -813,6 +813,148 @@ ipcMain.handle('select-folder', async () => {
 // --- CONFIG FILE READ/WRITE ---
 ipcMain.handle('get-desktop-path', () => app.getPath('desktop'));
 
+// --- FIREWALL RULE MANAGEMENT (Portier integration) ---
+ipcMain.handle('check-firewall-rules', async (event, { serverName }) => {
+    const safeName = serverName.replace(/'/g, "''");
+    const script = `$rules = Get-NetFirewallRule -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like 'RSM - ${safeName} - *' }\nif ($rules) { Write-Output 'ACTIVE' } else { Write-Output 'NONE' }`;
+    const encoded = Buffer.from(script, 'utf16le').toString('base64');
+    return new Promise((resolve) => {
+        exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout) => {
+            resolve((stdout || '').trim() === 'ACTIVE');
+        });
+    });
+});
+
+ipcMain.handle('apply-firewall-rules', async (event, { serverName, ports }) => {
+    const safeName = serverName.replace(/'/g, "''");
+    const lines = [
+        `Get-NetFirewallRule -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like 'RSM - ${safeName} - *' } | Remove-NetFirewallRule -ErrorAction SilentlyContinue`
+    ];
+    for (const p of (ports || [])) {
+        const safeLabel = (p.label || p.id || '').replace(/'/g, "''");
+        if (p.tcp) lines.push(`New-NetFirewallRule -DisplayName 'RSM - ${safeName} - ${safeLabel} - TCP' -Direction Inbound -Protocol TCP -LocalPort ${p.port} -Action Allow -Group 'Ronin Portier Rules' -ErrorAction SilentlyContinue`);
+        if (p.udp) lines.push(`New-NetFirewallRule -DisplayName 'RSM - ${safeName} - ${safeLabel} - UDP' -Direction Inbound -Protocol UDP -LocalPort ${p.port} -Action Allow -Group 'Ronin Portier Rules' -ErrorAction SilentlyContinue`);
+    }
+    if (lines.length <= 1) return { success: false, error: 'No ports defined.' };
+    const encoded = Buffer.from(lines.join('\n'), 'utf16le').toString('base64');
+    return new Promise((resolve) => {
+        exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout, stderr) => {
+            resolve({ success: !err, error: err ? (stderr || err.message) : null });
+        });
+    });
+});
+
+ipcMain.handle('remove-firewall-rules', async (event, { serverName }) => {
+    const safeName = serverName.replace(/'/g, "''");
+    const script = `Get-NetFirewallRule -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like 'RSM - ${safeName} - *' } | Remove-NetFirewallRule -ErrorAction SilentlyContinue`;
+    const encoded = Buffer.from(script, 'utf16le').toString('base64');
+    return new Promise((resolve) => {
+        exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout, stderr) => {
+            resolve({ success: !err, error: err ? (stderr || err.message) : null });
+        });
+    });
+});
+
+// --- PORTIER MANAGEMENT VIEW ---
+ipcMain.handle('get-firewall-rules', async () => {
+    const script = `
+$rules = Get-NetFirewallRule -Group 'Ronin Portier Rules' -ErrorAction SilentlyContinue
+if (-not $rules) { Write-Output '[]'; exit }
+$out = $rules | ForEach-Object {
+    $r = $_
+    $f = $r | Get-NetFirewallPortFilter -ErrorAction SilentlyContinue
+    [PSCustomObject]@{
+        name      = $r.DisplayName
+        protocol  = if ($f) { [string]$f.Protocol } else { '' }
+        port      = if ($f) { [string]$f.LocalPort } else { '' }
+        enabled   = [string]$r.Enabled
+    }
+}
+$out | ConvertTo-Json -Compress`.trim();
+    const encoded = Buffer.from(script, 'utf16le').toString('base64');
+    return new Promise((resolve) => {
+        exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout) => {
+            if (err || !stdout.trim()) return resolve([]);
+            try {
+                const parsed = JSON.parse(stdout.trim());
+                resolve(Array.isArray(parsed) ? parsed : [parsed]);
+            } catch { resolve([]); }
+        });
+    });
+});
+
+ipcMain.handle('add-firewall-rule', async (event, { displayName, port, tcp, udp }) => {
+    const safeName = displayName.replace(/'/g, "''");
+    const lines = [];
+    if (tcp) lines.push(`New-NetFirewallRule -DisplayName '${safeName}' -Direction Inbound -Protocol TCP -LocalPort ${port} -Action Allow -Group 'Ronin Portier Rules' -ErrorAction SilentlyContinue`);
+    if (udp) lines.push(`New-NetFirewallRule -DisplayName '${safeName}' -Direction Inbound -Protocol UDP -LocalPort ${port} -Action Allow -Group 'Ronin Portier Rules' -ErrorAction SilentlyContinue`);
+    if (!lines.length) return { success: false, error: 'Select at least one protocol.' };
+    const encoded = Buffer.from(lines.join('\n'), 'utf16le').toString('base64');
+    return new Promise((resolve) => {
+        exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout, stderr) => {
+            resolve({ success: !err, error: err ? (stderr || err.message) : null });
+        });
+    });
+});
+
+ipcMain.handle('check-port-conflicts', async (event, { ports, excludeServerName }) => {
+    if (!ports?.length) return [];
+    const portList = ports.map(p => `'${p}'`).join(', ');
+    // Exclude the server's own existing rules so a re-apply doesn't false-positive on itself
+    const excludeFilter = excludeServerName
+        ? ` -and $rule.DisplayName -notlike 'RSM - ${excludeServerName.replace(/'/g, "''")} - *'`
+        : '';
+    // Query port filters first (one CIM call), then look up the rule only for matching ports.
+    // This is O(matches) CIM calls instead of O(all rules) CIM calls and runs in ~ms vs ~seconds.
+    const script = `$check = @(${portList})
+$out = @()
+Get-NetFirewallPortFilter -ErrorAction SilentlyContinue | ForEach-Object {
+    $f = $_
+    $lp = @($f.LocalPort) | Where-Object { $_ -match '^[0-9]+$' }
+    $matched = $lp | Where-Object { $check -contains $_ }
+    if ($matched) {
+        $rule = $f | Get-NetFirewallRule -ErrorAction SilentlyContinue
+        if ($rule -and $rule.Enabled -eq 'True' -and $rule.Direction -eq 'Inbound'${excludeFilter}) {
+            foreach ($mp in $matched) { $out += [PSCustomObject]@{ port = $mp; protocol = [string]$f.Protocol; ruleName = $rule.DisplayName } }
+        }
+    }
+}
+if ($out.Count -eq 0) { Write-Output '[]' } else { $out | ConvertTo-Json -Compress }`;
+    const encoded = Buffer.from(script, 'utf16le').toString('base64');
+    return new Promise((resolve) => {
+        exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout) => {
+            if (err || !stdout.trim()) return resolve([]);
+            try {
+                const parsed = JSON.parse(stdout.trim());
+                resolve(Array.isArray(parsed) ? parsed : [parsed]);
+            } catch { resolve([]); }
+        });
+    });
+});
+
+ipcMain.handle('remove-firewall-rule', async (event, { displayName }) => {
+    const safeName = displayName.replace(/'/g, "''");
+    const script = `Remove-NetFirewallRule -DisplayName '${safeName}' -ErrorAction SilentlyContinue`;
+    const encoded = Buffer.from(script, 'utf16le').toString('base64');
+    return new Promise((resolve) => {
+        exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout, stderr) => {
+            resolve({ success: !err, error: err ? (stderr || err.message) : null });
+        });
+    });
+});
+
+ipcMain.handle('toggle-firewall-rule', async (event, { displayName, enabled }) => {
+    const safeName = displayName.replace(/'/g, "''");
+    const state = enabled ? 'True' : 'False';
+    const script = `Set-NetFirewallRule -DisplayName '${safeName}' -Enabled ${state} -ErrorAction SilentlyContinue`;
+    const encoded = Buffer.from(script, 'utf16le').toString('base64');
+    return new Promise((resolve) => {
+        exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout, stderr) => {
+            resolve({ success: !err, error: err ? (stderr || err.message) : null });
+        });
+    });
+});
+
 ipcMain.handle('read-config-file', async (event, filePath) => {
     try {
         const content = fs.readFileSync(filePath, 'utf8');
