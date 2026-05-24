@@ -61,7 +61,7 @@ async function init() {
 
     if (!cfgBackupDir) {
         const desktop = await window.api.invoke('get-desktop-path');
-        cfgBackupDir = desktop + '\\RSM-Files\\RSM-Backups';
+        cfgBackupDir = desktop + '\\RSM-Files\\Backups';
         localStorage.setItem('cfg-backup-dir', cfgBackupDir);
     }
     const backupInput = document.getElementById('backup-folder-input');
@@ -1888,6 +1888,7 @@ window.saveConfigFile = async () => {
         filePath: cfgCurrentFilePath,
         content,
         backupDir: cfgBackupDir || null,
+        serverType: srv?.type || null,
         serverName: srv?.name || null
     });
 
@@ -1939,6 +1940,65 @@ window.browseBackupFolder = async () => {
     localStorage.setItem('cfg-backup-dir', cfgBackupDir);
     const el = document.getElementById('backup-folder-input');
     if (el) el.value = cfgBackupDir;
+};
+
+window.openRestoreBackup = async () => {
+    const srv = servers.find(s => s.id === activeId);
+    if (!srv || !cfgCurrentFilePath || !cfgBackupDir) return;
+
+    const fileName = cfgCurrentFilePath.split(/[/\\]/).pop();
+    console.log(`[RSM] openRestoreBackup — srv: "${srv.name}" | file: "${fileName}"`);
+
+    const result = await window.api.invoke('list-backups', {
+        backupDir: cfgBackupDir,
+        serverType: srv.type,
+        serverName: srv.name,
+        fileName
+    });
+
+    const listEl  = document.getElementById('restore-backup-list');
+    const emptyEl = document.getElementById('restore-backup-empty');
+    listEl.innerHTML = '';
+
+    if (!result.backups?.length) {
+        emptyEl.style.display = 'block';
+        listEl.style.display  = 'none';
+    } else {
+        emptyEl.style.display = 'none';
+        listEl.style.display  = 'block';
+        result.backups.forEach(b => {
+            const item = document.createElement('button');
+            item.className = 'restore-backup-item';
+            const ts = b.name.match(/(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})\.bak$/);
+            item.textContent = ts ? `${ts[1]}  ${ts[2]}:${ts[3]}:${ts[4]}` : b.name;
+            item.onclick = () => window.loadBackupIntoEditor(b.path);
+            listEl.appendChild(item);
+        });
+    }
+
+    document.getElementById('restore-backup-modal').style.display = 'flex';
+};
+
+window.loadBackupIntoEditor = async (backupPath) => {
+    const result = await window.api.invoke('read-config-file', backupPath);
+    if (!result.success) {
+        alert(`Could not read backup: ${result.error}`);
+        return;
+    }
+    const editor = document.getElementById('cfg-editor');
+    editor.value = result.content;
+    cfgIsDirty = true;
+    updateCfgDirtyState();
+    updateCfgLineNumbers();
+    const statusEl = document.getElementById('cfg-save-status');
+    statusEl.textContent = '↩ Backup loaded — review and Save to apply';
+    statusEl.style.color = '#f59e0b';
+    statusEl.classList.add('visible');
+    document.getElementById('restore-backup-modal').style.display = 'none';
+};
+
+window.closeRestoreBackup = () => {
+    document.getElementById('restore-backup-modal').style.display = 'none';
 };
 
 
@@ -2084,6 +2144,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
+            const restoreModal = document.getElementById('restore-backup-modal');
+            if (restoreModal && restoreModal.style.display === 'flex') { window.closeRestoreBackup(); return; }
             const modal = document.getElementById('config-modal');
             if (modal && modal.style.display === 'flex') window.closeConfigEditor();
         }
