@@ -1104,14 +1104,16 @@ ipcMain.handle('read-config-file', async (event, filePath) => {
     }
 });
 
-ipcMain.handle('write-config-file', async (event, { filePath, content, backupDir, serverName }) => {
+ipcMain.handle('write-config-file', async (event, { filePath, content, backupDir, serverType, serverName }) => {
     console.log(`[RSM] write-config-file — filePath: "${filePath}" | backupDir: ${backupDir || 'none'}`);
     let backedUp = false;
     let backupError = null;
     try {
         if (backupDir && serverName) {
             try {
-                const serverBackupDir = path.join(backupDir, serverName);
+                const serverBackupDir = serverType
+                    ? path.join(backupDir, serverType, serverName)
+                    : path.join(backupDir, serverName);
                 fs.mkdirSync(serverBackupDir, { recursive: true });
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
                 const baseName = path.basename(filePath);
@@ -1130,6 +1132,24 @@ ipcMain.handle('write-config-file', async (event, { filePath, content, backupDir
     } catch (err) {
         console.log(`[RSM] write-config-file — failed: ${err.message}`);
         return { success: false, backedUp, backupError, error: err.message };
+    }
+});
+
+ipcMain.handle('list-backups', async (event, { backupDir, serverType, serverName, fileName }) => {
+    console.log(`[RSM] list-backups — ${serverType}/${serverName} | file: ${fileName}`);
+    try {
+        const dir = serverType
+            ? path.join(backupDir, serverType, serverName)
+            : path.join(backupDir, serverName);
+        if (!fs.existsSync(dir)) return { success: true, backups: [] };
+        const backups = fs.readdirSync(dir)
+            .filter(f => f.startsWith(fileName + '-') && f.endsWith('.bak'))
+            .map(f => ({ name: f, path: path.join(dir, f), mtime: fs.statSync(path.join(dir, f)).mtimeMs }))
+            .sort((a, b) => b.mtime - a.mtime)
+            .map(({ name, path: p }) => ({ name, path: p }));
+        return { success: true, backups };
+    } catch (err) {
+        return { success: false, error: err.message, backups: [] };
     }
 });
 
