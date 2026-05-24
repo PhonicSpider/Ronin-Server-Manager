@@ -40,6 +40,11 @@ export const ark = {
         portId: "placeholder",
         portPass: "placeholder"
     },
+    firewallPorts: [
+        { id: 'game',  label: 'Game Port',  default: 7777,  tcp: false, udp: true,  description: 'Player connections' },
+        { id: 'query', label: 'Query Port', default: 27015, tcp: false, udp: true,  description: 'Steam server browser' },
+        { id: 'rcon',  label: 'RCON',       default: 27020, tcp: true,  udp: false, description: 'Admin console (RCON)' },
+    ],
     quickActions: [
         { label: 'List Players',       command: 'ListPlayers' },
         { label: 'Save World',         command: 'SaveWorld' },
