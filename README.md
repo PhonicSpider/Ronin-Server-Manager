@@ -21,10 +21,10 @@
 
 ## 🖥️ What is RSM?
 
-**Ronin Server Manager** is a lightweight, local-first application designed to take the headache out of managing dedicated game servers. By leveraging **Electron**, RSM provides a clean Windows-native interface to handle everything from startup to real-time process monitoring — no web hosting, no cloud accounts, no fuss.
+**Ronin Server Manager** is a lightweight, local-first application designed to take the headache out of managing dedicated game servers. By leveraging **Electron**, RSM provides a clean Windows-native interface to handle everything from **startup** to **real-time process monitoring** — no web hosting, no cloud accounts, no fuss.
 
 > [!IMPORTANT]  
-> This is a **client-side desktop application**. No web hosting or external databases are required — all server files and configurations stay exactly where they belong: on your machine.
+> This is a **client-side desktop application**. No web hosting or external databases are required — all server files and configurations stay exactly where they belong: **ON YOUR MACHINE**.
 
 ---
 
@@ -32,10 +32,12 @@
 
 * **📦 One-Click Management:** Start, stop, and restart server instances from a unified dashboard.
 * **📊 Server Status Dashboard:** See every server's online/offline state and player counts at a glance from the home view.
-* **🔎 Active Resource Monitoring:** Per-server and aggregate CPU and RAM gauges update in real time.
+* **🔎 Active Resource Monitoring:** Per-server CPU and RAM gauges plus a live connections graph update in real time.
+* **📡 Network Monitor:** System-wide bandwidth graph on the home screen and per-server active connection tracking with a rolling 15-minute history graph.
+* **🛡️ Firewall Manager (Portier):** Integrated Windows Firewall rule management — apply and remove inbound rules per server from inside the app, or manage all rules from the dedicated Firewall Manager view. *(Requires Administrator privileges)*
 * **📝 Live Console:** Integrated console output per server — read logs and send commands without leaving the app.
-* **⚡ Quick Actions:** Per-game shortcut buttons (save world, list players, etc.) that fire common commands while a server is running.
-* **✏️ In-App Config Editor:** Open and edit a server's config files (`.properties`, `.ini`, `.cfg`) directly in RSM — no file manager needed.
+* **⚡ Quick Actions:** Per-game shortcut buttons *(save world, list players, etc.)* that fire common commands while a server is running.
+* **✏️ In-App Config Editor:** Open and edit a server's config files (`.properties`, `.ini`, `.cfg`) directly in RSM — no digging into the file manager needed.
 * **🏠 Local-First:** High-speed performance with direct filesystem access via Node.js — nothing leaves your machine.
 * **📖 Built-in Docs:** Comprehensive guides powered by MkDocs and hosted at the link above.
 
@@ -43,13 +45,13 @@
 
 ## 🎮 Supported Games
 
-| Game | Launch Mode | Config Editor | Quick Actions |
-|---|---|---|---|
-| **Minecraft (Java)** | Direct console | `server.properties`, `ops.json` | ✅ |
-| **Space Engineers** | PowerShell bridge | `SpaceEngineers-Dedicated.cfg` | ✅ |
-| **Ark: Survival Evolved** | PowerShell bridge | `GameUserSettings.ini`, `Game.ini` | ✅ |
-| **Terraria** | Direct console | `serverconfig.txt` | — |
-| **Custom / Other** | Direct console | — | — |
+| Game | Launch Mode | Config Editor | Quick Actions | Firewall Ports |
+|---|---|---|---|---|
+| **Minecraft (Java)** | Direct console | `server.properties`, `ops.json` | ✅ | Game (25565), RCON (25575) |
+| **Space Engineers** | PowerShell bridge | `SpaceEngineers-Dedicated.cfg` | ✅ | Game (27016 UDP), API (8080) |
+| **Ark: Survival Evolved** | PowerShell bridge | `GameUserSettings.ini`, `Game.ini` | ✅ | Game (7777), Query (27015), RCON (27020) |
+| **Terraria** | Direct console | `serverconfig.txt` | — | Game (7777 TCP) |
+| **Custom / Other** | Direct console | — | — | — |
 
 > Need a game that isn't listed? Use the **Custom / Other** card in the Add Server wizard and fill in the paths manually.
 
@@ -64,7 +66,7 @@
 5. **Hit Save Configuration** — your server will appear in the sidebar ready to start.
 
 > [!TIP]
-> Make sure your server has been launched manually at least once before adding it to RSM. RSM manages servers — it does not install or configure them. See the [Server Setup docs](https://phonicspider.github.io/Ronin-Server-Manager/servers/) for details.
+> Make sure your server has been launched manually at least once before adding it to RSM. RSM manages servers — it does not install or configure them... *yet*. See the [Server Setup docs](https://phonicspider.github.io/Ronin-Server-Manager/servers/) for details.
 
 ---
 
@@ -75,6 +77,8 @@
 * **Documentation:** [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) (Markdown)
 
 ### Local Setup
+Run this command in the terminal of your IDE. You MUST be in the root folder where you want RSM to live.
+
 ```bash
 # Clone the repo
 git clone https://github.com/PhonicSpider/Ronin-Server-Manager.git
@@ -101,21 +105,26 @@ Bug fixes, new game modules, and UI improvements are all welcome. Here's how to 
 * **Fork** the repository to your own GitHub account.
 * Create a feature branch off `master`:
   ```bash
-  git checkout -b feature/your-feature-name
+  git checkout -b feature/[your-feature-name]
   ```
 * Keep commits concise and descriptive — one logical change per commit.
 
 ### 3. 💻 Coding Standards
 * **JavaScript/Electron:** Follow standard JS naming conventions (camelCase for variables and functions).
 * **Local-First:** New features must not introduce cloud dependencies or external database requirements.
-* **Modularity:** Game-specific logic lives in `public/configs/<game>.js`. Keep the core orchestrator clean.
+* **Modularity:** Game-specific logic lives in `public/configs/<game>.js`. Keep the core orchestrator clean. Anything that would be game specific like file locations, names, ports, etc. should be kept in the configuration files for that game type.
 
 ### 4. 📝 Documentation
 The docs live in `/docs` and are built with MkDocs Material. To preview locally:
 ```bash
+# install MKDocs
 pip install mkdocs-material
+
+#Run MKDocs
 mkdocs serve
 ```
+
+The terminal will show you the link to go to on your machine to view the docs locally.
 
 ### 5. 🚀 Submitting a Pull Request
 * Push your branch to your fork and open a PR against `master`.
@@ -127,6 +136,8 @@ mkdocs serve
 ### 🆘 Need Help?
 
 Check the [Issues](https://github.com/PhonicSpider/Ronin-Server-Manager/issues) tab or open a new discussion if you want to talk through an idea first.
+
+You can also join the [discord](https://discord.gg/TBt85JsCg) and reach us there. Would love to chat about your ideas or help you out!
 
 ---
 
