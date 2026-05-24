@@ -1765,3 +1765,62 @@ textarea:focus {
     opacity: 0.35;
     cursor: not-allowed;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   RESTORE BACKUP MODAL
+   ══════════════════════════════════════════════════════════════════ */
+
+.restore-modal-content {
+    background: rgb(var(--bg-color));
+    width: min(480px, 92vw);
+    max-height: 70vh;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.restore-backup-subtitle {
+    font-size: 12px;
+    color: var(--dim);
+    margin: 0;
+    padding: 10px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    line-height: 1.5;
+}
+
+.restore-backup-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.restore-backup-item {
+    width: 100%;
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'Consolas', monospace;
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+.restore-backup-item:hover {
+    border-color: var(--accent);
+    background: rgba(255, 69, 0, 0.06);
+    color: var(--accent);
+}
+
+.restore-backup-empty {
+    padding: 32px 20px;
+    text-align: center;
+    color: var(--dim);
+    font-size: 13px;
+}
