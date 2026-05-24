@@ -150,6 +150,14 @@ export const yourGame = {
         portPass:   "placeholder"
     },
 
+    // ── FIREWALL PORTS (optional) ────────────────────────────────────────────
+    // Each entry creates a row in the server panel's Firewall Ports card.
+    // Per-server port overrides are saved in servers.json and merged at runtime.
+    firewallPorts: [
+        { id: 'game',  label: 'Game Port', default: 25565, tcp: true,  udp: true,  description: 'Player connections' },
+        { id: 'rcon',  label: 'RCON',      default: 25575, tcp: true,  udp: false, description: 'Admin console' },
+    ],
+
     // ── QUICK ACTIONS (optional) ──────────────────────────────────────────────
     quickActions: [
         { label: 'List Players', command: 'listplayers' },
@@ -355,6 +363,8 @@ RSM uses Electron's IPC to communicate between the **main process** (`main.js`) 
 | `status-change` | receive | Status update `{ id, status, pid? }` |
 | `server-perf-update` | receive | Per-server CPU/RAM `{ id, cpu, ramPercent, ramDisplay }` |
 | `total-performance-update` | receive | Machine-wide CPU/RAM `{ cpu, ram }` |
+| `network-stats-update` | receive | System-wide bandwidth `{ rxSec, txSec }` in bytes/s |
+| `server-connections-update` | receive | Per-server ESTABLISHED connection count `{ id, connections }` |
 | `system-info` | receive | Info message for the system log |
 | `system-error` | receive | Error message for the system log |
 | `server-status-updated` | receive | Full server list refresh |
@@ -363,9 +373,15 @@ RSM uses Electron's IPC to communicate between the **main process** (`main.js`) 
 | `write-config-file` | invoke | Write content to a config file `{ filePath, content } → { success }` |
 | `get-servers` | invoke | Fetch current server list |
 | `get-settings` | invoke | Fetch app settings |
-| `check-admin` | invoke | Check if RSM is running as Administrator |
+| `check-admin` | invoke | Returns `true` if RSM has Administrator privileges |
 | `open-dialog` | invoke | Open a file-picker dialog |
 | `select-folder` | invoke | Open a folder-picker dialog |
+| `apply-firewall-rules` | invoke | Create inbound Windows Firewall rules for a server `{ serverName, ports[] } → { success }` |
+| `remove-firewall-rules` | invoke | Remove all RSM rules for a server `{ serverName } → { success }` |
+| `check-firewall-rules` | invoke | Check if any RSM rules exist for a server `{ serverName } → boolean` |
+| `get-firewall-rules` | invoke | List all rules in the `Ronin Portier Rules` group `→ [{ name, protocol, port, enabled }]` |
+| `add-firewall-rule` | invoke | Create a single custom rule `{ displayName, port, tcp, udp } → { success }` |
+| `remove-firewall-rule` | invoke | Remove a single rule by display name `{ displayName } → { success }` |
 
 ---
 
@@ -411,7 +427,14 @@ Each server in the renderer's `servers` array looks like this at runtime:
     apiPass:    "",
     status:     "Online",     // 'Offline' | 'Starting' | 'Online'
     pid:        41484,
-    category:   "POWERSHELL_BRIDGE"
+    category:   "POWERSHELL_BRIDGE",
+
+    // Per-server firewall port overrides — merged with config defaults at render time.
+    // Only present if the user has saved changes in the Firewall Ports card.
+    firewallPorts: {
+        "game": { port: 27016, tcp: false, udp: true },
+        "api":  { port: 8080,  tcp: true,  udp: false }
+    }
 }
 ```
 
@@ -449,6 +472,11 @@ Before opening a pull request, run through this list:
 
     ---
     Any new channels added to the correct whitelist array in `preload.js`.
+
+-   :material-fire: **Firewall ports defined** *(if applicable)*
+
+    ---
+    `firewallPorts` array added to the game config with sensible defaults for each port the server needs (game port, query port, RCON, API, etc.).
 
 -   :material-test-tube: **Tested locally**
 
