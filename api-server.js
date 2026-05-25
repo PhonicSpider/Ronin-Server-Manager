@@ -5,6 +5,8 @@
 // Authentication: x-api-key request header (constant-time comparison).
 // All requests / responses are application/json.
 
+const { Rcon } = require('rcon-client');
+const axios = require('axios');
 const http   = require('http');
 const https  = require('https');
 const crypto = require('crypto');
@@ -289,7 +291,6 @@ async function executeCommand(srv, processInfo, command) {
         if (!srv.apiPort || !srv.apiPass) {
             throw new Error('API Port and Password are required for Space Engineers commands');
         }
-        const axios = require('axios');
         const url   = `http://localhost:${srv.apiPort}/vrageremote/v1/server/command`;
         await axios.post(url, { Command: command }, {
             headers: {
@@ -305,7 +306,6 @@ async function executeCommand(srv, processInfo, command) {
     if (!srv.apiPort || !srv.apiPass) {
         throw new Error('RCON Port and Password are required to send commands');
     }
-    const { Rcon } = require('rcon-client');
     const rcon = await Rcon.connect({
         host:     'localhost',
         port:     parseInt(srv.apiPort),
@@ -318,63 +318,46 @@ async function executeCommand(srv, processInfo, command) {
 }
 
 async function fetchPlayers(srv, processInfo) {
-    const type = (srv.type || '').toLowerCase();
-
-    // Minecraft — write 'list' to stdin, capture stdout for 1.5 s, parse the response line
-    if (type === 'minecraft') {
-        const child = processInfo?.shell;
-        if (!child?.stdin?.writable) throw new Error('Server console is not available');
-        return new Promise((resolve) => {
-            const chunks = [];
-            const onData = (d) => chunks.push(d.toString());
-            child.stdout.on('data', onData);
-            child.stdin.write('list\n');
-            setTimeout(() => {
-                child.stdout.off('data', onData);
-                const raw = chunks.join('');
-                // Vanilla: "There are 2 of a max of 20 players online: Alice, Bob"
-                const m = raw.match(/There are (\d+) of a max(?: of)? (\d+) players online:\s*(.*)/i);
-                if (m) {
-                    const players = m[3].trim() ? m[3].split(',').map(p => p.trim()).filter(Boolean) : [];
-                    resolve({ online: parseInt(m[1]), max: parseInt(m[2]), players });
-                } else {
-                    resolve({ online: null, max: null, players: [] });
-                }
-            }, 1500);
-        });
-    }
-
-    // Space Engineers — VRage HTTP session endpoint
-    if (type === 'space-engineers') {
+    // Space Engineers — VRage HTTP session endpoint returns structured data;
+    // executeCommand only returns 'Command sent' so we need the direct HTTP call here.
+    if (srv.type === 'space-engineers') {
         if (!srv.apiPort) throw new Error('API Port is required for Space Engineers player count');
         const axios = require('axios');
-        const port    = srv.apiPort || 8080;
-        const pass    = srv.apiPass || '';
-        const hdrs    = pass ? { Authorization: `Basic ${Buffer.from(`:${pass}`).toString('base64')}` } : {};
-        const res     = await axios.get(`http://localhost:${port}/v1/session`, { headers: hdrs, timeout: 3000 });
+        const port = srv.apiPort || 8080;
+        const pass = srv.apiPass || '';
+        const hdrs = pass ? { Authorization: `Basic ${Buffer.from(`:${pass}`).toString('base64')}` } : {};
+        const res  = await axios.get(`http://localhost:${port}/v1/session`, { headers: hdrs, timeout: 3000 });
         const session = res.data?.data || res.data || {};
-        return {
-            online:  session.Players   ?? null,
-            max:     session.MaxPlayers ?? null,
-            players: []
-        };
+        return { online: session.Players ?? null, max: session.MaxPlayers ?? null, players: [] };
     }
 
-    // Ark — RCON ListPlayers
-    if (type === 'ark') {
-        if (!srv.apiPort || !srv.apiPass) throw new Error('RCON Port and Password are required');
-        const { Rcon } = require('rcon-client');
-        const rcon = await Rcon.connect({
-            host: 'localhost', port: parseInt(srv.apiPort), password: srv.apiPass, timeout: 3000
+    // All other game types: send the command defined in the game config and parse the output.
+    // New games never need to touch this function — just set backend.playerListCommand in their config.
+    if (!srv.playerListCommand) {
+        return { online: null, max: null, players: [], note: 'Player list not supported for this server type' };
+    }
+
+    const output = await executeCommand(srv, processInfo, srv.playerListCommand);
+
+    // Minecraft-style: "There are 2 of a max of 20 players online: Alice, Bob"
+    const mcMatch = output.match(/There are (\d+) of a max(?: of)? (\d+) players online:\s*(.*)/i);
+    if (mcMatch) {
+        const players = mcMatch[3].trim() ? mcMatch[3].split(',').map(p => p.trim()).filter(Boolean) : [];
+        return { online: parseInt(mcMatch[1]), max: parseInt(mcMatch[2]), players };
+    }
+
+    // RCON numbered-list style: "1. PlayerName, steamid\n2. PlayerName2, steamid2" (Ark, Rust, PalWorld, etc.)
+    const numberedLines = output.trim().split('\n').filter(l => /^\d+\./.test(l));
+    if (numberedLines.length > 0) {
+        const players = numberedLines.map(l => {
+            const m = l.match(/^\d+\.\s+(.+?),/);
+            return m ? m[1].trim() : l.replace(/^\d+\.\s*/, '').trim();
         });
-        const response = await rcon.send('ListPlayers');
-        rcon.end();
-        const lines   = response.trim().split('\n').filter(l => /^\d+\./.test(l));
-        const players = lines.map(l => { const m = l.match(/^\d+\.\s+(.+?),/); return m ? m[1].trim() : l.replace(/^\d+\.\s*/, '').trim(); });
         return { online: players.length, max: null, players };
     }
 
-    return { online: null, max: null, players: [], note: 'Player list is not supported for this server type' };
+    // Generic fallback — return raw output for the caller to interpret
+    return { online: null, max: null, players: [], rawOutput: output.trim() };
 }
 
 module.exports = { init, start, stop, generateApiKey };
