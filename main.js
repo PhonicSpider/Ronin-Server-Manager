@@ -24,8 +24,9 @@ apiServer.init({
 
 let mainWindow;
 let tray = null;
-const activeProcesses = {};
-const serverStats = {}; // { [srvId]: { cpu, ramMB } } — updated each heartbeat tick
+const activeProcesses  = {};
+const serverStats      = {}; // { [srvId]: { cpu, ramMB } } — updated each heartbeat tick
+const pendingRestarts  = {}; // { [srvId]: srv } — set by restart-server, consumed by stopServerCleanup
 const DATA_FILE       = path.join(app.getPath('userData'), 'servers.json');
 const API_CONFIG_FILE = path.join(app.getPath('userData'), 'api-config.json');
 const TLS_CERT_FILE   = path.join(app.getPath('userData'), 'rsm-tls-cert.pem');
@@ -431,7 +432,7 @@ ipcMain.on('start-server', (event, srv) => {
             DebugLog(`[RSM-DEBUG] ${srv.name} is a UI based server. Using shell pipe instead of file watcher.`);
         }
 
-        activeProcesses[srv.id] = { pid: pid, shell: child, cleanup: stopServerCleanup };
+        activeProcesses[srv.id] = { pid: pid, shell: child, cleanup: stopServerCleanup, startedAt: Date.now() };
         DebugLog(`Registered ${srv.name} in activeProcesses.`);
 
         startHeartbeat(pid, srv);
@@ -458,10 +459,19 @@ ipcMain.on('start-server', (event, srv) => {
             DebugLog(`Stopped search retry interval for ${srv.name}.`);
         }
 
+        const restartSrv = pendingRestarts[srv.id];
+        delete pendingRestarts[srv.id];
         delete activeProcesses[srv.id];
         delete serverStats[srv.id];
         event.reply('status-change', { id: srv.id, status: 'Offline' });
         event.reply('system-info', `[RSM] ${srv.name} has been cleaned up and set to Offline.`);
+
+        if (restartSrv) {
+            console.log(`[RSM] restart-server — restarting "${restartSrv.name}" after cleanup`);
+            setTimeout(() => ipcMain.emit('start-server', {
+                reply: (ch, data) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(ch, data); }
+            }, restartSrv), 1500);
+        }
 
         DebugLog(`Cleanup complete for ${srv.name}. Status: Offline.`);
     };
@@ -711,6 +721,29 @@ ipcMain.on('kill-server', (event, pid) => {
             console.log(`[RSM] Process tree ${pid} force terminated.`);
         }
     });
+});
+
+// --- RESTART LOGIC ---
+// Sets a pendingRestarts flag on the server, then fires stop-server.
+// stopServerCleanup (in the start-server closure) detects the flag on process exit
+// and re-emits start-server after a short delay — no polling required.
+ipcMain.on('restart-server', (event, srvId) => {
+    console.log(`[RSM] restart-server — srvId: ${srvId}`);
+    const srv = managedServers.find(s => s.id === srvId);
+    if (!srv) {
+        console.warn(`[RSM] restart-server — server ${srvId} not found`);
+        event.reply('system-info', `[RSM-WARN] Restart failed: server not found`);
+        return;
+    }
+    if (srv.status === 'Offline') {
+        // Already stopped — skip the stop step and start directly
+        console.log(`[RSM] restart-server — "${srv.name}" is Offline, starting directly`);
+        ipcMain.emit('start-server', event, { ...srv });
+        return;
+    }
+    pendingRestarts[srvId] = { ...srv };
+    ipcMain.emit('stop-server', event, srvId);
+    event.reply('system-info', `[RSM] Restart initiated for "${srv.name}" — stopping first...`);
 });
 
 
