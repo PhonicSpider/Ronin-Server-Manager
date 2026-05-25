@@ -1532,7 +1532,7 @@ window.saveNewServer = async () => {
     const type = window.selectedType || "other";
     console.log(`[RSM] saveNewServer — name: "${name}" | type: "${type}" | editingId: ${window.editingServerId || 'new'}`);
     const config = ServerTypeRegistry[type] || {};
-    const category          = config.backend?.category          ?? "DIRECT_CONSOLE";
+    const category = config.backend?.category ?? "DIRECT_CONSOLE";
     const playerListCommand = config.backend?.playerListCommand ?? null;
 
     const apiPort = document.getElementById('portId').value || "8080";
@@ -2048,9 +2048,6 @@ async function loadApiSettings() {
     if (portInput)  portInput.value       = String(_apiConfig.port || 3002);
     if (keyDisplay) keyDisplay.value      = _apiConfig.apiKey || '(none — click Regenerate)';
     _updateApiBodyOpacity(_apiConfig.enabled);
-    // Safety net: re-apply saved config so main process starts/stops the server
-    // even if the app.whenReady() auto-start path was skipped for any reason.
-    window.api.send('save-api-config', _apiConfig);
 }
 
 function _updateApiBodyOpacity(enabled) {
