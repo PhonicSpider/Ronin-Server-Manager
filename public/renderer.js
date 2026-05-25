@@ -1532,7 +1532,8 @@ window.saveNewServer = async () => {
     const type = window.selectedType || "other";
     console.log(`[RSM] saveNewServer — name: "${name}" | type: "${type}" | editingId: ${window.editingServerId || 'new'}`);
     const config = ServerTypeRegistry[type] || {};
-    const category = config ? config.backend?.category : "DIRECT_CONSOLE";
+    const category          = config.backend?.category          ?? "DIRECT_CONSOLE";
+    const playerListCommand = config.backend?.playerListCommand ?? null;
 
     const apiPort = document.getElementById('portId').value || "8080";
     const apiPass = document.getElementById('portPass').value || "";
@@ -1592,7 +1593,7 @@ window.saveNewServer = async () => {
             const existing = servers[index];
             servers[index] = {
                 ...existing,
-                name, path, apiPort, apiPass, args, logPath, workingDir, mcRam, seInstance, type, category,
+                name, path, apiPort, apiPass, args, logPath, workingDir, mcRam, seInstance, type, category, playerListCommand,
                 ...(firewallPorts && { firewallPorts })
             };
             if (DebugActive) {
@@ -1603,7 +1604,7 @@ window.saveNewServer = async () => {
     } else {
         servers.push({
             id: Date.now().toString(),
-            type, category, name, path, apiPort, apiPass, mcRam, seInstance,
+            type, category, playerListCommand, name, path, apiPort, apiPass, mcRam, seInstance,
             args, logPath, workingDir,
             status: 'Offline', logs: '', pid: null,
             ...(firewallPorts && { firewallPorts })
