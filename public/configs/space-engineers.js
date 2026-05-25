@@ -4,7 +4,8 @@ export const spaceEngineers = {
         icon: "logos/seLogo.png"
     },
     backend: {
-        category: "POWERSHELL_BRIDGE"
+        category: "POWERSHELL_BRIDGE",
+        playerListCommand: null  // uses VRage HTTP session endpoint, not the command pipeline
     },
     gameFiles: {
         configs: [

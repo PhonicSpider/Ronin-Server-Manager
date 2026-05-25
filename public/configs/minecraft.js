@@ -4,7 +4,8 @@ export const minecraft = {
         icon: "logos/mcLogo.png"
     },
     backend: {
-        category: "DIRECT_CONSOLE"
+        category: "DIRECT_CONSOLE",
+        playerListCommand: "list"
     },
     gameFiles: {
         configs: [

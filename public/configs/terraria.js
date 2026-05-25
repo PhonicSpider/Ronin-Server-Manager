@@ -4,7 +4,8 @@ export const terraria = {
         icon: "logos/trLogo.png"
     },
     backend: {
-        category: "DIRECT_CONSOLE"
+        category: "DIRECT_CONSOLE",
+        playerListCommand: "playing"
     },
     gameFiles: {
         configs: [

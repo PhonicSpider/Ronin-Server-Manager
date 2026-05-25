@@ -14,7 +14,12 @@
         //                   it falls back to matching the workingDir path inside the process CommandLine.
         //                   For self-relaunching games, make sure workingDir also appears in customArgs
         //                   (e.g. SE uses -path "<workingDir>") so each instance can be told apart.
-        category: "DIRECT_CONSOLE"
+        category: "DIRECT_CONSOLE",
+        // playerListCommand — console command RSM sends to retrieve the player list for the REST API.
+        //                     Set to null if the game uses a custom HTTP API instead of the command pipeline
+        //                     (e.g. Space Engineers). Omit entirely if player listing is not supported.
+        //                     RSM auto-parses Minecraft-style and RCON numbered-list responses.
+        playerListCommand: "list"
     },
     
     // --- Optional: Config files accessible via the in-app config editor. ---

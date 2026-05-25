@@ -4,7 +4,8 @@ export const ark = {
         icon: "logos/arksLogo.png"
     },
     backend: {
-        category: "POWERSHELL_BRIDGE"
+        category: "POWERSHELL_BRIDGE",
+        playerListCommand: "ListPlayers"
     },
     gameFiles: {
         configPath: "ShooterGame/Saved/Config/WindowsServer",
