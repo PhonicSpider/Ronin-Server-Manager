@@ -13,6 +13,36 @@ const crypto = require('crypto');
 
 const MAX_BODY = 1 * 1024 * 1024; // 1 MB request body cap
 
+// ── Rate limiting ──────────────────────────────────────────────────────────
+// Tracks failed auth attempts per IP to prevent brute-force key guessing.
+// 5 failures within a rolling window triggers a 60-second block.
+const _failedAuth       = new Map(); // ip → { count, lastFailure, blockedUntil }
+const RATE_LIMIT_MAX    = 5;
+const RATE_LIMIT_MS     = 60_000;   // block duration
+const RATE_LIMIT_DECAY  = 300_000;  // clear stale entries after 5 minutes
+
+function _isRateLimited(ip) {
+    const now   = Date.now();
+    const entry = _failedAuth.get(ip);
+    if (!entry) return false;
+    if (now - entry.lastFailure > RATE_LIMIT_DECAY) { _failedAuth.delete(ip); return false; }
+    return entry.blockedUntil && now < entry.blockedUntil;
+}
+
+function _recordFailure(ip) {
+    const now   = Date.now();
+    const entry = _failedAuth.get(ip) || { count: 0, lastFailure: 0 };
+    entry.count++;
+    entry.lastFailure = now;
+    if (entry.count >= RATE_LIMIT_MAX) {
+        entry.blockedUntil = now + RATE_LIMIT_MS;
+        console.warn(`[RSM-API] Rate limit triggered for ${ip} — blocked for ${RATE_LIMIT_MS / 1000}s`);
+    }
+    _failedAuth.set(ip, entry);
+}
+
+function _clearFailure(ip) { _failedAuth.delete(ip); }
+
 // ── Injected dependencies ──────────────────────────────────────────────────
 let _getManagedServers;
 let _getActiveProcesses;
@@ -105,9 +135,25 @@ function onRequest(req, res) {
 }
 
 function dispatch(req, res, body) {
+    const clientIp = req.socket?.remoteAddress || 'unknown';
+    const url      = (req.url || '/').split('?')[0].replace(/\/+$/, '') || '/';
+
     // ── CORS pre-flight ──────────────────────────────────────────────────
     if (req.method === 'OPTIONS') {
         send(res, 204, null);
+        return;
+    }
+
+    // ── Health check (unauthenticated — lets monitors confirm the API is up) ─
+    if (req.method === 'GET' && url === '/api/health') {
+        send(res, 200, { status: 'ok' });
+        return;
+    }
+
+    // ── Rate limit check ─────────────────────────────────────────────────
+    if (_isRateLimited(clientIp)) {
+        console.warn(`[RSM-API] ${req.method} ${url} — 429 blocked (${clientIp})`);
+        send(res, 429, { error: 'Too many failed attempts. Try again later.' });
         return;
     }
 
@@ -119,11 +165,14 @@ function dispatch(req, res, body) {
     const incoming = Buffer.from(req.headers['x-api-key'] || '', 'utf8');
     const expected = Buffer.from(_apiKey, 'utf8');
     if (incoming.length !== expected.length || !crypto.timingSafeEqual(incoming, expected)) {
+        _recordFailure(clientIp);
         send(res, 401, { error: 'Unauthorized' });
         return;
     }
+    _clearFailure(clientIp); // successful auth resets the counter
 
-    const url = (req.url || '/').split('?')[0].replace(/\/+$/, '') || '/';
+    // ── Access log ───────────────────────────────────────────────────────
+    console.log(`[RSM-API] ${req.method} ${url} — from ${clientIp}`);
 
     // ── GET /api/servers ─────────────────────────────────────────────────
     if (req.method === 'GET' && url === '/api/servers') {
@@ -172,6 +221,38 @@ function dispatch(req, res, body) {
         }
         _ipcMain.emit('stop-server', makeReplyEvent(), srv.id);
         send(res, 200, { message: `Stop signal sent to ${srv.name}` });
+        return;
+    }
+
+    // POST /api/servers/:id/restart
+    // Delegates to the restart-server IPC handler in main.js which handles
+    // stop → wait for exit → start. Returns immediately; watch status-change for result.
+    if (req.method === 'POST' && action === 'restart') {
+        _ipcMain.emit('restart-server', makeReplyEvent(), srv.id);
+        send(res, 200, { message: `Restart signal sent to ${srv.name}` });
+        return;
+    }
+
+    // POST /api/servers/:id/kill
+    // Hard kill via taskkill — use when stop is unresponsive.
+    if (req.method === 'POST' && action === 'kill') {
+        const processInfo = _getActiveProcesses()[srv.id];
+        if (!processInfo?.pid) {
+            send(res, 409, { error: 'Server is not running' });
+            return;
+        }
+        _ipcMain.emit('kill-server', makeReplyEvent(), processInfo.pid);
+        send(res, 200, { message: `Kill signal sent to ${srv.name} (PID: ${processInfo.pid})` });
+        return;
+    }
+
+    // GET /api/servers/:id/logs
+    // Returns the last 200 lines of buffered console output for the server.
+    if (req.method === 'GET' && action === 'logs') {
+        const raw   = srv.logs || '';
+        const lines = raw.split('\n');
+        const tail  = lines.slice(-200).join('\n');
+        send(res, 200, { id: srv.id, totalLines: lines.length, log: tail });
         return;
     }
 
@@ -228,9 +309,11 @@ function send(res, statusCode, body) {
     const buf     = Buffer.from(payload, 'utf8');
 
     res.writeHead(statusCode, {
-        'Content-Type':                 'application/json',
-        'Content-Length':               buf.length,
-        'Connection':                   'close',
+        'Content-Type':   'application/json',
+        'Content-Length': buf.length,
+        'Connection':     'close',
+        // Wildcard is intentional — RSM binds to 0.0.0.0 for LAN tools (e.g. ArkenBot).
+        // Tighten this if you expose the API beyond the local network.
         'Access-Control-Allow-Origin':  '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, x-api-key'
@@ -239,15 +322,18 @@ function send(res, statusCode, body) {
 }
 
 function formatServer(srv) {
-    const stats = _getServerStats()[srv.id] || {};
+    const stats     = _getServerStats()[srv.id]     || {};
+    const proc      = _getActiveProcesses()[srv.id] || {};
+    const uptime    = proc.startedAt ? Math.floor((Date.now() - proc.startedAt) / 1000) : null;
     return {
-        id:     srv.id,
-        name:   srv.name,
-        type:   srv.type,
-        status: srv.status,
-        pid:    srv.pid    || null,
-        cpu:    stats.cpu   ?? null,
-        ramMB:  stats.ramMB ?? null
+        id:             srv.id,
+        name:           srv.name,
+        type:           srv.type,
+        status:         srv.status,
+        pid:            srv.pid     || null,
+        cpu:            stats.cpu   ?? null,
+        ramMB:          stats.ramMB ?? null,
+        uptimeSeconds:  uptime
     };
 }
 
@@ -322,7 +408,6 @@ async function fetchPlayers(srv, processInfo) {
     // executeCommand only returns 'Command sent' so we need the direct HTTP call here.
     if (srv.type === 'space-engineers') {
         if (!srv.apiPort) throw new Error('API Port is required for Space Engineers player count');
-        const axios = require('axios');
         const port = srv.apiPort || 8080;
         const pass = srv.apiPass || '';
         const hdrs = pass ? { Authorization: `Basic ${Buffer.from(`:${pass}`).toString('base64')}` } : {};
