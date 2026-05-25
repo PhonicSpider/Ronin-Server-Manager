@@ -146,7 +146,7 @@ function dispatch(req, res, body) {
 
     // ── Health check (unauthenticated — lets monitors confirm the API is up) ─
     if (req.method === 'GET' && url === '/api/health') {
-        send(res, 200, { status: 'ok' });
+        send(res, 200, { status: 'ok', version: '1.0' });
         return;
     }
 
@@ -263,6 +263,10 @@ function dispatch(req, res, body) {
             return;
         }
         const processInfo = _getActiveProcesses()[srv.id];
+        if (!processInfo) {
+            send(res, 409, { error: 'Server process not attached — restart the server through RSM to enable this endpoint' });
+            return;
+        }
         fetchPlayers(srv, processInfo)
             .then(data => send(res, 200, data))
             .catch(err => send(res, 500, { error: err.message }));
@@ -398,9 +402,12 @@ async function executeCommand(srv, processInfo, command) {
         password: srv.apiPass,
         timeout:  3000
     });
-    const response = await rcon.send(command);
-    rcon.end();
-    return response || 'Command sent';
+    try {
+        const response = await rcon.send(command);
+        return response || 'Command sent';
+    } finally {
+        rcon.end();
+    }
 }
 
 async function fetchPlayers(srv, processInfo) {
