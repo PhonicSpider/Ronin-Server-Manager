@@ -271,8 +271,14 @@ function syncActiveServers() {
         if (unlinked.size > 0) {
             const names = managedServers.filter(s => unlinked.has(s.id)).map(s => s.name).join(', ');
             console.log(`[RSM] syncActiveServers — not found: ${names}`);
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('system-info', `Startup scan: ${unlinked.size} server(s) not running — ${names}`);
+            }
         }
         console.log("[RSM] syncActiveServers — scan complete");
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('system-info', 'Startup scan complete.');
+        }
     };
 
     const runPass3 = () => {
