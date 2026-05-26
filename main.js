@@ -463,8 +463,11 @@ ipcMain.on('start-server', (event, srv) => {
         // Update managedServers directly so the REST API sees Offline immediately.
         // The renderer-side status-change reply updates the UI copy, but the API
         // reads from managedServers, which is only mutated here in the main process.
+        // Re-resolve the index at cleanup time in case managedServers was reassigned.
         srv.status = 'Offline';
         srv.pid    = null;
+        const _idx = managedServers.findIndex(s => s.id === srv.id);
+        if (_idx !== -1) { managedServers[_idx].status = 'Offline'; managedServers[_idx].pid = null; }
         delete pendingRestarts[srv.id];
         delete activeProcesses[srv.id];
         delete serverStats[srv.id];
