@@ -1,5 +1,16 @@
 const { app, BrowserWindow, shell, ipcMain, dialog, Tray, Menu, Notification } = require('electron');
 const { Rcon } = require('rcon-client');
+
+// Prevent transient network errors (ECONNRESET, EPIPE) from crashing the main process.
+// These are expected when a game server closes its RCON socket mid-read (e.g. on shutdown).
+process.on('uncaughtException', (err) => {
+    if (['ECONNRESET', 'EPIPE', 'ECONNREFUSED'].includes(err.code)) {
+        console.warn(`[RSM] Suppressed transient network error: ${err.code}`);
+        return;
+    }
+    console.error('[RSM] Uncaught exception:', err);
+    dialog.showErrorBox('A JavaScript error occurred in the main process', `${err.message}\n${err.stack}`);
+});
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -19,7 +30,16 @@ apiServer.init({
     getServerStats:     () => serverStats,
     getMainWindow:      () => mainWindow,
     findServType,
-    ipcMain
+    ipcMain,
+    logConsoleOut: (id, msg) => {
+        const win = mainWindow;
+        if (win && !win.isDestroyed()) win.webContents.send('console-out', { id, msg });
+        const idx = managedServers.findIndex(s => s.id === id);
+        if (idx === -1) return;
+        const combined = (managedServers[idx].logs || '') + msg;
+        const lines = combined.split('\n');
+        managedServers[idx].logs = lines.slice(-MAX_LOG_LINES).join('\n');
+    }
 });
 
 let mainWindow;
@@ -318,6 +338,20 @@ ipcMain.on('save-servers', (event, updatedList) => {
     console.log("[RSM] Server list saved (Persistence maintained for active servers).");
 });
 
+// --- CONSOLE OUTPUT HELPER ---
+// Sends console output to the renderer AND appends to the managedServer log buffer
+// so the REST API /logs endpoint always has current content.
+const MAX_LOG_LINES = 500;
+function sendConsoleOut(event, id, msg) {
+    event.reply('console-out', { id, msg });
+    const idx = managedServers.findIndex(s => s.id === id);
+    if (idx === -1) return;
+    const current = managedServers[idx].logs || '';
+    const combined = current + msg;
+    const lines = combined.split('\n');
+    managedServers[idx].logs = lines.slice(-MAX_LOG_LINES).join('\n');
+}
+
 // --- LAUNCH ON STARTUP TOGGLE ---
 ipcMain.on('update-startup-settings', (event, isEnabled) => {
     app.setLoginItemSettings({
@@ -425,9 +459,10 @@ ipcMain.on('start-server', (event, srv) => {
         event.reply('status-change', { id: srv.id, status: 'Online', pid: pid });
 
         if (serverCategory !== 'DIRECT_CONSOLE') {
-            if (srv.logPath && fs.existsSync(srv.logPath)) {
+            if (!logWatcher && srv.logPath) {
                 logWatcher = startLogging(srv.logPath, event, srv);
-            } else DebugLog(`[RSM-DEBUG] No valid logPath found for ${srv.name}. Watcher not started.`);
+                if (!logWatcher) DebugLog(`[RSM-DEBUG] Log watcher not started yet for ${srv.name} — log file may not exist yet.`);
+            }
         } else {
             DebugLog(`[RSM-DEBUG] ${srv.name} is a UI based server. Using shell pipe instead of file watcher.`);
         }
@@ -570,13 +605,27 @@ ipcMain.on('start-server', (event, srv) => {
         child = spawn(command, finalArgs, { cwd: workingDir, shell: false, stdio: ['pipe', 'pipe', 'pipe'] });
         DebugLog(`Launched direct process for ${srv.name} with PID ${child.pid}`);
     } else {
+        const psScript = `$p = Start-Process -FilePath '${srv.path}' -ArgumentList '${psArgs}' -WorkingDirectory '${workingDir}' -WindowStyle Hidden -PassThru; Write-Output "PID_MARKER:$($p.Id)"; while($null -ne (Get-Process -Id $p.Id -ErrorAction SilentlyContinue)) { Start-Sleep -Seconds 5 }`;
+        const encodedCmd = Buffer.from(psScript, 'utf16le').toString('base64');
         child = spawn('powershell.exe', [
-            '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
-            `$p = Start-Process -FilePath '${srv.path}' -ArgumentList '${psArgs}' -WorkingDirectory '${workingDir}' -WindowStyle Hidden -PassThru;
-            Write-Output "PID_MARKER:$($p.Id)";
-            while($null -ne (Get-Process -Id $p.Id -ErrorAction SilentlyContinue)) { Start-Sleep -Seconds 5 }`
-        ], { cwd: workingDir, shell: true, stdio: ['pipe', 'pipe', 'pipe'] });
+            '-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encodedCmd
+        ], { cwd: workingDir, shell: false, stdio: ['pipe', 'pipe', 'pipe'] });
         DebugLog(`Launched PowerShell bridge for ${srv.name} with PID ${child.pid}`);
+    }
+
+    // For POWERSHELL_BRIDGE servers, poll for the log file during startup so output appears immediately
+    if (serverCategory !== 'DIRECT_CONSOLE' && srv.logPath) {
+        const startupPoller = setInterval(() => {
+            if (logWatcher) { clearInterval(startupPoller); return; }
+            const watcher = startLogging(srv.logPath, event, srv);
+            if (watcher) {
+                logWatcher = watcher;
+                clearInterval(startupPoller);
+                DebugLog(`Startup log poller found log for ${srv.name}, watcher started.`);
+            }
+        }, 2000);
+        // Stop polling if the server never comes up
+        setTimeout(() => clearInterval(startupPoller), 300000);
     }
 
     child.stdout.on('data', (data) => {
@@ -586,7 +635,7 @@ ipcMain.on('start-server', (event, srv) => {
         DebugConsoleLogs(`[STDOUT][${srv.name}]: ${msg.trim()}`);
 
         if (serverCategory === 'DIRECT_CONSOLE') {
-            event.reply('console-out', { id: srv.id, msg: msg });
+            sendConsoleOut(event, srv.id, msg);
         }
 
         if (msg.includes('PID_MARKER:')) {
@@ -607,8 +656,16 @@ ipcMain.on('start-server', (event, srv) => {
     child.stderr.on('data', (data) => {
         let msg = data.toString();
         if (DebugActive) console.log(`[STDERR][${srv.name}]: ${msg.trim()}`);
-        if (serverCategory === 'DIRECT_CONSOLE') {
-            event.reply('console-out', { id: srv.id, msg: `[WARN] ${msg}` });
+        if (msg.trim().startsWith('#< CLIXML')) return;
+        sendConsoleOut(event, srv.id, `[WARN] ${msg}`);
+    });
+
+    child.on('close', (code) => {
+        DebugLog(`PowerShell bridge for ${srv.name} closed with code ${code}.`);
+        if (srv.status !== 'Online') {
+            event.reply('system-info', `[RSM-ERR] Bridge process for "${srv.name}" exited before the server came Online (code: ${code}). Check that the path is correct and try running RSM as Administrator.`);
+            event.reply('status-change', { id: srv.id, status: 'Offline' });
+            if (searchRetry) { clearInterval(searchRetry); searchRetry = null; }
         }
     });
 
@@ -792,6 +849,8 @@ const startLogging = (logFolderPath, event, srv) => {
         return setInterval(() => {
             try {
                 const stats = fs.statSync(newestLog);
+                // File was recreated/truncated (new server run) — reset position
+                if (stats.size < lastSize) lastSize = 0;
                 if (stats.size > lastSize) {
                     const bufferSize = stats.size - lastSize;
                     const buffer = Buffer.alloc(bufferSize);
@@ -828,7 +887,7 @@ const startLogging = (logFolderPath, event, srv) => {
                     }).join('\n');
 
                     if (formattedOutput.trim()) {
-                        event.reply('console-out', { id: srv.id, msg: formattedOutput + '\n' });
+                        sendConsoleOut(event, srv.id, formattedOutput + '\n');
                     }
                 }
             } catch (e) {
@@ -869,18 +928,18 @@ ipcMain.on('send-command', async (event, { srvId, command }) => {
         if (childProc.stdin && childProc.stdin.writable) {
             try {
                 childProc.stdin.write(cleanCmd + "\n");
-                event.reply('console-out', { id: srvId, msg: `> ${cleanCmd}\n` });
+                sendConsoleOut(event, srvId, `> ${cleanCmd}\n`);
             } catch (err) {
-                event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] Failed to write to console: ${err.message}\n` });
+                sendConsoleOut(event, srvId, `[RSM-ERROR] Failed to write to console: ${err.message}\n`);
             }
         } else {
-            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] Console input is blocked or not available.\n` });
+            sendConsoleOut(event, srvId, `[RSM-ERROR] Console input is blocked or not available.\n`);
         }
     }
     // Space Engineers (VRage Remote HTTP API)
     else if (srv.type === 'space-engineers') {
         if (!srv.apiPort || !srv.apiPass) {
-            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] API Port and Password are required for Space Engineers commands.\n` });
+            sendConsoleOut(event, srvId, `[RSM-ERROR] API Port and Password are required for Space Engineers commands.\n`);
             return;
         }
 
@@ -899,16 +958,16 @@ ipcMain.on('send-command', async (event, { srvId, command }) => {
                     timeout: 2000
                 }
             );
-            event.reply('console-out', { id: srvId, msg: `> ${cleanCmd}\n` });
+            sendConsoleOut(event, srvId, `> ${cleanCmd}\n`);
         } catch (err) {
             const errorMsg = err.response ? `Code ${err.response.status}` : err.message;
-            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] SE API Failed: ${errorMsg}\n` });
+            sendConsoleOut(event, srvId, `[RSM-ERROR] SE API Failed: ${errorMsg}\n`);
         }
     }
     // RCON Protocol (Ark and other POWERSHELL_BRIDGE servers)
     else if (serverCategory === 'POWERSHELL_BRIDGE') {
         if (!srv.apiPort || !srv.apiPass) {
-            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] RCON Port and Password are required to send commands.\n` });
+            sendConsoleOut(event, srvId, `[RSM-ERROR] RCON Port and Password are required to send commands.\n`);
             return;
         }
 
@@ -917,18 +976,22 @@ ipcMain.on('send-command', async (event, { srvId, command }) => {
 
         try {
             const rcon = await Rcon.connect({
-                host: 'localhost',
+                host: '127.0.0.1',
                 port: port,
                 password: password,
                 timeout: 2000
             });
 
-            const response = await rcon.send(cleanCmd);
-            rcon.end();
-            event.reply('console-out', { id: srvId, msg: `> ${cleanCmd}\n${response ? response + '\n' : ''}` });
+            let response;
+            try {
+                response = await rcon.send(cleanCmd);
+            } finally {
+                try { rcon.end(); } catch (_) {}
+            }
+            sendConsoleOut(event, srvId, `> ${cleanCmd}\n${response ? response + '\n' : ''}`);
 
         } catch (err) {
-            event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] RCON Failed: ${err.message}\n` });
+            sendConsoleOut(event, srvId, `[RSM-ERROR] RCON Failed: ${err.message}\n`);
         }
     }
 });
@@ -976,10 +1039,9 @@ ipcMain.on('get-player-count', async (event, srvId) => {
     // Ark: RCON 'ListPlayers' returns a plain-text list, one player per line
     if (type === 'ark') {
         try {
-            const rcon = new Rcon({ host: 'localhost', port: parseInt(srv.apiPort) || 27020, password: srv.apiPass || '' });
-            await rcon.connect();
-            const response = await rcon.send('ListPlayers');
-            await rcon.end();
+            const rcon = await Rcon.connect({ host: '127.0.0.1', port: parseInt(srv.apiPort) || 27020, password: srv.apiPass || '', timeout: 3000 });
+            let response;
+            try { response = await rcon.send('ListPlayers'); } finally { try { rcon.end(); } catch (_) {} }
             const lines = response.trim().split('\n').filter(l => l.match(/^\d+\./));
             event.reply('player-count-update', {
                 id: srvId,

@@ -856,11 +856,11 @@ window.openEditModal = (serverId) => {
         document.getElementById('newName').value = srv.name || "";
         document.getElementById('exePath').value = srv.path || "";
 
-        const extraFields = ['customArgs', 'workingDir', 'logPath', 'mcRam', 'seInstance'];
+        const extraFields = ['customArgs', 'workingDir', 'logPath', 'mcRam', 'seInstance', 'portId', 'portPass'];
         extraFields.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                const dataKey = (id === 'customArgs') ? 'args' : id;
+                const dataKey = (id === 'customArgs') ? 'args' : (id === 'portId') ? 'apiPort' : (id === 'portPass') ? 'apiPass' : id;
                 el.value = srv[dataKey] || "";
             } else {
                 console.log(`[RSM-DEBUG] Field '${id}' not found in DOM (this may be normal depending on server type)`);
