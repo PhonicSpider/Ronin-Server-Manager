@@ -27,6 +27,13 @@ function SystemLog(msg) {
     window.updateSystemLog(msg);
 }
 
+// Updates the status text on the init overlay during startup.
+// Safe to call before the overlay element exists; silently ignored if not found.
+function setInitStatus(text) {
+    const el = document.getElementById('init-status-text');
+    if (el) el.textContent = text;
+}
+
 // Global application state
 let servers = [];             // Stores all server objects (name, path, status, etc.)
 let activeId = null;          // The ID of the server currently being viewed in the Dashboard
@@ -60,6 +67,8 @@ let connHistory = new Array(CONN_HISTORY_LEN).fill(null);
 
 async function init() {
     console.log('[RSM] init — renderer initializing...');
+
+    setInitStatus('Loading server list...');
     try {
         servers = await window.api.invoke('get-servers');
         if (!Array.isArray(servers)) servers = [];
@@ -69,12 +78,14 @@ async function init() {
         servers = [];
     }
 
+    setInitStatus('Applying theme and preferences...');
     console.log('[RSM] init — applying theme and rendering sidebar');
     initTheme();
     renderSidebar();
     renderTypeCards();
     showView('home');
 
+    setInitStatus('Updating app preferences...');
     const startupPref = localStorage.getItem('launch-on-startup') === 'true';
     const startupChk = document.getElementById('launch-startup-chk');
     if (startupChk) startupChk.checked = startupPref;
@@ -88,6 +99,7 @@ async function init() {
     const backupInput = document.getElementById('backup-folder-input');
     if (backupInput) backupInput.value = cfgBackupDir;
 
+    setInitStatus('Applying window settings...');
     const savedWinOpacity = parseFloat(localStorage.getItem('preferred-win-opacity') || '1.0');
     console.log(`[RSM] init — applying window opacity: ${savedWinOpacity}`);
     window.api.send('update-window-opacity', savedWinOpacity);
@@ -96,9 +108,11 @@ async function init() {
     if (winSlider) winSlider.value = savedWinOpacity;
     if (winLabel)  winLabel.innerText = Math.round(savedWinOpacity * 100) + '%';
 
+    setInitStatus('Loading API settings...');
     await loadApiSettings();
 
-    console.log('[RSM] init — renderer ready');
+    setInitStatus('Waiting for startup scan...');
+    console.log('[RSM] init — renderer ready, awaiting startup scan');
     window.updateSystemLog("Ronin Server Manager initialized successfully.");
 }
 
@@ -1220,6 +1234,21 @@ window.api.receive('total-performance-update', (data) => {
 
 window.api.receive('system-error', (errorMsg) => window.updateSystemLog(`ERROR: ${errorMsg}`));
 window.api.receive('system-info', (infoMsg) => window.updateSystemLog(`INFO: ${infoMsg}`));
+
+window.api.receive('startup-scan-complete', ({ linked, total }) => {
+    const msg = total === 0
+        ? 'No servers configured.'
+        : linked === 0
+            ? `Scan complete — no servers were running.`
+            : `Scan complete — ${linked} of ${total} server(s) running.`;
+    setInitStatus(msg);
+    console.log(`[RSM] startup-scan-complete — ${msg}`);
+    const overlay = document.getElementById('init-overlay');
+    if (overlay) {
+        overlay.classList.add('fade-out');
+        setTimeout(() => { overlay.style.display = 'none'; }, 450);
+    }
+});
 
 window.api.receive('server-connections-update', ({ id, connections }) => {
     if (id !== activeId) return;
