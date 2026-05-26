@@ -314,6 +314,13 @@ function syncActiveServers() {
                 for (const srv of portServers) {
                     if (!unlinked.has(srv.id)) continue;
                     const targetPort = String(srv.apiPort);
+                    // Cross-reference against WMIC results so we never accept a system-owned
+                    // port. SE's VRage HTTP API registers through http.sys (a kernel driver),
+                    // so netstat reports PID 4 (System) instead of the game process. Rejecting
+                    // any PID that doesn't appear in the WMIC results for this EXE prevents
+                    // a false match and lets the server fall through to Pass 3 instead.
+                    const exeName = path.basename(srv.path);
+                    const knownPids = new Set((wmicResults[exeName] || []).map(r => r.pid));
                     for (const line of netLines) {
                         const parts = line.trim().split(/\s+/);
                         // netstat -ano columns: Proto LocalAddress ForeignAddress State PID
@@ -324,6 +331,7 @@ function syncActiveServers() {
                         if (listenPort !== targetPort) continue;
                         const pid = parseInt(parts[4]);
                         if (isNaN(pid) || pid === 0 || claimedPids.has(pid)) continue;
+                        if (!knownPids.has(pid)) continue;
                         claimedPids.add(pid);
                         unlinked.delete(srv.id);
                         console.log(`[RSM] Pass 2 — "${srv.name}" → PID ${pid} (port ${targetPort} match)`);
