@@ -235,19 +235,25 @@ function relinkServer(srv, pid) {
     console.log(`[RSM] relinkServer — "${srv.name}" linked to PID ${pid}, monitoring started`);
 }
 
-// Three-pass scan that runs once on app startup to find servers already running.
+// Four-pass scan that runs once on app startup to find servers already running.
 //
-// Pass 1 — workingDir in CommandLine: precise, handles Java/script servers and any
-//           game that passes its instance path as a CLI argument.
-// Pass 2 — netstat LISTENING port: each instance binds a unique apiPort, so the PID
-//           that owns that port is unambiguous. Catches SE servers started as services
-//           where the CommandLine contains no path information.
-// Pass 3 — EXE basename + order-based: last resort for truly identical CommandLines
-//           where no port is available; assigns remaining servers in list order.
+// Pass 1  — workingDir in CommandLine: precise, handles Java/script servers and any
+//            game that passes its instance path as a CLI argument.
+// Pass 1b — Windows service PathName: for games launched as services, the Win32_Service
+//            PathName field contains the full command line including the instance -path.
+//            Needed when 3+ identical-EXE servers are running as services and Pass 1 can
+//            only differentiate them by instance path in the service definition.
+// Pass 2  — netstat LISTENING port: each instance binds a unique apiPort, so the PID
+//            that owns that port is unambiguous. Rejects kernel PIDs (e.g. http.sys PID 4)
+//            by cross-validating against wmicResults.
+// Pass 3  — EXE basename + order-based: last resort for truly identical CommandLines
+//            where no port is available; assigns remaining servers in list order.
 function syncActiveServers() {
     console.log("[RSM] syncActiveServers — scanning for pre-existing server processes...");
     if (managedServers.length === 0) {
         console.log("[RSM] syncActiveServers — no servers configured, skipping scan");
+        if (mainWindow && !mainWindow.isDestroyed())
+            mainWindow.webContents.send('startup-scan-complete', { linked: 0, total: 0 });
         return;
     }
 
@@ -264,8 +270,10 @@ function syncActiveServers() {
     });
 
     const exeNames = Object.keys(byExe);
-    let pending = exeNames.length;
+    // +1 for the parallel Windows service query (Pass 1b)
+    let pending = exeNames.length + 1;
     const wmicResults = {}; // { [exeName]: [{ cmdLine, pid }] }
+    let serviceResults = []; // [{ pathName, pid }] — from Win32_Service for Pass 1b
 
     const done = () => {
         if (unlinked.size > 0) {
@@ -278,6 +286,8 @@ function syncActiveServers() {
         console.log("[RSM] syncActiveServers — scan complete");
         if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('system-info', 'Startup scan complete.');
+            const linked = managedServers.length - unlinked.size;
+            mainWindow.webContents.send('startup-scan-complete', { linked, total: managedServers.length });
         }
     };
 
@@ -364,10 +374,40 @@ function syncActiveServers() {
                 }
             }
         }
+
+        // Pass 1b: Windows service PathName match — handles 3+ identical-EXE servers
+        // launched as services, where the full command line (including instance -path) is
+        // stored in the Win32_Service.PathName field.
+        if (unlinked.size > 0 && serviceResults.length > 0) {
+            for (const srv of managedServers) {
+                if (!unlinked.has(srv.id) || !srv.path) continue;
+                const exeName = path.basename(srv.path);
+                const searchDir = (srv.workingDir || path.dirname(srv.path))
+                    .toLowerCase().replace(/\\/g, '/');
+                const knownPids = new Set((wmicResults[exeName] || []).map(r => r.pid));
+                for (const { pathName, pid } of serviceResults) {
+                    if (claimedPids.has(pid)) continue;
+                    // Service PathName must reference both the game EXE and the instance directory
+                    const normPath = pathName.toLowerCase().replace(/\\/g, '/');
+                    if (!normPath.includes(exeName.toLowerCase())) continue;
+                    if (!normPath.includes(searchDir)) continue;
+                    // Reject PIDs that don't belong to the game process (e.g. svchost wrappers)
+                    if (!knownPids.has(pid)) continue;
+                    claimedPids.add(pid);
+                    unlinked.delete(srv.id);
+                    console.log(`[RSM] Pass 1b — "${srv.name}" → PID ${pid} (service path match)`);
+                    relinkServer(srv, pid);
+                    break;
+                }
+            }
+        }
+
         runPass2();
     };
 
-    // Fire all WMIC queries in parallel; once the last one returns, run the passes
+    // Fire all WMIC queries in parallel; once the last one returns (including the service
+    // query), run the passes. pending was initialised to exeNames.length + 1 to account
+    // for the service query below.
     exeNames.forEach(exeName => {
         exec(`wmic process where "Name='${exeName}'" get CommandLine,ProcessId /format:csv`, (err, stdout) => {
             wmicResults[exeName] = [];
@@ -384,6 +424,26 @@ function syncActiveServers() {
             }
             if (--pending === 0) runPasses();
         });
+    });
+
+    // Pass 1b data source: running Windows services with their full PathName command line
+    exec(`wmic service where "State='Running'" get PathName,ProcessId /format:csv`, (err, stdout) => {
+        if (!err && stdout) {
+            const lines = stdout.trim().split('\n').filter(l => l.trim() && !l.toLowerCase().startsWith('node,'));
+            for (const line of lines) {
+                const lastComma = line.lastIndexOf(',');
+                if (lastComma === -1) continue;
+                const pid = parseInt(line.substring(lastComma + 1).trim());
+                if (isNaN(pid) || pid === 0) continue;
+                // Strip the leading Node prefix (first CSV field) to isolate PathName
+                const firstComma = line.indexOf(',');
+                const pathName = firstComma !== -1
+                    ? line.substring(firstComma + 1, lastComma).trim().replace(/^"|"$/g, '')
+                    : '';
+                if (pathName) serviceResults.push({ pathName, pid });
+            }
+        }
+        if (--pending === 0) runPasses();
     });
 }
 
