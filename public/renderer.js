@@ -19,6 +19,14 @@ function DebugConsoleLogs(message) {
     if (DebugLogging) console.log(`${debugPrefix} ${message}`);
 }
 
+// Writes to both the DevTools console and the Home Page system console.
+// Use for notable one-off actions (server events, config saves, API changes).
+// Do NOT use inside polling loops or high-frequency handlers.
+function SystemLog(msg) {
+    console.log(`[RSM] ${msg}`);
+    window.updateSystemLog(msg);
+}
+
 // Global application state
 let servers = [];             // Stores all server objects (name, path, status, etc.)
 let activeId = null;          // The ID of the server currently being viewed in the Dashboard
@@ -1823,7 +1831,7 @@ function resolveCfgPath(srv, fileEntry) {
 window.openConfigEditor = async () => {
     const srv = servers.find(s => s.id === activeId);
     if (!srv) return;
-    console.log(`[RSM] openConfigEditor — srv: "${srv.name}" | type: ${srv.type}`);
+    SystemLog(`Config editor opened for "${srv.name}" (${srv.type})`);
     const config = ServerTypeRegistry[srv.type];
     const configs = config?.gameFiles?.configs;
     if (!configs?.length) return;
@@ -1925,12 +1933,15 @@ window.saveConfigFile = async () => {
         if (result.backedUp) {
             statusEl.textContent = '✓ Saved  ·  backup created';
             statusEl.style.color = 'var(--success)';
+            SystemLog(`Config saved for "${srv?.name}" — backup created.`);
         } else if (result.backupError) {
             statusEl.textContent = `✓ Saved  ·  backup failed: ${result.backupError}`;
             statusEl.style.color = '#f59e0b';
+            SystemLog(`Config saved for "${srv?.name}" — backup failed: ${result.backupError}`);
         } else {
             statusEl.textContent = '✓ Saved';
             statusEl.style.color = 'var(--success)';
+            SystemLog(`Config saved for "${srv?.name}".`);
         }
         statusEl.classList.add('visible');
         setTimeout(() => statusEl.classList.remove('visible'), 2500);
@@ -1938,11 +1949,12 @@ window.saveConfigFile = async () => {
         statusEl.textContent = `✗ Save failed: ${result.error}`;
         statusEl.style.color = 'var(--danger)';
         statusEl.classList.add('visible');
+        SystemLog(`Config save failed for "${srv?.name}": ${result.error}`);
     }
 };
 
 window.discardConfigChanges = () => {
-    console.log('[RSM] discardConfigChanges — reverting editor to original content');
+    SystemLog('Config changes discarded — reverted to last saved content.');
     const editor = document.getElementById('cfg-editor');
     editor.value = cfgOriginalContent;
     cfgIsDirty = false;
@@ -1976,7 +1988,7 @@ window.openRestoreBackup = async () => {
     if (!srv || !cfgCurrentFilePath || !cfgBackupDir) return;
 
     const fileName = cfgCurrentFilePath.split(/[/\\]/).pop();
-    console.log(`[RSM] openRestoreBackup — srv: "${srv.name}" | file: "${fileName}"`);
+    SystemLog(`Restore dialog opened for "${srv.name}" — file: ${fileName}`);
 
     const result = await window.api.invoke('list-backups', {
         backupDir: cfgBackupDir,
@@ -2013,10 +2025,11 @@ window.loadBackupIntoEditor = async (backupPath) => {
     const result = await window.api.invoke('read-config-file', backupPath);
     if (!result.success) {
         console.error(`[RSM] loadBackupIntoEditor — failed to read backup: ${result.error}`);
+        SystemLog(`Backup load failed: ${result.error}`);
         alert(`Could not read backup: ${result.error}`);
         return;
     }
-    console.log('[RSM] loadBackupIntoEditor — backup loaded into editor, awaiting save');
+    SystemLog(`Backup loaded into editor — review and save to apply.`);
     const editor = document.getElementById('cfg-editor');
     editor.value = result.content;
     cfgIsDirty = true;
