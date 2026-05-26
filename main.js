@@ -460,6 +460,11 @@ ipcMain.on('start-server', (event, srv) => {
         }
 
         const restartSrv = pendingRestarts[srv.id];
+        // Update managedServers directly so the REST API sees Offline immediately.
+        // The renderer-side status-change reply updates the UI copy, but the API
+        // reads from managedServers, which is only mutated here in the main process.
+        srv.status = 'Offline';
+        srv.pid    = null;
         delete pendingRestarts[srv.id];
         delete activeProcesses[srv.id];
         delete serverStats[srv.id];
@@ -719,6 +724,12 @@ ipcMain.on('kill-server', (event, pid) => {
             console.error(`Failed to kill process ${pid}:`, err);
         } else {
             console.log(`[RSM] Process tree ${pid} force terminated.`);
+            // Trigger the server's own cleanup so managedServers status flips to
+            // Offline immediately — without this the heartbeat poll is the only
+            // path that detects the dead process, leaving a window where /start
+            // returns 409 "already running".
+            const entry = Object.entries(activeProcesses).find(([, v]) => v.pid === pid);
+            if (entry) entry[1].cleanup();
         }
     });
 });
