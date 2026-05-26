@@ -498,6 +498,11 @@ ipcMain.on('start-server', (event, srv) => {
         delete pendingRestarts[srv.id];
         delete activeProcesses[srv.id];
         delete serverStats[srv.id];
+        const offlineIdx = managedServers.findIndex(s => s.id === srv.id);
+        if (offlineIdx !== -1) {
+            managedServers[offlineIdx].status = 'Offline';
+            managedServers[offlineIdx].pid = null;
+        }
         event.reply('status-change', { id: srv.id, status: 'Offline' });
         event.reply('system-info', `[RSM] ${srv.name} has been cleaned up and set to Offline.`);
 
@@ -664,6 +669,8 @@ ipcMain.on('start-server', (event, srv) => {
         DebugLog(`PowerShell bridge for ${srv.name} closed with code ${code}.`);
         if (srv.status !== 'Online') {
             event.reply('system-info', `[RSM-ERR] Bridge process for "${srv.name}" exited before the server came Online (code: ${code}). Check that the path is correct and try running RSM as Administrator.`);
+            const bridgeIdx = managedServers.findIndex(s => s.id === srv.id);
+            if (bridgeIdx !== -1) { managedServers[bridgeIdx].status = 'Offline'; managedServers[bridgeIdx].pid = null; }
             event.reply('status-change', { id: srv.id, status: 'Offline' });
             if (searchRetry) { clearInterval(searchRetry); searchRetry = null; }
         }
@@ -776,6 +783,8 @@ ipcMain.on('kill-server', (event, pid) => {
             console.error(`Failed to kill process ${pid}:`, err);
         } else {
             console.log(`[RSM] Process tree ${pid} force terminated.`);
+            const entry = Object.entries(activeProcesses).find(([, v]) => v.pid === pid);
+            if (entry) entry[1].cleanup();
         }
     });
 });
