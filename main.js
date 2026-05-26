@@ -114,63 +114,261 @@ function createTray() {
 }
 
 // --- STARTUP SYNC AND PROCESS RE-LINKING ---
-function syncActiveServers() {
-    console.log("[RSM] Scanning for orphaned server processes...");
 
-    // Group servers by EXE name — one WMIC query per unique executable
+// Attaches RSM monitoring to a server process that was already running before RSM started.
+// Sets up the same heartbeat + log watcher that a normal start-server would create.
+function relinkServer(srv, pid) {
+    const index = managedServers.findIndex(s => s.id === srv.id);
+    if (index === -1) {
+        console.warn(`[RSM] relinkServer — server "${srv.name}" not found in managedServers`);
+        return;
+    }
+
+    let monitorInterval = null;
+    let logWatcher = null;
+
+    const fakeEvent = {
+        reply: (ch, data) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(ch, data); }
+    };
+
+    const stopServerCleanup = () => {
+        if (monitorInterval) { clearInterval(monitorInterval); monitorInterval = null; }
+        if (logWatcher) { clearInterval(logWatcher); logWatcher = null; }
+
+        const restartSrv = pendingRestarts[srv.id];
+        delete pendingRestarts[srv.id];
+        delete activeProcesses[srv.id];
+        delete serverStats[srv.id];
+
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('status-change', { id: srv.id, status: 'Offline' });
+            mainWindow.webContents.send('system-info', `[RSM] ${srv.name} has stopped and is now Offline.`);
+        }
+
+        if (restartSrv) {
+            console.log(`[RSM] relinkServer cleanup — restarting "${restartSrv.name}"`);
+            setTimeout(() => ipcMain.emit('start-server', fakeEvent, restartSrv), 1500);
+        }
+    };
+
+    // Update in-memory state
+    managedServers[index].pid = pid;
+    managedServers[index].status = 'Online';
+    activeProcesses[srv.id] = { pid, shell: null, cleanup: stopServerCleanup, startedAt: Date.now() };
+
+    // Persist Online status so it survives a second app restart
+    try {
+        fs.writeFileSync(DATA_FILE, JSON.stringify(managedServers, null, 2));
+    } catch (e) {
+        console.warn(`[RSM] relinkServer — could not persist status for "${srv.name}":`, e.message);
+    }
+
+    // Notify renderer
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('status-change', { id: srv.id, status: 'Online', pid });
+        mainWindow.webContents.send('system-info', `[RSM] Re-linked "${srv.name}" to existing process (PID ${pid}).`);
+    }
+
+    // Start log file watcher for POWERSHELL_BRIDGE servers (DIRECT_CONSOLE uses shell pipe, unavailable here)
+    const serverCategory = findServType(srv);
+    if (serverCategory !== 'DIRECT_CONSOLE' && srv.logPath && fs.existsSync(srv.logPath)) {
+        logWatcher = startLogging(srv.logPath, fakeEvent, srv);
+    }
+
+    // Start performance heartbeat — same logic as startHeartbeat inside start-server
+    const totalRamMB = Math.floor(os.totalmem() / 1024 / 1024);
+    const numCores = os.cpus().length;
+    let prevCpuTime = 0;
+    let prevCpuSample = 0;
+
+    monitorInterval = setInterval(() => {
+        exec(`tasklist /fi "PID eq ${pid}" /fo csv /nh`, (err, stdout) => {
+            if (!stdout || !stdout.includes(`"${pid}"`)) {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('server-perf-update', {
+                        id: srv.id, cpu: 0, ramPercent: 0, ramDisplay: 'Offline'
+                    });
+                }
+                stopServerCleanup();
+                return;
+            }
+
+            const parts = stdout.split('","');
+            if (parts.length >= 5) {
+                const memRaw = parts[4].replace(/[^\d]/g, '');
+                const memMB = Math.floor(parseInt(memRaw) / 1024);
+                const displayMem = memMB > 1024 ? (memMB / 1024).toFixed(2) + ' GB' : memMB + ' MB';
+                const ramPercent = Math.min(Math.floor((memMB / totalRamMB) * 100), 100);
+
+                exec(`wmic process where processid=${pid} get KernelModeTime,UserModeTime /value`, (cpuErr, cpuStdout) => {
+                    let cpuPercent = 0;
+                    if (!cpuErr && cpuStdout) {
+                        const kMatch = cpuStdout.replace(/\s/g, '').match(/KernelModeTime=(\d+)/);
+                        const uMatch = cpuStdout.replace(/\s/g, '').match(/UserModeTime=(\d+)/);
+                        if (kMatch && uMatch) {
+                            const currentTotal = parseInt(kMatch[1]) + parseInt(uMatch[1]);
+                            const now = Date.now();
+                            if (prevCpuTime > 0) {
+                                const elapsed100ns = (now - prevCpuSample) * 10000;
+                                const delta = currentTotal - prevCpuTime;
+                                cpuPercent = Math.min(Math.round((delta / elapsed100ns / numCores) * 100), 100);
+                            }
+                            prevCpuTime = currentTotal;
+                            prevCpuSample = now;
+                        }
+                    }
+
+                    const finalCpu = isNaN(cpuPercent) ? 0 : cpuPercent;
+                    const finalRam = isNaN(ramPercent) ? 0 : ramPercent;
+                    serverStats[srv.id] = { cpu: finalCpu, ramMB: memMB };
+
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.webContents.send('server-perf-update', {
+                            id: srv.id, cpu: finalCpu, ramPercent: finalRam, ramDisplay: displayMem
+                        });
+                    }
+                });
+            }
+        });
+    }, 2000);
+
+    console.log(`[RSM] relinkServer — "${srv.name}" linked to PID ${pid}, monitoring started`);
+}
+
+// Three-pass scan that runs once on app startup to find servers already running.
+//
+// Pass 1 — workingDir in CommandLine: precise, handles Java/script servers and any
+//           game that passes its instance path as a CLI argument.
+// Pass 2 — netstat LISTENING port: each instance binds a unique apiPort, so the PID
+//           that owns that port is unambiguous. Catches SE servers started as services
+//           where the CommandLine contains no path information.
+// Pass 3 — EXE basename + order-based: last resort for truly identical CommandLines
+//           where no port is available; assigns remaining servers in list order.
+function syncActiveServers() {
+    console.log("[RSM] syncActiveServers — scanning for pre-existing server processes...");
+    if (managedServers.length === 0) {
+        console.log("[RSM] syncActiveServers — no servers configured, skipping scan");
+        return;
+    }
+
+    const unlinked = new Set(managedServers.map(s => s.id));
+    const claimedPids = new Set();
+
+    // Group servers by EXE basename — one WMIC query per unique executable
     const byExe = {};
     managedServers.forEach(srv => {
+        if (!srv.path) return;
         const exeName = path.basename(srv.path);
         if (!byExe[exeName]) byExe[exeName] = [];
         byExe[exeName].push(srv);
     });
 
     const exeNames = Object.keys(byExe);
-    if (exeNames.length === 0) {
-        console.log("[RSM] Startup scan complete.");
-        return;
-    }
-
-    // Prevent the same PID from being claimed by two different servers
-    const claimedPids = new Set();
     let pending = exeNames.length;
-    const onDone = () => { if (--pending === 0) console.log("[RSM] Startup scan complete."); };
+    const wmicResults = {}; // { [exeName]: [{ cmdLine, pid }] }
 
+    const done = () => {
+        if (unlinked.size > 0) {
+            const names = managedServers.filter(s => unlinked.has(s.id)).map(s => s.name).join(', ');
+            console.log(`[RSM] syncActiveServers — not found: ${names}`);
+        }
+        console.log("[RSM] syncActiveServers — scan complete");
+    };
+
+    const runPass3 = () => {
+        if (unlinked.size === 0) return done();
+
+        for (const [exeName, srvList] of Object.entries(byExe)) {
+            const results = wmicResults[exeName] || [];
+            const unlinkedForExe = srvList.filter(s => unlinked.has(s.id));
+            const unclaimedPids = results.map(r => r.pid).filter(p => !claimedPids.has(p));
+
+            for (let i = 0; i < Math.min(unlinkedForExe.length, unclaimedPids.length); i++) {
+                const srv = unlinkedForExe[i];
+                const pid = unclaimedPids[i];
+                claimedPids.add(pid);
+                unlinked.delete(srv.id);
+                console.log(`[RSM] Pass 3 — "${srv.name}" → PID ${pid} (order-based, EXE: ${exeName})`);
+                relinkServer(srv, pid);
+            }
+        }
+
+        done();
+    };
+
+    const runPass2 = () => {
+        if (unlinked.size === 0) return done();
+
+        const portServers = managedServers.filter(s => unlinked.has(s.id) && s.apiPort);
+        if (portServers.length === 0) return runPass3();
+
+        exec('netstat -ano', (nsErr, nsOut) => {
+            if (!nsErr && nsOut) {
+                const netLines = nsOut.split('\n');
+                for (const srv of portServers) {
+                    if (!unlinked.has(srv.id)) continue;
+                    const targetPort = String(srv.apiPort);
+                    for (const line of netLines) {
+                        const parts = line.trim().split(/\s+/);
+                        // netstat -ano columns: Proto LocalAddress ForeignAddress State PID
+                        if (parts.length < 5 || parts[3] !== 'LISTENING') continue;
+                        const localAddr = parts[1] || '';
+                        // lastIndexOf(':') handles both 0.0.0.0:port and [::]:port formats
+                        const listenPort = localAddr.substring(localAddr.lastIndexOf(':') + 1);
+                        if (listenPort !== targetPort) continue;
+                        const pid = parseInt(parts[4]);
+                        if (isNaN(pid) || pid === 0 || claimedPids.has(pid)) continue;
+                        claimedPids.add(pid);
+                        unlinked.delete(srv.id);
+                        console.log(`[RSM] Pass 2 — "${srv.name}" → PID ${pid} (port ${targetPort} match)`);
+                        relinkServer(srv, pid);
+                        break;
+                    }
+                }
+            }
+            runPass3();
+        });
+    };
+
+    const runPasses = () => {
+        // Pass 1: workingDir appears in CommandLine — precise match for most servers
+        for (const [exeName, srvList] of Object.entries(byExe)) {
+            const results = wmicResults[exeName] || [];
+            for (const srv of srvList) {
+                if (!unlinked.has(srv.id)) continue;
+                const searchDir = (srv.workingDir || path.dirname(srv.path))
+                    .toLowerCase().replace(/\\/g, '/');
+                for (const { cmdLine, pid } of results) {
+                    if (claimedPids.has(pid)) continue;
+                    if (cmdLine.includes(searchDir)) {
+                        claimedPids.add(pid);
+                        unlinked.delete(srv.id);
+                        console.log(`[RSM] Pass 1 — "${srv.name}" → PID ${pid} (workingDir match)`);
+                        relinkServer(srv, pid);
+                        break;
+                    }
+                }
+            }
+        }
+        runPass2();
+    };
+
+    // Fire all WMIC queries in parallel; once the last one returns, run the passes
     exeNames.forEach(exeName => {
         exec(`wmic process where "Name='${exeName}'" get CommandLine,ProcessId /format:csv`, (err, stdout) => {
+            wmicResults[exeName] = [];
             if (!err && stdout) {
-                // Each CSV line ends with the PID; CommandLine may contain commas so
-                // we always take only the very last comma-delimited field as the PID.
-                const lines = stdout.trim().split('\n').filter(l => l.trim() && !l.startsWith('Node'));
-
-                byExe[exeName].forEach(srv => {
-                    const searchDir = (srv.workingDir || path.dirname(srv.path))
-                        .toLowerCase().replace(/\\/g, '/');
-
-                    for (const line of lines) {
-                        const lineLow = line.toLowerCase().replace(/\\/g, '/');
-                        const lastComma = line.lastIndexOf(',');
-                        if (lastComma === -1) continue;
-
-                        const foundPid = parseInt(line.substring(lastComma + 1).trim());
-                        if (isNaN(foundPid) || foundPid === 0 || claimedPids.has(foundPid)) continue;
-
-                        if (lineLow.includes(searchDir)) {
-                            claimedPids.add(foundPid);
-                            console.log(`[RSM] Found existing process for ${srv.name} (PID: ${foundPid})`);
-                            activeProcesses[srv.id] = { pid: foundPid };
-                            if (mainWindow) {
-                                mainWindow.webContents.send('status-change', {
-                                    id: srv.id, status: 'Online', pid: foundPid,
-                                    msg: "[RSM] Re-linked to existing process."
-                                });
-                            }
-                            break;
-                        }
-                    }
-                });
+                const lines = stdout.trim().split('\n').filter(l => l.trim() && !l.toLowerCase().startsWith('node,'));
+                for (const line of lines) {
+                    const lastComma = line.lastIndexOf(',');
+                    if (lastComma === -1) continue;
+                    const pid = parseInt(line.substring(lastComma + 1).trim());
+                    if (isNaN(pid) || pid === 0) continue;
+                    const cmdLine = line.substring(0, lastComma).toLowerCase().replace(/\\/g, '/');
+                    wmicResults[exeName].push({ cmdLine, pid });
+                }
             }
-            onDone();
+            if (--pending === 0) runPasses();
         });
     });
 }
