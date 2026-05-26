@@ -7,7 +7,17 @@ import { ServerTypeRegistry } from './configs/index.js';
 //     |___|_|  |_|_|    \___/|_| \_\|_| |____/  /_/    |____/ |_/_/   \_|_| |_____|
 //
 
-const DebugActive = true;
+const DebugActive = true;    // Set to true to enable verbose debug logging
+const debugPrefix = "[RSM-DEBUG]";
+const DebugLogging = false;  // Set to true to enable detailed sub-operation logging
+
+function DebugLog(message) {
+    if (DebugActive) console.log(`${debugPrefix} ${message}`);
+}
+
+function DebugConsoleLogs(message) {
+    if (DebugLogging) console.log(`${debugPrefix} ${message}`);
+}
 
 // Global application state
 let servers = [];             // Stores all server objects (name, path, status, etc.)
@@ -792,7 +802,7 @@ window.toggleSidebarMenu = (event, srvId) => {
     menu.style.left = `${event.clientX + 10}px`;
     menu.classList.add("show");
 
-    console.log(`[RSM-DEBUG] Menu opened for server: ${srvId}`);
+    DebugLog(`Menu opened for server: ${srvId}`);
 };
 
 window.deleteServer = (id) => {
@@ -803,7 +813,7 @@ window.deleteServer = (id) => {
         return;
     }
 
-    console.log(`[RSM-DEBUG] Delete server attempt for ID: ${idToRemove}`);
+    DebugLog(`Delete server attempt for ID: ${idToRemove}`);
 
     if (confirm("Are you sure you want to delete this server? This cannot be undone.")) {
         const originalLength = servers.length;
@@ -817,7 +827,7 @@ window.deleteServer = (id) => {
             }
 
             renderSidebar();
-            console.log(`[RSM-DEBUG] Server with ID ${idToRemove} successfully deleted.`);
+            DebugLog(`Server with ID ${idToRemove} successfully deleted.`);
         } else {
             console.warn("[RSM-WARN] No server found with that ID to delete.");
         }
@@ -825,7 +835,7 @@ window.deleteServer = (id) => {
 };
 
 window.openEditModal = (serverId) => {
-    console.log("[RSM-DEBUG] openEditModal triggered with ID:", serverId);
+    DebugLog(`openEditModal triggered with ID: ${serverId}`);
 
     if (!serverId) {
         console.error("[RSM-ERROR] No serverId passed to the function!");
@@ -838,14 +848,14 @@ window.openEditModal = (serverId) => {
         console.error("[RSM-ERROR] Could not find server in the list. Available IDs:", servers.map(s => s.id));
         return;
     }
-    console.log("[RSM-DEBUG] Server found:", srv.name, "| Type:", srv.type);
+    DebugLog(`Server found: ${srv.name} | Type: ${srv.type}`);
 
     window.editingServerId = srv.id;
     const type = srv.type || 'other';
     window.selectedType = type;
-    console.log("[RSM-DEBUG] State set. editingServerId:", window.editingServerId, "type:", type);
+    DebugLog(`State set — editingServerId: ${window.editingServerId} | type: ${type}`);
 
-    console.log("[RSM-DEBUG] Calling selectServerType...");
+    DebugLog(`Calling selectServerType...`);
     if (typeof window.selectServerType === 'function') {
         window.selectServerType(type);
     } else {
@@ -863,7 +873,7 @@ window.openEditModal = (serverId) => {
                 const dataKey = (id === 'customArgs') ? 'args' : id;
                 el.value = srv[dataKey] || "";
             } else {
-                console.log(`[RSM-DEBUG] Field '${id}' not found in DOM (this may be normal depending on server type)`);
+                DebugLog(`Field '${id}' not found in DOM (normal if not shown for this server type)`);
             }
         });
         // Pre-fill wizard fw port inputs with server's saved overrides (if any)
@@ -877,18 +887,18 @@ window.openEditModal = (serverId) => {
             }
         }
 
-        console.log("[RSM-DEBUG] All form fields populated.");
+        DebugLog(`All form fields populated.`);
     } catch (err) {
         console.error("[RSM-ERROR] Failed to fill form fields:", err);
     }
 
     const modalEl = document.getElementById('modal');
     if (modalEl) {
-        console.log("[RSM-DEBUG] Modal element found. Setting display to flex...");
+        DebugLog(`Modal element found, setting display to flex...`);
         modalEl.style.display = 'flex';
 
         if (typeof window.showWizardStep === 'function') {
-            console.log("[RSM-DEBUG] Switching to Wizard Step 2...");
+            DebugLog(`Switching to Wizard Step 2...`);
             window.showWizardStep(2);
         } else {
             console.error("[RSM-ERROR] window.showWizardStep is not a function!");
