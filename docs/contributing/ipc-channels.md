@@ -93,6 +93,7 @@ RSM uses Electron's IPC to communicate between the **main process** (`main.js`) 
 | `player-count-update` | receive | Player count result `{ id, players, world? }` |
 | `system-info` | receive | Info message for the system log |
 | `system-error` | receive | Error message for the system log |
+| `startup-scan-complete` | receive | Fired once when the startup process scan finishes `{ linked, total }` — used to dismiss the init overlay |
 | `get-servers` | invoke | Fetch current server list → `Server[]` |
 | `get-settings` | invoke | Fetch app settings |
 | `check-admin` | invoke | Returns `true` if RSM has Administrator privileges |
