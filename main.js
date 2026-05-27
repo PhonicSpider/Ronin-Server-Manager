@@ -273,7 +273,7 @@ function syncActiveServers() {
     // +1 for the parallel Windows service query (Pass 1b)
     let pending = exeNames.length + 1;
     const wmicResults = {}; // { [exeName]: [{ cmdLine, pid }] }
-    let serviceResults = []; // [{ pathName, pid }] — from Win32_Service for Pass 1b
+    let serviceResults = []; // [{ serviceName, pathName, pid }] — from Win32_Service for Pass 1b
 
     const done = () => {
         if (unlinked.size > 0) {
@@ -375,27 +375,34 @@ function syncActiveServers() {
             }
         }
 
-        // Pass 1b: Windows service PathName match — handles 3+ identical-EXE servers
-        // launched as services, where the full command line (including instance -path) is
-        // stored in the Win32_Service.PathName field.
+        // Pass 1b: Windows service match — handles servers launched as Windows services.
+        // Two sub-strategies, tried in order:
+        //   Path match — service PathName contains both the EXE name and the instance workingDir.
+        //                Works when the service was registered with the full command line.
+        //   Name match — service Name equals the last directory component of workingDir.
+        //                Works for SE-style services where the service is named after the instance
+        //                directory (PathName is bare EXE with no arguments).
         if (unlinked.size > 0 && serviceResults.length > 0) {
             for (const srv of managedServers) {
                 if (!unlinked.has(srv.id) || !srv.path) continue;
                 const exeName = path.basename(srv.path);
                 const searchDir = (srv.workingDir || path.dirname(srv.path))
                     .toLowerCase().replace(/\\/g, '/');
+                const instanceDirName = path.basename(srv.workingDir || path.dirname(srv.path)).toLowerCase();
                 const knownPids = new Set((wmicResults[exeName] || []).map(r => r.pid));
-                for (const { pathName, pid } of serviceResults) {
+                for (const { serviceName, pathName, pid } of serviceResults) {
                     if (claimedPids.has(pid)) continue;
-                    // Service PathName must reference both the game EXE and the instance directory
-                    const normPath = pathName.toLowerCase().replace(/\\/g, '/');
-                    if (!normPath.includes(exeName.toLowerCase())) continue;
-                    if (!normPath.includes(searchDir)) continue;
-                    // Reject PIDs that don't belong to the game process (e.g. svchost wrappers)
                     if (!knownPids.has(pid)) continue;
+                    const normPath = pathName.toLowerCase().replace(/\\/g, '/');
+                    // Must at least be running the right EXE
+                    if (!normPath.includes(exeName.toLowerCase())) continue;
+                    const pathMatch = normPath.includes(searchDir);
+                    const nameMatch = serviceName.toLowerCase() === instanceDirName;
+                    if (!pathMatch && !nameMatch) continue;
                     claimedPids.add(pid);
                     unlinked.delete(srv.id);
-                    console.log(`[RSM] Pass 1b — "${srv.name}" → PID ${pid} (service path match)`);
+                    const how = pathMatch ? 'path' : 'name';
+                    console.log(`[RSM] Pass 1b — "${srv.name}" → PID ${pid} (service ${how} match, service: "${serviceName}")`);
                     relinkServer(srv, pid);
                     break;
                 }
@@ -426,8 +433,9 @@ function syncActiveServers() {
         });
     });
 
-    // Pass 1b data source: running Windows services with their full PathName command line
-    exec(`wmic service where "State='Running'" get PathName,ProcessId /format:csv`, (err, stdout) => {
+    // Pass 1b data source: running Windows services — Name, PathName, and ProcessId.
+    // WMIC CSV alphabetises columns, so the output order is: Node, Name, PathName, ProcessId.
+    exec(`wmic service where "State='Running'" get Name,PathName,ProcessId /format:csv`, (err, stdout) => {
         if (!err && stdout) {
             const lines = stdout.trim().split('\n').filter(l => l.trim() && !l.toLowerCase().startsWith('node,'));
             for (const line of lines) {
@@ -435,12 +443,14 @@ function syncActiveServers() {
                 if (lastComma === -1) continue;
                 const pid = parseInt(line.substring(lastComma + 1).trim());
                 if (isNaN(pid) || pid === 0) continue;
-                // Strip the leading Node prefix (first CSV field) to isolate PathName
+                // CSV layout: Node , Name , PathName , ProcessId
                 const firstComma = line.indexOf(',');
-                const pathName = firstComma !== -1
-                    ? line.substring(firstComma + 1, lastComma).trim().replace(/^"|"$/g, '')
-                    : '';
-                if (pathName) serviceResults.push({ pathName, pid });
+                if (firstComma === -1) continue;
+                const secondComma = line.indexOf(',', firstComma + 1);
+                if (secondComma === -1 || secondComma >= lastComma) continue;
+                const serviceName = line.substring(firstComma + 1, secondComma).trim();
+                const pathName = line.substring(secondComma + 1, lastComma).trim().replace(/^"|"$/g, '');
+                if (serviceName || pathName) serviceResults.push({ serviceName, pathName, pid });
             }
         }
         if (--pending === 0) runPasses();
