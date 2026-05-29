@@ -5,9 +5,9 @@
         icon: "logos/gameLogo.png" // or a regular emoji will work as well (e.g. "🎮")
     },
     backend: {
-        // DIRECT_CONSOLE  — process is spawned directly; PID is captured immediately, no deep search needed.
+        // DIRECT_CONSOLE --process is spawned directly; PID is captured immediately, no deep search needed.
         //                   Use for Java/script-based servers (Minecraft, etc.).
-        // POWERSHELL_BRIDGE — process is launched hidden via PowerShell; PID is found via deep search.
+        // POWERSHELL_BRIDGE--process is launched hidden via PowerShell; PID is found via deep search.
         //                   Use for native .exe servers (SE, Ark, Terraria, etc.).
         //                   Multi-instance note: the deep search first tries parent-child (reliable for most
         //                   games). If the game self-relaunches and breaks that link (like Space Engineers),
@@ -15,7 +15,7 @@
         //                   For self-relaunching games, make sure workingDir also appears in customArgs
         //                   (e.g. SE uses -path "<workingDir>") so each instance can be told apart.
         category: "DIRECT_CONSOLE",
-        // playerListCommand — console command RSM sends to retrieve the player list for the REST API.
+        // playerListCommand--console command RSM sends to retrieve the player list for the REST API.
         //                     Set to null if the game uses a custom HTTP API instead of the command pipeline
         //                     (e.g. Space Engineers). Omit entirely if player listing is not supported.
         //                     RSM auto-parses Minecraft-style and RCON numbered-list responses.
