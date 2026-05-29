@@ -51,8 +51,8 @@ function createWindow() {
     console.log('[RSM] createWindow -- creating main BrowserWindow');
 
     mainWindow = new BrowserWindow({
-        width: 1250,
-        height: 850,
+        width: 1300,
+        height: 1000,
         title: "Ronin Server Manager",
         icon: path.join(__dirname, 'icon.png'),
         backgroundColor: '#0f111a',
@@ -117,7 +117,7 @@ function createTray() {
 
 // Attaches RSM monitoring to a server process that was already running before RSM started.
 // Sets up the same heartbeat + log watcher that a normal start-server would create.
-function relinkServer(srv, pid) {
+function relinkServer(srv, pid, serviceName = null) {
     const index = managedServers.findIndex(s => s.id === srv.id);
     if (index === -1) {
         console.warn(`[RSM] relinkServer -- server "${srv.name}" not found in managedServers`);
@@ -154,7 +154,7 @@ function relinkServer(srv, pid) {
     // Update in-memory state
     managedServers[index].pid = pid;
     managedServers[index].status = 'Online';
-    activeProcesses[srv.id] = { pid, shell: null, cleanup: stopServerCleanup, startedAt: Date.now() };
+    activeProcesses[srv.id] = { pid, shell: null, cleanup: stopServerCleanup, startedAt: Date.now(), serviceName: serviceName || null };
 
     // Persist Online status so it survives a second app restart
     try {
@@ -402,8 +402,8 @@ function syncActiveServers() {
                     claimedPids.add(pid);
                     unlinked.delete(srv.id);
                     const how = pathMatch ? 'path' : 'name';
-                    console.log(`[RSM] Pass 1b -- "${srv.name}" → PID ${pid} (service ${how} match, service: "${serviceName}")`);
-                    relinkServer(srv, pid);
+                    console.log(`[RSM] Pass 1b -- "${srv.name}" -> PID ${pid} (service ${how} match, service: "${serviceName}")`);
+                    relinkServer(srv, pid, serviceName);
                     break;
                 }
             }
@@ -945,46 +945,49 @@ ipcMain.on('stop-server', (event, srvId) => {
         return;
     }
 
-    const { pid, shell, cleanup } = processInfo;
+    const { pid, shell, cleanup, serviceName } = processInfo;
     event.reply('system-info', `[RSM] Identifying PID ${pid}. Sending graceful shutdown sequence...`);
-    DebugLog(`Preparing to stop PID ${pid} with shell:`, !!shell);
+    DebugLog(`Preparing to stop PID ${pid} -- shell: ${!!shell}, service: ${serviceName || 'none'}`);
 
-    // Track A: Command Injection (Minecraft/Java)
+    // Track A: Command Injection (Minecraft/Java direct-console servers)
     try {
         if (shell && shell.stdin && shell.stdin.writable) {
             shell.stdin.write("/save-all\r\n");
-            console.log(`[RSM-DEBUG] Sent 'save-all' command to PID ${pid} stdin.`);
             shell.stdin.write("/stop\r\n");
-            console.log(`[RSM-DEBUG] Sent 'stop' command to PID ${pid} stdin.`);
             shell.stdin.write("/exit\r\n");
-            event.reply('system-info', `[RSM] Sent 'Exit' commands to stdin.`);
+            event.reply('system-info', `[RSM] Sent stop commands to stdin.`);
         }
     } catch (e) {
         console.log("[RSM] Stdin write skipped.");
     }
 
-    // Track B: Windows Signal (Space Engineers / General)
-    const stopCmd = `
-        $p = Get-Process -Id ${pid} -ErrorAction SilentlyContinue;
-        if ($p) {
-            $p.CloseMainWindow();
-            Start-Sleep -Seconds 2;
-            if (!$p.HasExited) {
-                Stop-Process -Id ${pid} -Confirm:$false;
+    // Track B: Service stop (servers re-linked from a Windows service) or
+    //          PowerShell signal (servers started directly by RSM via POWERSHELL_BRIDGE)
+    if (serviceName) {
+        // Proper SCM stop -- prevents the service from auto-restarting
+        event.reply('system-info', `[RSM] Stopping Windows service "${serviceName}"...`);
+        exec(`sc stop "${serviceName}"`, (err, stdout, stderr) => {
+            if (err) {
+                event.reply('system-info', `[RSM-WARN] sc stop failed, falling back to Stop-Process: ${stderr || err.message}`);
+                exec(`powershell -Command "Stop-Process -Id ${pid} -Force -ErrorAction SilentlyContinue"`, () => {
+                    if (typeof cleanup === 'function') cleanup();
+                });
+            } else {
+                event.reply('system-info', `[RSM] Service "${serviceName}" stop signal sent.`);
+                if (typeof cleanup === 'function') cleanup();
             }
-        }
-    `;
-
-    exec(`powershell -Command "${stopCmd.replace(/\n/g, ' ')}"`, (err, stdout, stderr) => {
-        if (err) {
-            event.reply('system-info', `[RSM-DEBUG] OS Signal Feedback: ${stderr || "Process may have already closed."}`);
-        } else {
-            event.reply('system-info', `[RSM] Windows OS has acknowledged the stop request for PID ${pid}.`);
-        }
-        if (typeof cleanup === 'function') {
-            cleanup();
-        }
-    });
+        });
+    } else {
+        const stopCmd = `$p = Get-Process -Id ${pid} -ErrorAction SilentlyContinue; if ($p) { $p.CloseMainWindow(); Start-Sleep -Seconds 2; if (!$p.HasExited) { Stop-Process -Id ${pid} -Confirm:$false; } }`;
+        exec(`powershell -Command "${stopCmd}"`, (err, stdout, stderr) => {
+            if (err) {
+                event.reply('system-info', `[RSM-DEBUG] OS Signal Feedback: ${stderr || "Process may have already closed."}`);
+            } else {
+                event.reply('system-info', `[RSM] Windows OS has acknowledged the stop request for PID ${pid}.`);
+            }
+            if (typeof cleanup === 'function') cleanup();
+        });
+    }
 
     event.reply('system-info', `[RSM] Shutdown signals sent. Monitoring for exit...`);
 });
@@ -994,15 +997,29 @@ ipcMain.on('kill-server', (event, pid) => {
     console.log(`[RSM] kill-server -- PID: ${pid}`);
     if (!pid) return;
 
-    event.reply('system-info', `Sending TaskKill command to PID ${pid}...`);
+    // Look up service name in case this process is a Windows service --
+    // sc stop prevents SCM from auto-restarting it after taskkill
+    const procEntry = Object.values(activeProcesses).find(p => p.pid === pid || p.pid === parseInt(pid));
+    const serviceName = procEntry?.serviceName || null;
 
-    exec(`taskkill /F /T /PID ${pid}`, (err) => {
-        if (err) {
-            console.error(`Failed to kill process ${pid}:`, err);
-        } else {
-            console.log(`[RSM] Process tree ${pid} force terminated.`);
-        }
-    });
+    const doKill = () => {
+        exec(`taskkill /F /T /PID ${pid}`, (err) => {
+            if (err) {
+                console.error(`[RSM] kill-server -- taskkill failed for PID ${pid}:`, err.message);
+                event.reply('system-info', `[RSM-WARN] Force kill failed for PID ${pid}: ${err.message}`);
+            } else {
+                console.log(`[RSM] kill-server -- process tree ${pid} force terminated`);
+            }
+        });
+    };
+
+    if (serviceName) {
+        event.reply('system-info', `[RSM] Stopping service "${serviceName}" before force kill...`);
+        exec(`sc stop "${serviceName}"`, () => doKill());
+    } else {
+        event.reply('system-info', `[RSM] Sending force kill to PID ${pid}...`);
+        doKill();
+    }
 });
 
 // --- RESTART LOGIC ---
