@@ -1,13 +1,13 @@
 # <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🛠️ Troubleshooting Guide</p>
 
 !!! abstract "How to Use This Guide"
-    This guide is split into two chapters. **Chapter 1** covers problems that can happen with any server type. **Chapter 2** covers issues specific to each game. If you are unsure which applies to you, start at the top and work down — most problems are universal.
+    This guide is split into two chapters. **Chapter 1** covers problems that can happen with any server type. **Chapter 2** covers issues specific to each game. If you are unsure which applies to you, start at the top and work down--most problems are universal.
 
     Use **Ctrl+F** to search for the exact error message you are seeing.
 
 ---
 
-## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">Chapter 1 — Universal Issues</p>
+## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">Chapter 1--Universal Issues</p>
 
 These issues can occur with any game type regardless of server software.
 
@@ -19,24 +19,24 @@ The server process launched but exited before RSM could attach to it.
 
 ??? failure "Server crashes on launch"
 
-    **Step 1 — Run it manually first.**  
+    **Step 1--Run it manually first.**  
     Outside of RSM, navigate to your server folder and launch the executable directly. If it fails here too, the problem is with the server software itself, not RSM.  
     Common causes: missing prerequisite files, unaccepted EULA, missing `.dll` libraries next to the executable.
 
-    **Step 2 — Check your Working Directory.**  
+    **Step 2--Check your Working Directory.**  
     This is the most common cause of an instant crash. The server executable often expects to be launched *from inside* its own folder so it can find `.dll`, config, and data files.  
     Set the **Working Directory** to the folder that *contains* the server executable, not a parent folder above it.
 
-    **Step 3 — Check your Arguments.**  
+    **Step 3--Check your Arguments.**  
     An unrecognised flag or a malformed argument string (e.g. mismatched quotes) will cause most server software to exit with code 1.  
     Review your **Arguments** field and compare against the examples in the relevant [Server Setup Guide](servers/index.md).
 
-    **Step 4 — Run RSM as Administrator.**  
+    **Step 4--Run RSM as Administrator.**  
     Some servers need to bind to low-number network ports or write to protected directories. Right-click the RSM shortcut and select **Run as administrator**. Check that the admin badge in the RSM header turns green.
 
 ---
 
-### 🖥️ Console is Blank — No Output Appearing {: .rsm-header }
+### 🖥️ Console is Blank--No Output Appearing {: .rsm-header }
 
 The server is running but RSM shows no text in the console panel.
 
@@ -79,7 +79,7 @@ Clicking a **Browse** button in the Add Server wizard does nothing.
 
 ??? failure "File/folder picker does not open"
 
-    This is caused by running an outdated version of RSM where the file picker IPC channels were not whitelisted. Update to the latest release — this was resolved in the `server-selection-rework` update.
+    This is caused by running an outdated version of RSM where the file picker IPC channels were not whitelisted. Update to the latest release--this was resolved in the `server-selection-rework` update.
 
     If you are building from source, ensure `open-dialog` and `select-folder` are present in the `invoke` whitelist in `preload.js`.
 
@@ -96,7 +96,7 @@ You start a second instance of the same game and RSM assigns the same PID to bot
     **Fix:**  
     1. Ensure every server instance has a **unique Working Directory**.  
     2. For games that include the instance path in their launch arguments (like Space Engineers with `-path`), also ensure the argument path matches the working directory exactly.  
-    3. If one server instance is already running and you start a second, RSM will never assign the first server's confirmed PID to the new one — but both must have distinct directories for the second search to succeed.
+    3. If one server instance is already running and you start a second, RSM will never assign the first server's confirmed PID to the new one--but both must have distinct directories for the second search to succeed.
 
     See the [Space Engineers multi-instance section](#space-engineers) below for the most common example of this.
 
@@ -128,7 +128,7 @@ You click a Quick Action button or type a command and nothing happens on the ser
     | Minecraft | Written directly to process stdin | Server not fully started yet; wait for `Done!` in logs |
     | Space Engineers | HTTP API (`axios` to `localhost:PORT`) | Wrong API port or API password in RSM settings |
     | Ark | RCON protocol (`rcon-client` to `localhost:PORT`) | Wrong RCON port or admin password; `-RCONEnabled` missing from args |
-    | Terraria | No command API available | Terraria has no RCON — commands must be typed in its own console |
+    | Terraria | No command API available | Terraria has no RCON--commands must be typed in its own console |
 
     **General checklist:**
 
@@ -160,19 +160,19 @@ The manager's own process is consuming significant resources, separate from the 
 
     RSM polls each running server every **5 seconds** via `tasklist` and WMIC for CPU/RAM metrics. This is lightweight by design, but a few situations can increase overhead:
 
-    - **Many running servers simultaneously** — each has its own heartbeat interval.
-    - **Very large log files** — RSM tails log files from the last-read position, but extremely high log output (debug mode servers) can create a backlog. Disable verbose/debug logging in the game server's config if possible.
-    - **Deep search loop running** — if RSM is stuck searching for a PID, you will see repeated `deep search` lines in the System Console. This burns CPU. If it does not resolve within 30 seconds, stop the server and restart it.
+    - **Many running servers simultaneously**--each has its own heartbeat interval.
+    - **Very large log files**--RSM tails log files from the last-read position, but extremely high log output (debug mode servers) can create a backlog. Disable verbose/debug logging in the game server's config if possible.
+    - **Deep search loop running**--if RSM is stuck searching for a PID, you will see repeated `deep search` lines in the System Console. This burns CPU. If it does not resolve within 30 seconds, stop the server and restart it.
 
 ---
 
-## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">Chapter 2 — Game-Specific Issues</p>
+## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">Chapter 2--Game-Specific Issues</p>
 
 Select your game below.
 
 === ":material-minecraft: Minecraft"
 
-    ### ⚠️ Server Exits Immediately — EULA Not Accepted {: .rsm-header }
+    ### ⚠️ Server Exits Immediately--EULA Not Accepted {: .rsm-header }
 
     ??? failure "Server closes with 'You need to agree to the EULA'"
 
@@ -233,7 +233,7 @@ Select your game below.
 
 === ":material-rocket-launch: Space Engineers"
 
-    ### 🔌 Second Instance Fails — Port Already In Use {: .rsm-header }
+    ### 🔌 Second Instance Fails--Port Already In Use {: .rsm-header }
 
     ??? failure "Error binding server endpoint: Only one usage of each socket address"
 
@@ -252,7 +252,7 @@ Select your game below.
 
     ### 🕐 Console Output is Delayed by 1–2 Seconds {: .rsm-header }
 
-    ??? info "Slight delay in SE log output — this is normal"
+    ??? info "Slight delay in SE log output--this is normal"
 
         Space Engineers runs headless and writes output to a physical log file on disk. RSM "tails" this file by checking it every second for new lines. A **1–2 second delay** between in-game events and them appearing in the RSM console is expected behaviour and is not a bug.
 
@@ -276,7 +276,7 @@ Select your game below.
 
         RSM uses the **Working Directory** field to identify which SE instance to attach to when running multiple instances side-by-side. The `-path` argument in your **Arguments** field must be the **exact same path** as the Working Directory.
 
-        Example — if your Working Directory is `C:\ProgramData\SpaceEngineersDedicated\Survival`, your Arguments must include:
+        Example--if your Working Directory is `C:\ProgramData\SpaceEngineersDedicated\Survival`, your Arguments must include:
 
         ```
         -console -ignorelastsession -path "C:\ProgramData\SpaceEngineersDedicated\Survival"
@@ -286,7 +286,7 @@ Select your game below.
 
     ---
 
-    ### 🛡️ SE Crashes Immediately — Admin Rights Required {: .rsm-header }
+    ### 🛡️ SE Crashes Immediately--Admin Rights Required {: .rsm-header }
 
     ??? failure "Access denied or network binding errors on start"
 
@@ -321,7 +321,7 @@ Select your game below.
 
         1. **`-RCONEnabled`** must be present in your Arguments. Without it, Ark's RCON listener never starts.
         2. The **RCON Port** in RSM must match the `-RCONPort=` value in your Arguments. Default is `27020`.
-        3. The **Admin Password** in RSM must exactly match the `-ServerAdminPassword=` value in your Arguments — including capitalisation and special characters.
+        3. The **Admin Password** in RSM must exactly match the `-ServerAdminPassword=` value in your Arguments--including capitalisation and special characters.
         4. Check that your security software (Windows Defender, antivirus) is not blocking the RCON port on `localhost`. Add an inbound rule for the port if needed.
 
     ---
@@ -333,7 +333,7 @@ Select your game below.
         The most common cause is an incorrect **Working Directory**. Ark's executable must be launched from the `Win64` folder because it needs to load sibling `.dll` files from that same directory.
 
         - Working Directory must be: `...\ShooterGame\Binaries\Win64`
-        - **Not** the root Ark folder, and **not** `ShooterGame` — it must be `Win64` specifically.
+        - **Not** the root Ark folder, and **not** `ShooterGame`--it must be `Win64` specifically.
 
     ---
 
@@ -355,7 +355,7 @@ Select your game below.
 
     ### ⏳ Console is Blank for the First Minute {: .rsm-header }
 
-    ??? info "No output during initial Ark startup — this is normal"
+    ??? info "No output during initial Ark startup--this is normal"
 
         When Ark boots, it loads "Primal Game Data" which can take **30–90 seconds** depending on your hardware and mods. No log lines are written during this phase. The RSM console will appear blank during this time. Wait for the loading phase to complete before assuming something is wrong.
 
@@ -398,9 +398,9 @@ Select your game below.
 
     ---
 
-    ### ⏱️ Server Starts Slowly — World Generation Takes Time {: .rsm-header }
+    ### ⏱️ Server Starts Slowly--World Generation Takes Time {: .rsm-header }
 
-    ??? info "RSM shows 'Starting' for a long time — this is normal for new worlds"
+    ??? info "RSM shows 'Starting' for a long time--this is normal for new worlds"
 
         If `serverconfig.txt` points to a world file that does not yet exist, Terraria will **generate a new world** before the server becomes joinable. This can take **1–3 minutes** for large worlds. RSM will show the server as **Starting** during this time. Once generation finishes, the status will update to **Online** automatically.
 

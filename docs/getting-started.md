@@ -4,17 +4,17 @@ This guide walks you through everything from downloading RSM to editing your fir
 
 ---
 
-## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">📥 Step 1 — Download & Install</p>
+## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">📥 Step 1--Download & Install</p>
 
 1. Head to the [Releases](https://github.com/PhonicSpider/Ronin-Server-Manager/releases) page and download the latest `.exe` installer.
-2. Run the installer. If Windows SmartScreen warns you, click **More info → Run anyway** — this is expected for unsigned community software.
+2. Run the installer. If Windows SmartScreen warns you, click **More info → Run anyway**--this is expected for unsigned community software.
 3. RSM will launch automatically once the install finishes.
 
 !!! tip "When do you need Administrator?"
     Two features require RSM to be launched as Administrator:
 
-    - **Firewall Manager (Portier)** — creating and removing Windows Firewall rules always requires elevation.
-    - **Some game servers** — games that bind to privileged network ports (Space Engineers uses the VRage HTTP API on port 80 by default) need an elevated host process.
+    - **Firewall Manager (Portier)**--creating and removing Windows Firewall rules always requires elevation.
+    - **Some game servers**--games that bind to privileged network ports (Space Engineers uses the VRage HTTP API on port 80 by default) need an elevated host process.
 
     A green **Admin** badge appears in the top-left corner of the app when it has elevated privileges. Everything else works fine without it.
 
@@ -22,9 +22,9 @@ This guide walks you through everything from downloading RSM to editing your fir
 
 ---
 
-## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🏠 Step 2 — First Launch</p>
+## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🏠 Step 2--First Launch</p>
 
-When RSM opens you'll land on the **Home** view. This is the nerve centre of the app — it shows the combined CPU and RAM used by all your managed servers, a live system bandwidth graph, a scrolling system log, and quick global controls at the top.
+When RSM opens you'll land on the **Home** view. This is the nerve centre of the app--it shows the combined CPU and RAM used by all your managed servers, a live system bandwidth graph, a scrolling system log, and quick global controls at the top.
 
 <div class="grid cards" markdown>
 
@@ -40,7 +40,7 @@ When RSM opens you'll land on the **Home** view. This is the nerve centre of the
 
     ---
 
-    Individual server controls — console, resource gauges, connections graph, Quick Actions, Firewall Ports, and the Edit Config button. Switch to this view by clicking any server in the sidebar.
+    Individual server controls--console, resource gauges, connections graph, Quick Actions, Firewall Ports, and the Edit Config button. Switch to this view by clicking any server in the sidebar.
 
     ![ServerManager Manager - glow](../assets/images/server-dets/managerScreen.png)
 
@@ -62,11 +62,11 @@ When RSM opens you'll land on the **Home** view. This is the nerve centre of the
 
 </div>
 
-The sidebar on the left lists every server you've added. It starts empty — that's fine, you'll add one in Step 4.
+The sidebar on the left lists every server you've added. It starts empty--that's fine, you'll add one in Step 4.
 
 ---
 
-## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">⚙️ Step 3 — Configure Your Settings</p>
+## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">⚙️ Step 3--Configure Your Settings</p>
 
 Open **⚙️ App Settings** in the sidebar before you do anything else. Two things are worth setting up now.
 
@@ -77,7 +77,7 @@ Open **⚙️ App Settings** in the sidebar before you do anything else. Two thi
 Every time you save a file in the in-app config editor, RSM writes a timestamped backup before overwriting anything. This is where those backups land.
 
 - The default is `Desktop\RSM-Files\RSM-Backups` and is set automatically on first launch.
-- Click **Browse** to point it somewhere else — an external drive, a cloud-synced folder, or a dedicated backup location.
+- Click **Browse** to point it somewhere else--an external drive, a cloud-synced folder, or a dedicated backup location.
 - Backups are organised by server name automatically:
 
 ```
@@ -108,27 +108,27 @@ RSM ships with two theme presets and full custom controls below them.
 
     Three independent controls sit below the presets:
 
-    - **Accent** — buttons, gauges, active highlights, and the modified-file dot in the config editor
-    - **Background Base** — the main window colour; choose from the preset swatches or use the colour picker
-    - **Text Color** — primary label and description colour
-    - **Window Glass Strength** — opacity slider; lower values give the UI a translucent feel if you're running a wallpaper behind it
+    - **Accent**--buttons, gauges, active highlights, and the modified-file dot in the config editor
+    - **Background Base**--the main window colour; choose from the preset swatches or use the colour picker
+    - **Text Color**--primary label and description colour
+    - **Window Glass Strength**--opacity slider; lower values give the UI a translucent feel if you're running a wallpaper behind it
 
     All choices are saved to local storage and persist across restarts.
 
 ### 🖥️ System Behaviour
 
-- **Launch Manager on Windows Startup** — toggle this on if you want RSM to open automatically when your machine boots. Useful for always-on server hosts.
+- **Launch Manager on Windows Startup**--toggle this on if you want RSM to open automatically when your machine boots. Useful for always-on server hosts.
 
 ---
 
-## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">➕ Step 4 — Add Your First Server</p>
+## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">➕ Step 4--Add Your First Server</p>
 
-Before adding a server to RSM, make sure it has been launched manually at least once and starts without errors. RSM manages servers — it does not install or configure them... *yet*.
+Before adding a server to RSM, make sure it has been launched manually at least once and starts without errors. RSM manages servers--it does not install or configure them... *yet*.
 
 1. Click **+ Add New Server** in the sidebar.
 2. Pick your game from the card grid. 
 *(If your game is not there, don't worry, just choose "other")*.
-3. Fill in the wizard fields — what each one means is covered in the [Server Setup Overview](servers/index.md), plus, The default infor should be filled in or put in as a placeholder. You can usually find what you jneed in those locations.
+3. Fill in the wizard fields--what each one means is covered in the [Server Setup Overview](servers/index.md), plus, The default infor should be filled in or put in as a placeholder. You can usually find what you jneed in those locations.
 4. Click **Save Configuration**. The server appears in the sidebar immediately.
 
 !!! info "Not sure which fields to fill in?"
@@ -140,7 +140,7 @@ Before adding a server to RSM, make sure it has been launched manually at least 
 
 ---
 
-## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">✏️ Step 5 — The Config Editor</p>
+## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">✏️ Step 5--The Config Editor</p>
 
 Once a server is added, click it in the sidebar to open the **Manager** view, then click **Edit Config** in the control bar. This opens the in-app config editor without touching a file manager.
 
@@ -182,7 +182,7 @@ Once a server is added, click it in the sidebar to open the **Manager** view, th
 
     ---
 
-    Click the grey file path at the bottom of the editor to open the containing folder in Explorer — useful for dropping in extra files or checking a backup.
+    Click the grey file path at the bottom of the editor to open the containing folder in Explorer--useful for dropping in extra files or checking a backup.
 
     ![ServerManager Folder - glow](../assets/images/server-dets/openFold.png)
 
@@ -209,13 +209,13 @@ Once a server is added, click it in the sidebar to open the **Manager** view, th
 
 Minecraft, Space Engineers, and Ark each have a set of **Quick Action** buttons that appear below the server controls when a server is online. These fire common commands (save world, list players, kick, etc.) without typing anything in the console. Future games that get added as default choices will have these as well.
 
-Quick Actions are only active while the server is running. They appear automatically for supported game types — no configuration needed.
+Quick Actions are only active while the server is running. They appear automatically for supported game types--no configuration needed.
 
 If you know of any common commands for a server type that may be useful to add to this bar, let us know in discussions or in the discord and we can look into adding them!
 
 ---
 
-## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🛡️ Step 6 — Firewall Manager (Portier)</p>
+## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🛡️ Step 6--Firewall Manager (Portier)</p>
 
 ![ServerManager Firewall - glow](../assets/images/server-dets/firewallMngr.png)
 
@@ -230,8 +230,8 @@ Every server panel has a **Firewall Ports** card showing the ports that server n
 
  For each port you can:
 
-- **Edit the port number** — override the default if you've changed it in the game's config
-- **Toggle TCP / UDP** — enable only the protocols the game actually uses
+- **Edit the port number**--override the default if you've changed it in the game's config
+- **Toggle TCP / UDP**--enable only the protocols the game actually uses
 - Click **Save Changes** to store your overrides for that server
 
 Once your ports are configured, two buttons control the firewall rules:
@@ -247,9 +247,9 @@ A status indicator in the card header shows **● Rules Active** or **○ No Rul
 
 Click **🛡️ Firewall Manager** in the sidebar for a full overview of every rule RSM has created across all servers. From here you can:
 
-- See every rule at a glance — name, protocol, port, and enabled status
+- See every rule at a glance--name, protocol, port, and enabled status
 - Remove any rule individually
-- **Add a custom rule** with a display name, port, and protocol — useful for ports that aren't tied to a specific managed server
+- **Add a custom rule** with a display name, port, and protocol--useful for ports that aren't tied to a specific managed server
 
 The **Activity Log** at the bottom of the Firewall Manager view records every add, remove, and error with a timestamp.
 
@@ -271,7 +271,7 @@ RSM is actively being developed. It may take a while, but here's what's planned 
 
     ---
 
-    Select a game type and RSM downloads the server files automatically, saves them alongside your backups, opens the config editor, and walks you through the setup wizard — all in one flow.
+    Select a game type and RSM downloads the server files automatically, saves them alongside your backups, opens the config editor, and walks you through the setup wizard--all in one flow.
 
 -   :material-robot: **Discord Bot API**
 
@@ -285,19 +285,19 @@ RSM is actively being developed. It may take a while, but here's what's planned 
 
     ---
 
-    Send commands to managed servers directly from Discord via the bot integration — restart a server, check player counts, or run console commands without opening RSM.
+    Send commands to managed servers directly from Discord via the bot integration--restart a server, check player counts, or run console commands without opening RSM.
 
 -   :material-window-minimize: **Mini Server Status Card**
 
     ---
 
-    A compact overlay showing server names, status, and player counts — visible when RSM is minimised so you can keep an eye on things without bringing the full app into focus.
+    A compact overlay showing server names, status, and player counts--visible when RSM is minimised so you can keep an eye on things without bringing the full app into focus.
 
 -   :material-shield-check: **Security Audit**
 
     ---
 
-    A comprehensive review of every attack surface — file downloads, console command injection, config file path traversal, and API endpoints — to make sure running RSM doesn't open up your machine.
+    A comprehensive review of every attack surface--file downloads, console command injection, config file path traversal, and API endpoints--to make sure running RSM doesn't open up your machine.
 
 </div>
 

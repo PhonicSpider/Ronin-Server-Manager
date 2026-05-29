@@ -9,10 +9,10 @@ RSM includes a self-contained HTTPS REST API in `api-server.js`. This page cover
 
 ## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🏗️ Architecture</p>
 
-`api-server.js` is completely self-contained — it never imports from `main.js` directly. Instead, `main.js` calls `init(deps)` at startup to inject the closures the API needs:
+`api-server.js` is completely self-contained--it never imports from `main.js` directly. Instead, `main.js` calls `init(deps)` at startup to inject the closures the API needs:
 
 ```js
-// main.js — wires the API server to the rest of the app
+// main.js--wires the API server to the rest of the app
 apiServer.init({
     getManagedServers:  () => managedServers,
     getActiveProcesses: () => activeProcesses,
@@ -27,7 +27,7 @@ This inversion of control means:
 
 - `api-server.js` can be unit-tested in isolation by injecting mock closures
 - Adding a new endpoint never requires touching `main.js`
-- The API has no import-time side effects — it only starts listening when `start()` is called
+- The API has no import-time side effects--it only starts listening when `start()` is called
 
 ### Lifecycle {: .rsm-header }
 
@@ -54,7 +54,7 @@ HTTPS request
             └─ Route matching   → handler or 404
 ```
 
-Every response goes through the `respond(res, status, body)` helper, which sets `Content-Type: application/json`, the status code, and serialises the body. Always use it — never write to `res` directly.
+Every response goes through the `respond(res, status, body)` helper, which sets `Content-Type: application/json`, the status code, and serialises the body. Always use it--never write to `res` directly.
 
 ```js
 function respond(res, status, body) {
@@ -179,7 +179,7 @@ Your fetch function should return `{ online: number, max: number | null, players
 ## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🔒 Security Notes</p>
 
 !!! warning "Input validation"
-    Any path parameter (server ID) or body field used in a system call must be validated. Server IDs are looked up against the managed server list — never pass them to shell commands directly. Command strings sent via `/command` are forwarded verbatim to the server process; they are not executed by the host OS.
+    Any path parameter (server ID) or body field used in a system call must be validated. Server IDs are looked up against the managed server list--never pass them to shell commands directly. Command strings sent via `/command` are forwarded verbatim to the server process; they are not executed by the host OS.
 
 !!! info "TLS certificate"
     The self-signed certificate is generated at first run using the `selfsigned` package and stored on disk. Clients must either trust the cert or skip verification (`verify=False` in Python, `rejectUnauthorized: false` in Node). This is documented in the user-facing Discord Integration guide.
