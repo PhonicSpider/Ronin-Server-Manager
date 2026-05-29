@@ -1853,7 +1853,7 @@ textarea:focus {
     width: 240px;
     height: 240px;
     margin-bottom: 32px;
-    filter: drop-shadow(0 0 39px var(--accent));
+    filter: drop-shadow(0 0 31px var(--accent));
 }
 
 @keyframes init-spin {
