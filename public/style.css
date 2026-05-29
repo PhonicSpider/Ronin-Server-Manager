@@ -270,7 +270,7 @@ sidebar-footer {
     gap: 8px;
 }
 
-/* Reliable bottom spacer — padding-bottom is consumed by flex:1 children in Chromium */
+/* Reliable bottom spacer--padding-bottom is consumed by flex:1 children in Chromium */
 #manager-ui::after {
     content: '';
     display: block;
@@ -1336,7 +1336,7 @@ textarea:focus {
 }
 
 
-/* Portier firewall badge — shield shape, three states */
+/* Portier firewall badge--shield shape, three states */
 .portier-nav-badge {
     width: 11px;
     height: 13px;
@@ -1348,7 +1348,7 @@ textarea:focus {
 .portier-nav-badge.inactive, .portier-nav-badge.badge-inactive { background: var(--dim); opacity: 0.45; }
 .portier-nav-badge.none, .portier-nav-badge.badge-none         { background: #e74c3c; }
 
-/* Per-server sidebar variant — positioned left of the ⚙️ gear */
+/* Per-server sidebar variant--positioned left of the ⚙️ gear */
 .portier-srv-badge {
     position: absolute;
     right: 26px;
