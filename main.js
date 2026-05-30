@@ -248,11 +248,11 @@ function relinkServer(srv, pid, serviceName = null) {
 //            by cross-validating against wmicResults.
 // Pass 3  -- EXE basename + order-based: last resort for truly identical CommandLines
 //            where no port is available; assigns remaining servers in list order.
-function syncActiveServers() {
+function syncActiveServers(isRescan = false) {
     console.log("[RSM] syncActiveServers -- scanning for pre-existing server processes...");
     if (managedServers.length === 0) {
         console.log("[RSM] syncActiveServers -- no servers configured, skipping scan");
-        if (mainWindow && !mainWindow.isDestroyed())
+        if (!isRescan && mainWindow && !mainWindow.isDestroyed())
             mainWindow.webContents.send('startup-scan-complete', { linked: 0, total: 0 });
         return;
     }
@@ -285,9 +285,19 @@ function syncActiveServers() {
         }
         console.log("[RSM] syncActiveServers -- scan complete");
         if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('system-info', 'Startup scan complete.');
             const linked = managedServers.length - unlinked.size;
-            mainWindow.webContents.send('startup-scan-complete', { linked, total: managedServers.length });
+            const send = () => {
+                mainWindow.webContents.send('system-info', 'Startup scan complete.');
+                if (!isRescan)
+                    mainWindow.webContents.send('startup-scan-complete', { linked, total: managedServers.length });
+            };
+            // Defer if the renderer hasn't finished loading yet (unlikely with the 3s delay,
+            // but possible on slow machines) so the IPC listener is guaranteed to be registered.
+            if (mainWindow.webContents.isLoading()) {
+                mainWindow.webContents.once('did-finish-load', send);
+            } else {
+                send();
+            }
         }
     };
 
@@ -304,8 +314,12 @@ function syncActiveServers() {
                 const pid = unclaimedPids[i];
                 claimedPids.add(pid);
                 unlinked.delete(srv.id);
-                console.log(`[RSM] Pass 3 -- "${srv.name}" → PID ${pid} (order-based, EXE: ${exeName})`);
+                console.log(`[RSM] Pass 3 -- "${srv.name}" -> PID ${pid} (order-based, EXE: ${exeName})`);
                 relinkServer(srv, pid);
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('system-info',
+                        `[WARN] "${srv.name}" was matched to PID ${pid} by process order (Pass 3) -- if this looks wrong, check that workingDir or service name matches the instance.`);
+                }
             }
         }
 
@@ -344,7 +358,7 @@ function syncActiveServers() {
                         if (!knownPids.has(pid)) continue;
                         claimedPids.add(pid);
                         unlinked.delete(srv.id);
-                        console.log(`[RSM] Pass 2 -- "${srv.name}" → PID ${pid} (port ${targetPort} match)`);
+                        console.log(`[RSM] Pass 2 -- "${srv.name}" -> PID ${pid} (port ${targetPort} match)`);
                         relinkServer(srv, pid);
                         break;
                     }
@@ -364,13 +378,17 @@ function syncActiveServers() {
                     .toLowerCase().replace(/\\/g, '/');
                 for (const { cmdLine, pid } of results) {
                     if (claimedPids.has(pid)) continue;
-                    if (cmdLine.includes(searchDir)) {
-                        claimedPids.add(pid);
-                        unlinked.delete(srv.id);
-                        console.log(`[RSM] Pass 1 -- "${srv.name}" → PID ${pid} (workingDir match)`);
-                        relinkServer(srv, pid);
-                        break;
-                    }
+                    const idx = cmdLine.indexOf(searchDir);
+                    if (idx === -1) continue;
+                    // Boundary check: reject if the next character continues a path segment.
+                    // Prevents "instance" from matching "instance2" or "instance-b".
+                    const after = cmdLine[idx + searchDir.length];
+                    if (after && /[a-z0-9_\-./]/.test(after)) continue;
+                    claimedPids.add(pid);
+                    unlinked.delete(srv.id);
+                    console.log(`[RSM] Pass 1 -- "${srv.name}" -> PID ${pid} (workingDir match)`);
+                    relinkServer(srv, pid);
+                    break;
                 }
             }
         }
@@ -1020,6 +1038,14 @@ ipcMain.on('kill-server', (event, pid) => {
         event.reply('system-info', `[RSM] Sending force kill to PID ${pid}...`);
         doKill();
     }
+});
+
+// --- MANUAL RE-SCAN ---
+ipcMain.on('resync-servers', () => {
+    console.log('[RSM] resync-servers -- manual re-scan triggered');
+    if (mainWindow && !mainWindow.isDestroyed())
+        mainWindow.webContents.send('system-info', '[RSM] Manual re-scan started...');
+    syncActiveServers(true);
 });
 
 // --- RESTART LOGIC ---
