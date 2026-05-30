@@ -93,6 +93,36 @@ sidebar-footer {
     border-top: 1px solid var(--border);
 }
 
+.sidebar-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--dim);
+    padding: 0 4px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.btn-rescan {
+    background: none;
+    border: none;
+    color: var(--dim);
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: color 0.15s, transform 0.4s ease;
+    flex-shrink: 0;
+}
+
+.btn-rescan:hover {
+    color: var(--accent);
+    transform: rotate(180deg);
+}
+
 .nav-container {
     flex: 1;
     overflow-y: auto;
