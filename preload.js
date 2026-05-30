@@ -3,7 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('api', {
     // For sending data TO main (One-way)
     send: (channel, data) => {
-        let validChannels = ['save-servers', 'log-to-system', 'start-server', 'stop-server', 'open-folder', 'kill-server', 'send-command', 'show-server-gui', 'get-player-count', 'open-docs', 'update-window-opacity', 'save-api-config'];
+        let validChannels = ['save-servers', 'log-to-system', 'start-server', 'stop-server', 'open-folder', 'kill-server', 'send-command', 'show-server-gui', 'get-player-count', 'open-docs', 'update-window-opacity', 'save-api-config', 'resync-servers'];
         if (validChannels.includes(channel)) {
             ipcRenderer.send(channel, data);
         }
