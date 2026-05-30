@@ -1000,6 +1000,12 @@ window.stopServer = () => {
     }
 };
 
+window.rescanServers = () => {
+    console.log('[RSM] rescanServers -- manual re-scan triggered');
+    SystemLog('Re-scanning for running server processes...');
+    window.api.send('resync-servers');
+};
+
 window.killServer = () => {
     const srv = servers.find(s => s.id === activeId);
     if (srv && srv.pid) {
