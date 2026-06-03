@@ -1104,6 +1104,14 @@ function stopStatusDashboard() {
 //     |___|_|    \____| |_____|___|____/ |_| |____|_| \_|_____|_| \_|____/
 //
 
+// Syncs the server list when a 3rd-party tool writes directly to servers.json
+window.api.receive('servers-updated', (updatedList) => {
+    if (!Array.isArray(updatedList)) return;
+    servers = updatedList;
+    renderSidebar();
+    console.log(`[RSM] servers-updated — refreshed sidebar with ${servers.length} server(s)`);
+});
+
 // Appends new text from the server's console to the UI
 window.api.receive('console-out', (data) => {
     const srv = servers.find(s => s.id === data.id);

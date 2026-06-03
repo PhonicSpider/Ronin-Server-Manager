@@ -257,6 +257,48 @@ function loadServers() {
     return [];
 }
 
+// --- LIVE RELOAD WHEN servers.json IS EDITED EXTERNALLY ---
+// Detects when a 3rd-party tool injects or removes servers by writing directly
+// to servers.json, then pushes the updated list to the renderer without requiring
+// a restart. Only fires when the set of server IDs actually changes.
+(function watchServersFile() {
+    const dataDir      = path.dirname(DATA_FILE);
+    const dataBasename = path.basename(DATA_FILE);
+    let debounce       = null;
+
+    const reloadIfChanged = () => {
+        if (!fs.existsSync(DATA_FILE)) return;
+        try {
+            const raw = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+            if (!Array.isArray(raw)) return;
+
+            const currentIds = new Set(managedServers.map(s => s.id));
+            const fileIds    = new Set(raw.map(s => s.id));
+            const hasNew     = raw.some(s => !currentIds.has(s.id));
+            const hasRemoved = managedServers.some(s => !fileIds.has(s.id));
+            if (!hasNew && !hasRemoved) return;
+
+            managedServers = raw.map(s => {
+                const existing = managedServers.find(e => e.id === s.id);
+                if (existing) return { ...s, status: existing.status, pid: existing.pid, logs: existing.logs || s.logs };
+                return { ...s, status: 'Offline', pid: null };
+            });
+
+            const win = mainWindow;
+            if (win && !win.isDestroyed()) win.webContents.send('servers-updated', managedServers);
+            console.log(`[RSM] servers.json changed externally — reloaded ${managedServers.length} server(s)`);
+        } catch (e) {
+            console.error('[RSM] Failed to reload servers.json after external edit:', e);
+        }
+    }
+
+    fs.watch(dataDir, (event, filename) => {
+        if (filename !== dataBasename) return;
+        clearTimeout(debounce);
+        debounce = setTimeout(reloadIfChanged, 300);
+    });
+})();
+
 // --- API CONFIG LOAD / SAVE ---
 function loadApiConfig() {
     if (fs.existsSync(API_CONFIG_FILE)) {
