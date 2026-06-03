@@ -8,7 +8,7 @@ export const ark = {
         playerListCommand: "ListPlayers"
     },
     gameFiles: {
-        configPath: "ShooterGame/Saved/Config/WindowsServer",
+        configPath: "Saved/Config/WindowsServer",
         configs: [
             { label: "Game User Settings", file: "GameUserSettings.ini" },
             { label: "Game Settings",      file: "Game.ini" },
@@ -26,8 +26,8 @@ export const ark = {
     defaults: { // Optional placeholders if blocks are enabled, can set any block placeholder or value here
         newName: "e.g. Ark - Island Survival",
         exePath: "C:\\Servers\\Ark\\ShooterGame\\Binaries\\Win64\\ShooterGameServer.exe",
-        workingDir: "C:\\Servers\\Ark",
-        customArgs: "?listen?SessionName=RoninServer -RCONEnabled -RCONPort=27020 -ServerAdminPassword= -NoBattlEye -servergamelog",
+        workingDir: "C:\\Servers\\Ark\\ShooterGame",
+        customArgs: "TheIsland?listen?SessionName=RoninServer -RCONEnabled -RCONPort=27020 -ServerAdminPassword= -NoBattlEye -servergamelog",
         logPath: "C:\\Path\\To\\log\\Folder",
         portId: "RCON Port",
         portPass: "RCON Password"

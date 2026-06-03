@@ -50,6 +50,7 @@ let _getServerStats;
 let _getMainWindow;
 let _findServType;
 let _ipcMain;
+let _logConsoleOut;
 
 // ── Runtime state ─────────────────────────────────────────────────────────
 let _server = null;
@@ -65,6 +66,7 @@ function init(deps) {
     _getMainWindow      = deps.getMainWindow;
     _findServType       = deps.findServType;
     _ipcMain            = deps.ipcMain;
+    _logConsoleOut      = deps.logConsoleOut;
 }
 
 // tlsOpts: { key, cert } for HTTPS, omit for plain HTTP (dev/fallback only).
@@ -287,13 +289,7 @@ function dispatch(req, res, body) {
         }
         executeCommand(srv, processInfo, command)
             .then(output => {
-                const win = _getMainWindow();
-                if (win && !win.isDestroyed()) {
-                    win.webContents.send('console-out', {
-                        id: srv.id,
-                        msg: `[API] > ${command}\n${output ? output + '\n' : ''}`
-                    });
-                }
+                if (_logConsoleOut) _logConsoleOut(srv.id, `[API] > ${command}\n${output ? output + '\n' : ''}`);
                 send(res, 200, { success: true, output });
             })
             .catch(err => send(res, 500, { success: false, output: err.message }));
@@ -397,7 +393,7 @@ async function executeCommand(srv, processInfo, command) {
         throw new Error('RCON Port and Password are required to send commands');
     }
     const rcon = await Rcon.connect({
-        host:     'localhost',
+        host:     '127.0.0.1',
         port:     parseInt(srv.apiPort),
         password: srv.apiPass,
         timeout:  3000
