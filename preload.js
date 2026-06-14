@@ -10,7 +10,7 @@ contextBridge.exposeInMainWorld('api', {
     },
     // For receiving data FROM main (Listening)
     receive: (channel, func) => {
-        let validChannels = ['console-out', 'server-status-updated', 'load-servers', 'status-change', 'server-perf-update', 'total-performance-update', 'system-error', 'system-info', 'player-count-update', 'network-stats-update', 'server-connections-update'];
+        let validChannels = ['console-out', 'server-status-updated', 'load-servers', 'status-change', 'server-perf-update', 'total-performance-update', 'system-error', 'system-info', 'player-count-update', 'network-stats-update', 'server-connections-update', 'servers-updated'];
         if (validChannels.includes(channel)) {
             ipcRenderer.on(channel, (event, ...args) => func(...args));
         }
