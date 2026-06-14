@@ -1,6 +1,6 @@
 # <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🖥️ What Can RSM Do?</p>
 
-**Ronin Server Manager** is a local-first, Windows-native desktop app built to take the hassle out of running dedicated game servers. This page is a feature-by-feature walkthrough of everything it provides — from one-click server controls to integrated Windows Firewall management.
+**Ronin Server Manager** is a local-first, Windows-native desktop app built to take the hassle out of running dedicated game servers. This page is a feature-by-feature walkthrough of everything it provides--from one-click server controls to integrated Windows Firewall management.
 
 > Looking for setup instructions? Head to the [Getting Started](../getting-started.md) guide.
 
@@ -12,13 +12,13 @@
 
 The home view is the nerve centre of RSM. At a glance you can see:
 
-- **All managed servers** — name, status (Online / Starting / Offline), and current player count in a single list
-- **Aggregate CPU & RAM** — live gauges showing combined resource use across every running server
-- **System Bandwidth Graph** — a rolling network graph showing real-time receive and transmit rates for your whole machine
-- **Global Controls** — start all, stop all, and access settings without switching views
-- **System Log** — a live timestamped feed of every RSM event, error, and status change
+- **All managed servers**--name, status (Online / Starting / Offline), and current player count in a single list
+- **Aggregate CPU & RAM**--live gauges showing combined resource use across every running server
+- **System Bandwidth Graph**--a rolling network graph showing real-time receive and transmit rates for your whole machine
+- **Global Controls**--start all, stop all, and access settings without switching views
+- **System Log**--a live timestamped feed of every RSM event, error, and status change
 
-The home view adds a **System Bandwidth Graph** — a dual-line rolling chart showing system-wide receive and transmit bytes per second sampled every 2 seconds.
+The home view adds a **System Bandwidth Graph**--a dual-line rolling chart showing system-wide receive and transmit bytes per second sampled every 2 seconds.
 
 ---
 
@@ -38,12 +38,12 @@ Select any server in the sidebar to open its dedicated panel. From here you can:
 -   :material-console: **Live Console**
 
     ---
-    See the server's output stream in real time and send commands directly via the input bar — no extra terminal window required. Output is colour-coded and scrollable.
+    See the server's output stream in real time and send commands directly via the input bar--no extra terminal window required. Output is colour-coded and scrollable.
 
 -   :material-lightning-bolt: **Quick Actions**
 
     ---
-    Per-game one-click buttons that fire common commands while the server is running — list players, save world, kick all, and more. Only shown for game types that support them.
+    Per-game one-click buttons that fire common commands while the server is running--list players, save world, kick all, and more. Only shown for game types that support them.
 
 -   :material-folder-open: **Open Folder**
 
@@ -58,12 +58,12 @@ Select any server in the sidebar to open its dedicated panel. From here you can:
 
 Every server panel shows a live stats card with:
 
-- **CPU %** — the server process's current CPU usage
-- **RAM** — current RAM consumption and percentage of total system RAM
-- **Connections Graph** — a faded background graph showing active ESTABLISHED TCP/UDP connections to the server process over the last 15 minutes, updating every 2 seconds
-- **Player Count** — current connected players (for games with RCON or API support)
-- **PID** — the operating system process ID for the running server
-- **Uptime** — how long the server has been running since the last start
+- **CPU %**--the server process's current CPU usage
+- **RAM**--current RAM consumption and percentage of total system RAM
+- **Connections Graph**--a faded background graph showing active ESTABLISHED TCP/UDP connections to the server process over the last 15 minutes, updating every 2 seconds
+- **Player Count**--current connected players (for games with RCON or API support)
+- **PID**--the operating system process ID for the running server
+- **Uptime**--how long the server has been running since the last start
 
 ---
 
@@ -73,10 +73,10 @@ Every server panel shows a live stats card with:
 
 Click **Edit Config** in any server panel to open the server's configuration files directly inside RSM.
 
-- **Tabbed interface** — switch between multiple config files (e.g. `GameUserSettings.ini` and `Game.ini` for Ark) without leaving the app
+- **Tabbed interface**--switch between multiple config files (e.g. `GameUserSettings.ini` and `Game.ini` for Ark) without leaving the app
 - **Line numbers** for easy navigation
-- **Running-server warning** — a banner appears if you edit while the server is online; changes take effect after the next restart
-- **Save / Discard** — write to disk or revert to the last saved state
+- **Running-server warning**--a banner appears if you edit while the server is online; changes take effect after the next restart
+- **Save / Discard**--write to disk or revert to the last saved state
 
 Config files are resolved relative to the server's **Working Directory**. Games that store configs outside their install folder require an absolute path in the game's config definition.
 
@@ -91,12 +91,12 @@ RSM includes an integrated Windows Firewall manager powered by the **Ronin Porti
 
 Every server panel shows a **Firewall Ports** card (for supported game types and pictured above) with:
 
-- An editable row for each port the server uses — game port, query port, RCON, API, etc.
+- An editable row for each port the server uses--game port, query port, RCON, API, etc.
 - TCP / UDP toggles per port
 - A status indicator showing whether rules are currently active for this server
-- **Apply Rules** — creates inbound Windows Firewall allow rules for every listed port in one click
-- **Remove Rules** — removes all RSM-managed rules for this server
-- **Save Changes** — saves any port number or protocol changes to the server's config
+- **Apply Rules**--creates inbound Windows Firewall allow rules for every listed port in one click
+- **Remove Rules**--removes all RSM-managed rules for this server
+- **Save Changes**--saves any port number or protocol changes to the server's config
 
 Port defaults are defined per game type but can be overridden per server instance and saved. Dont worry, these can be changed *before* any server is run. So you can make changes and edits without having to run and then stop the server.
 
@@ -106,9 +106,9 @@ The dedicated **Firewall Manager** view (*🛡️ Firewall Manager* in the sideb
 
 ![ServerManager Firewall - glow](..assets/images/server-dets/firewallMngr.png)
 
-- **Managed Rules list** — every rule in the `Ronin Portier Rules` group, showing name, protocol, port, and enabled status with a per-row Remove button
-- **Add Custom Rule** — create a one-off inbound rule with a custom name, port, and protocol without being tied to a specific server
-- **Activity Log** — a timestamped console logging every add, remove, and error operation
+- **Managed Rules list**--every rule in the `Ronin Portier Rules` group, showing name, protocol, port, and enabled status with a per-row Remove button
+- **Add Custom Rule**--create a one-off inbound rule with a custom name, port, and protocol without being tied to a specific server
+- **Activity Log**--a timestamped console logging every add, remove, and error operation
 
 !!! warning "Administrator Required"
     All firewall operations require RSM to be running with **Administrator privileges**. If you see an error in the activity log, re-launch RSM as Administrator. A green **Admin** badge in the top-left corner of the app confirms elevated mode.
@@ -160,4 +160,4 @@ The dedicated **Firewall Manager** view (*🛡️ Firewall Manager* in the sideb
 
 ## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">➕ Adding a New Game Type</p>
 
-RSM is built to be extended. Adding support for a new game involves creating a config file, dropping in an icon, and registering it in the index — no changes to the core engine needed. See the [Contributing Guide](../contributing.md) for a full step-by-step walkthrough.
+RSM is built to be extended. Adding support for a new game involves creating a config file, dropping in an icon, and registering it in the index--no changes to the core engine needed. See the [Contributing Guide](../contributing.md) for a full step-by-step walkthrough.

@@ -11,12 +11,12 @@ Before opening a pull request, run through this list. Every item below has cause
 -   :material-file-plus: **Config file created**
 
     ---
-    `public/configs/your-game.js` — all required fields present, no leftover template placeholders. `meta.displayName`, `meta.icon`, `backend.category`, `blocks`, `defaults`, and `varInputs` are all set.
+    `public/configs/your-game.js`--all required fields present, no leftover template placeholders. `meta.displayName`, `meta.icon`, `backend.category`, `blocks`, `defaults`, and `varInputs` are all set.
 
 -   :material-image: **Icon added**
 
     ---
-    `public/logos/yourGameLogo.png` — square, ≤64 px, referenced in `meta.icon` as a path relative to `/public`.
+    `public/logos/yourGameLogo.png`--square, ≤64 px, referenced in `meta.icon` as a path relative to `/public`.
 
 -   :material-format-list-bulleted: **Index updated**
 
@@ -26,7 +26,7 @@ Before opening a pull request, run through this list. Every item below has cause
 -   :material-code-braces: **Category registered**
 
     ---
-    Game type key added to the correct `case` block in `findServType()` in `main.js` — either `DIRECT_CONSOLE` or `POWERSHELL_BRIDGE`.
+    Game type key added to the correct `case` block in `findServType()` in `main.js`--either `DIRECT_CONSOLE` or `POWERSHELL_BRIDGE`.
 
 -   :material-fire: **Firewall ports defined** *(if applicable)*
 
@@ -54,7 +54,7 @@ Before opening a pull request, run through this list. Every item below has cause
 -   :material-lock-check: **Channel whitelisted in preload.js**
 
     ---
-    Added to the correct whitelist array — `send`, `receive`, or `invoke`. Missing whitelist entries are silently blocked with no error.
+    Added to the correct whitelist array--`send`, `receive`, or `invoke`. Missing whitelist entries are silently blocked with no error.
 
 -   :material-code-tags: **Handler added in main.js**
 
@@ -77,7 +77,7 @@ Before opening a pull request, run through this list. Every item below has cause
 -   :material-api: **Route added to api-server.js**
 
     ---
-    Added inside `dispatch()`. Uses `respond()` helper for all replies. Authentication is already handled before `dispatch()` is called — do not re-check the API key inside the handler.
+    Added inside `dispatch()`. Uses `respond()` helper for all replies. Authentication is already handled before `dispatch()` is called--do not re-check the API key inside the handler.
 
 -   :material-shield-check: **Input validated**
 
@@ -88,6 +88,29 @@ Before opening a pull request, run through this list. Every item below has cause
 
     ---
     Added to `docs/discord-Int.md` API reference table and, if applicable, to `docs/contributing/rest-api.md`.
+
+</div>
+
+---
+
+## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🪵 Logging</p>
+
+<div class="grid cards" markdown>
+
+-   :material-console-line: **Used the right logging tier**
+
+    ---
+    Every `console.log` / `DebugLog` / `SystemLog` call is at the correct level. See the [Logging & Debugging](dev-setup.md#logging-debugging) section for the full decision table. Quick rules:
+
+    - `SystemLog(msg)`--renderer, notable one-off action, also shows in the Home Page console
+    - `DebugLog(msg)`--verbose internals gated behind `DebugActive`
+    - `mainWindow.webContents.send('system-info', msg)`--main process, shows in Home Page console
+    - `console.log('[RSM] ...')`--always-on operational log, DevTools / terminal only
+
+-   :material-close-circle-outline: **No polling-loop logs**
+
+    ---
+    No `SystemLog`, `DebugLog`, or `system-info` calls inside `setInterval`, heartbeat ticks, or any handler that fires more than once per user action. High-frequency logs flood the home console and fill the DevTools with noise.
 
 </div>
 

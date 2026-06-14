@@ -33,7 +33,7 @@ Adding a game type involves **four required steps** and one optional one. Each s
 
 ---
 
-### Step 1 — Create the Config File {: .rsm-header }
+### Step 1--Create the Config File {: .rsm-header }
 
 Copy `public/configs/ServerTemplate.js` and fill it in for your game. Every field is documented inline in the template. Here is the full structure with explanations:
 
@@ -48,11 +48,11 @@ export const yourGame = {
 
     // ── BACKEND ──────────────────────────────────────────────────────────────
     backend: {
-        // DIRECT_CONSOLE  — RSM spawns the process directly and pipes stdin/stdout.
+        // DIRECT_CONSOLE --RSM spawns the process directly and pipes stdin/stdout.
         //                   Use for Java servers and any EXE where you want live
         //                   console I/O (Minecraft, 7 Days to Die, etc.)
         //
-        // POWERSHELL_BRIDGE — RSM launches the EXE hidden via PowerShell, then
+        // POWERSHELL_BRIDGE--RSM launches the EXE hidden via PowerShell, then
         //                     finds the real game PID through a deep search.
         //                     Use for native Windows EXEs that open their own
         //                     window (Space Engineers, Ark, Terraria, etc.)
@@ -112,14 +112,14 @@ export const yourGame = {
 };
 ```
 
-!!! warning "Working Directory — Multi-Instance Rule"
+!!! warning "Working Directory--Multi-Instance Rule"
     Every instance of a game must have a **unique `workingDir`**. RSM uses this path to tell multiple instances of the same EXE apart.
 
     For games that self-relaunch (like Space Engineers), the `workingDir` value **must also appear somewhere in `customArgs`** (e.g. `-path "C:\Servers\MyInstance"`). This lets the deep PID search match the right process when the parent-child link is broken.
 
 ---
 
-### Step 2 — Add an Icon {: .rsm-header }
+### Step 2--Add an Icon {: .rsm-header }
 
 Drop a square PNG or SVG into `public/logos/`. Keep it under 64×64px for sharp rendering at the sidebar size. Reference it in `meta.icon` as a path relative to `/public`:
 
@@ -129,7 +129,7 @@ icon: "logos/yourGameLogo.png"
 
 ---
 
-### Step 3 — Register in the Index {: .rsm-header }
+### Step 3--Register in the Index {: .rsm-header }
 
 Open `public/configs/index.js` and add your export in both the import block and the registry object:
 
@@ -137,7 +137,7 @@ Open `public/configs/index.js` and add your export in both the import block and 
 // 1. Import your new config
 import { yourGame } from './your-game.js';
 
-// 2. Add it to the registry — the key becomes srv.type in the saved server JSON
+// 2. Add it to the registry--the key becomes srv.type in the saved server JSON
 export const ServerTypeRegistry = {
     'minecraft':        minecraft,
     'space-engineers':  spaceEngineers,
@@ -152,7 +152,7 @@ export const ServerTypeRegistry = {
 
 ---
 
-### Step 4 — Register the Category in `main.js` {: .rsm-header }
+### Step 4--Register the Category in `main.js` {: .rsm-header }
 
 Open `main.js` and find the `findServType()` function near the bottom. Add your game's registry key to the correct `case` group:
 
@@ -204,7 +204,7 @@ function findServType(srv) {
 
 ---
 
-### Step 5 — Add Quick Actions *(optional)* {: .rsm-header }
+### Step 5--Add Quick Actions *(optional)* {: .rsm-header }
 
 Quick actions are one-click buttons that appear in the RSM dashboard when a server is selected. Each entry sends a command through whichever command path the server supports (stdin for `DIRECT_CONSOLE`, RCON/HTTP API for `POWERSHELL_BRIDGE`).
 

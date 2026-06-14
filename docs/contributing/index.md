@@ -1,7 +1,7 @@
 # <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🔥 Contributing to RSM</p>
 
 !!! abstract "Welcome, Contributor"
-    Ronin Server Manager is built on **Electron** with a Node.js main process and a vanilla JS renderer. Whether you want to add a new game type, wire up a new IPC feature, extend the REST API, or improve the UI — pick a section below and dive in.
+    Ronin Server Manager is built on **Electron** with a Node.js main process and a vanilla JS renderer. Whether you want to add a new game type, wire up a new IPC feature, extend the REST API, or improve the UI--pick a section below and dive in.
 
 <div class="grid cards" markdown>
 
@@ -15,7 +15,7 @@
 -   :material-gamepad-variant: **Adding a Game**
 
     ---
-    Step-by-step guide for adding a new game server type — config file, icon, registry entry, process category, and quick actions.
+    Step-by-step guide for adding a new game server type--config file, icon, registry entry, process category, and quick actions.
 
     [:octicons-arrow-right-24: Adding a Game](new-game.md)
 

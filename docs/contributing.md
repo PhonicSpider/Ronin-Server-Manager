@@ -1,7 +1,7 @@
 # <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🔥 Contributing to RSM</p>
 
 !!! abstract "Welcome, Contributor"
-    Ronin Server Manager is built on **Electron** with a Node.js main process and a vanilla JS renderer. This guide covers everything you need to add a new game server type, wire up new IPC features, or extend the UI — without breaking anything that already works.
+    Ronin Server Manager is built on **Electron** with a Node.js main process and a vanilla JS renderer. This guide covers everything you need to add a new game server type, wire up new IPC features, or extend the UI--without breaking anything that already works.
 
 ---
 
@@ -87,7 +87,7 @@ Adding a game type involves **four required steps** and one optional one. Each s
 
 ---
 
-### Step 1 — Create the Config File {: .rsm-header }
+### Step 1--Create the Config File {: .rsm-header }
 
 Copy `public/configs/ServerTemplate.js` and fill it in for your game. Every field is documented inline in the template. Here is the full structure with explanations:
 
@@ -102,11 +102,11 @@ export const yourGame = {
 
     // ── BACKEND ──────────────────────────────────────────────────────────────
     backend: {
-        // DIRECT_CONSOLE  — RSM spawns the process directly and pipes stdin/stdout.
+        // DIRECT_CONSOLE --RSM spawns the process directly and pipes stdin/stdout.
         //                   Use for Java servers and any EXE where you want live
         //                   console I/O (Minecraft, 7 Days to Die, etc.)
         //
-        // POWERSHELL_BRIDGE — RSM launches the EXE hidden via PowerShell, then
+        // POWERSHELL_BRIDGE--RSM launches the EXE hidden via PowerShell, then
         //                     finds the real game PID through a deep search.
         //                     Use for native Windows EXEs that open their own
         //                     window (Space Engineers, Ark, Terraria, etc.)
@@ -166,14 +166,14 @@ export const yourGame = {
 };
 ```
 
-!!! warning "Working Directory — Multi-Instance Rule"
+!!! warning "Working Directory--Multi-Instance Rule"
     Every instance of a game must have a **unique `workingDir`**. RSM uses this path to tell multiple instances of the same EXE apart.
 
     For games that self-relaunch (like Space Engineers), the `workingDir` value **must also appear somewhere in `customArgs`** (e.g. `-path "C:\Servers\MyInstance"`). This lets the deep PID search match the right process when the parent-child link is broken.
 
 ---
 
-### Step 2 — Add an Icon {: .rsm-header }
+### Step 2--Add an Icon {: .rsm-header }
 
 Drop a square PNG or SVG into `public/logos/`. Keep it under 64×64px for sharp rendering at the sidebar size. Reference it in `meta.icon` as a path relative to `/public`:
 
@@ -183,7 +183,7 @@ icon: "logos/yourGameLogo.png"
 
 ---
 
-### Step 3 — Register in the Index {: .rsm-header }
+### Step 3--Register in the Index {: .rsm-header }
 
 Open `public/configs/index.js` and add your export in both the import block and the registry object:
 
@@ -191,7 +191,7 @@ Open `public/configs/index.js` and add your export in both the import block and 
 // 1. Import your new config
 import { yourGame } from './your-game.js';
 
-// 2. Add it to the registry — the key becomes srv.type in the saved server JSON
+// 2. Add it to the registry--the key becomes srv.type in the saved server JSON
 export const ServerTypeRegistry = {
     'minecraft':        minecraft,
     'space-engineers':  spaceEngineers,
@@ -206,7 +206,7 @@ export const ServerTypeRegistry = {
 
 ---
 
-### Step 4 — Register the Category in `main.js` {: .rsm-header }
+### Step 4--Register the Category in `main.js` {: .rsm-header }
 
 Open `main.js` and find the `findServType()` function near the bottom. Add your game's registry key to the correct `case` group:
 
@@ -258,7 +258,7 @@ function findServType(srv) {
 
 ---
 
-### Step 5 — Add Quick Actions *(optional)* {: .rsm-header }
+### Step 5--Add Quick Actions *(optional)* {: .rsm-header }
 
 Quick actions are one-click buttons that appear in the RSM dashboard when a server is selected. Each entry sends a command through whichever command path the server supports (stdin for `DIRECT_CONSOLE`, RCON/HTTP API for `POWERSHELL_BRIDGE`).
 
@@ -307,14 +307,14 @@ RSM uses Electron's IPC to communicate between the **main process** (`main.js`) 
     // preload.js whitelist
     let validChannels = ['server-status-updated', 'console-out', /* ... */];
 
-    // Renderer listener — note: only ONE parameter (no leading 'event' arg)
+    // Renderer listener--note: only ONE parameter (no leading 'event' arg)
     window.api.receive('my-push-channel', (data) => {
         console.log(data);
     });
 
     // Main sends to renderer
     mainWindow.webContents.send('my-push-channel', { some: 'data' });
-    // — or reply on an existing event —
+    //--or reply on an existing event --
     event.reply('my-push-channel', { some: 'data' });
     ```
 
@@ -335,16 +335,16 @@ RSM uses Electron's IPC to communicate between the **main process** (`main.js`) 
     ```
 
 !!! warning "Whitelist All New Channels"
-    Any channel not listed in `preload.js` is silently blocked. If your feature does nothing when triggered, this is almost always the cause. Add to the correct whitelist array — `send`, `receive`, or `invoke` — before testing.
+    Any channel not listed in `preload.js` is silently blocked. If your feature does nothing when triggered, this is almost always the cause. Add to the correct whitelist array--`send`, `receive`, or `invoke`--before testing.
 
-!!! danger "Renderer Receive Callbacks — No `event` Parameter"
+!!! danger "Renderer Receive Callbacks--No `event` Parameter"
     The preload strips the Electron IPC `event` object before passing data to the renderer. Receive callbacks take **only the data** as their argument:
 
     ```js
     // ✅ Correct
     window.api.receive('status-change', (data) => { ... });
 
-    // ❌ Wrong — data will always be undefined
+    // ❌ Wrong--data will always be undefined
     window.api.receive('status-change', (event, data) => { ... });
     ```
 
@@ -387,7 +387,7 @@ RSM uses Electron's IPC to communicate between the **main process** (`main.js`) 
 
 ## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🧩 Adding UI Features</p>
 
-RSM's renderer is vanilla JS — no framework. The pattern for adding a new UI feature is:
+RSM's renderer is vanilla JS--no framework. The pattern for adding a new UI feature is:
 
 1. **Add HTML** to `public/index.html`
 2. **Add styles** to `public/style.css` using the existing CSS custom properties
@@ -400,15 +400,15 @@ Use these variables so your feature automatically respects the active theme:
 
 | Variable | Usage |
 | :--- | :--- |
-| `--accent` | Primary brand orange — borders, highlights, active states |
+| `--accent` | Primary brand orange--borders, highlights, active states |
 | `--bg` | Page background |
 | `--card-bg` | Card/panel background |
 | `--text` | Primary text |
 | `--dim` | Muted/secondary text |
 | `--border` | Subtle divider lines |
-| `--online` | Green — running/healthy indicator |
-| `--offline` | Red — stopped/error indicator |
-| `--starting` | Yellow — pending/loading indicator |
+| `--online` | Green--running/healthy indicator |
+| `--offline` | Red--stopped/error indicator |
+| `--starting` | Yellow--pending/loading indicator |
 
 ### Server State Object {: .rsm-header }
 
@@ -429,7 +429,7 @@ Each server in the renderer's `servers` array looks like this at runtime:
     pid:        41484,
     category:   "POWERSHELL_BRIDGE",
 
-    // Per-server firewall port overrides — merged with config defaults at render time.
+    // Per-server firewall port overrides--merged with config defaults at render time.
     // Only present if the user has saved changes in the Firewall Ports card.
     firewallPorts: {
         "game": { port: 27016, tcp: false, udp: true },
@@ -451,12 +451,12 @@ Before opening a pull request, run through this list:
 -   :material-file-plus: **New config file created**
 
     ---
-    `public/configs/your-game.js` — all required fields present, no leftover template placeholders.
+    `public/configs/your-game.js`--all required fields present, no leftover template placeholders.
 
 -   :material-image: **Icon added**
 
     ---
-    `public/logos/yourGameLogo.png` — square, ≤64px, referenced in `meta.icon`.
+    `public/logos/yourGameLogo.png`--square, ≤64px, referenced in `meta.icon`.
 
 -   :material-format-list-bulleted: **Index updated**
 

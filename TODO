@@ -108,13 +108,16 @@ Need to test adding server and all saves/configurations done
 - Correct language in page to correlate how things actually work X
 - Fix opacity slider (Keep card opacity, but try to add background opacity too) X
 - Add Network monitor - added, but showing entire network X
-- Add portier integration
+- Add portier integration X
+- Add back-up restoration and back-up restore file selection
 - Add mini server status card for minimised app (shows server names, status, and player count in a minimised version)
 - Add auto installer for server files and destination of files being selectable
 - Add auto updater
 - Add API and commands
-- Add API support for Tox Bot (Completed by t0x see PR#3)
+- Add API support for Tox Bot X (Completed by t0x see PR#3)
 - Do Security audit
 - Add Auto Installer for gamne servers (Links will be added to configurations)
 - Add auto updaters (links will be added to configuration most likely or user default ones)
 - Add more games to support
+
+Needs to fix shutting down servers that are already started and synced too

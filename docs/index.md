@@ -27,7 +27,7 @@
     Stay ahead of lag. Every server view shows live metrics updated every 2 seconds.
 
     * **Arc gauges** display per-server CPU and RAM usage at a glance.
-    * A **status dashboard** below the gauges shows active player count, server uptime, and the process ID — visible even when offline so nothing is hidden.
+    * A **status dashboard** below the gauges shows active player count, server uptime, and the process ID--visible even when offline so nothing is hidden.
     * The **Network Home** screen shows combined CPU and RAM consumed by all your managed servers, not system-wide noise.
 
 
@@ -55,7 +55,7 @@
 
     ---
 
-    Trigger common server commands with a single click — no console required.
+    Trigger common server commands with a single click--no console required.
 
     * **Save world**, adjust time of day, manage players, and more depending on the game.
     * Buttons appear automatically based on the server type and are disabled when the server is offline.
@@ -121,7 +121,7 @@ While RSM is a "Universal Launcher," it is specifically optimized for these envi
 
     ---
   
-    No cluttered menus—just your servers, your stats, and your console in a high-contrast interface.
+    No cluttered menus -- just your servers, your stats, and your console in a high-contrast interface.
 
 </div>
 

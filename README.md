@@ -21,10 +21,10 @@
 
 ## 🖥️ What is RSM?
 
-**Ronin Server Manager** is a lightweight, local-first application designed to take the headache out of managing dedicated game servers. By leveraging **Electron**, RSM provides a clean Windows-native interface to handle everything from **startup** to **real-time process monitoring** — no web hosting, no cloud accounts, no fuss.
+**Ronin Server Manager** is a lightweight, local-first application designed to take the headache out of managing dedicated game servers. By leveraging **Electron**, RSM provides a clean Windows-native interface to handle everything from **startup** to **real-time process monitoring**--no web hosting, no cloud accounts, no fuss.
 
 > [!IMPORTANT]  
-> This is a **client-side desktop application**. No web hosting or external databases are required — all server files and configurations stay exactly where they belong: **ON YOUR MACHINE**.
+> This is a **client-side desktop application**. No web hosting or external databases are required--all server files and configurations stay exactly where they belong: **ON YOUR MACHINE**.
 
 ---
 
@@ -34,11 +34,14 @@
 * **📊 Server Status Dashboard:** See every server's online/offline state and player counts at a glance from the home view.
 * **🔎 Active Resource Monitoring:** Per-server CPU and RAM gauges plus a live connections graph update in real time.
 * **📡 Network Monitor:** System-wide bandwidth graph on the home screen and per-server active connection tracking with a rolling 15-minute history graph.
-* **🛡️ Firewall Manager (Portier):** Integrated Windows Firewall rule management — apply and remove inbound rules per server from inside the app, or manage all rules from the dedicated Firewall Manager view. *(Requires Administrator privileges)*
-* **📝 Live Console:** Integrated console output per server — read logs and send commands without leaving the app.
+* **🛡️ Firewall Manager (Portier):** Integrated Windows Firewall rule management--apply and remove inbound rules per server from inside the app, or manage all rules from the dedicated Firewall Manager view. *(Requires Administrator privileges)*
+* **📝 Live Console:** Integrated console output per server--read logs and send commands without leaving the app.
 * **⚡ Quick Actions:** Per-game shortcut buttons *(save world, list players, etc.)* that fire common commands while a server is running.
-* **✏️ In-App Config Editor:** Open and edit a server's config files (`.properties`, `.ini`, `.cfg`) directly in RSM — no digging into the file manager needed.
-* **🏠 Local-First:** High-speed performance with direct filesystem access via Node.js — nothing leaves your machine.
+* **✏️ In-App Config Editor:** Open and edit a server's config files (`.properties`, `.ini`, `.cfg`) directly in RSM--no digging into the file manager needed.
+* **🔌 REST API:** Full HTTP API with `x-api-key` authentication, rate limiting, and IP blocking. Exposes server control, status, config file access, backup restore, firewall rule management, and a Forge install proxy--all the hooks the Ronin Citadel portal needs to manage RSM remotely.
+* **🔄 Live Server List:** RSM watches `servers.json` for external edits. Add a server by dropping it into the file and it appears in the sidebar within a second--no restart needed.
+* **🔍 Startup Scan:** Multi-pass process detection at launch matches running game server executables to your server list automatically, so the sidebar shows the correct live state from the moment RSM opens.
+* **🏠 Local-First:** High-speed performance with direct filesystem access via Node.js--nothing leaves your machine.
 * **📖 Built-in Docs:** Comprehensive guides powered by MkDocs and hosted at the link above.
 
 ---
@@ -50,8 +53,8 @@
 | **Minecraft (Java)** | Direct console | `server.properties`, `ops.json` | ✅ | Game (25565), RCON (25575) |
 | **Space Engineers** | PowerShell bridge | `SpaceEngineers-Dedicated.cfg` | ✅ | Game (27016 UDP), API (8080) |
 | **Ark: Survival Evolved** | PowerShell bridge | `GameUserSettings.ini`, `Game.ini` | ✅ | Game (7777), Query (27015), RCON (27020) |
-| **Terraria** | Direct console | `serverconfig.txt` | — | Game (7777 TCP) |
-| **Custom / Other** | Direct console | — | — | — |
+| **Terraria** | Direct console | `serverconfig.txt` |--| Game (7777 TCP) |
+| **Custom / Other** | Direct console |--|--|--|
 
 > Need a game that isn't listed? Use the **Custom / Other** card in the Add Server wizard and fill in the paths manually.
 
@@ -60,13 +63,13 @@
 ## 🚀 Quick Start
 
 1. **Download the installer** from the [Releases](https://github.com/PhonicSpider/Ronin-Server-Manager/releases) page and run it.
-2. **Open RSM** — you'll land on the home dashboard.
+2. **Open RSM**--you'll land on the home dashboard.
 3. **Click + Add New Server** in the sidebar and pick your game from the card grid.
 4. **Fill in the wizard fields** (executable path, working directory, and any game-specific options).
-5. **Hit Save Configuration** — your server will appear in the sidebar ready to start.
+5. **Hit Save Configuration**--your server will appear in the sidebar ready to start.
 
 > [!TIP]
-> Make sure your server has been launched manually at least once before adding it to RSM. RSM manages servers — it does not install or configure them... *yet*. See the [Server Setup docs](https://phonicspider.github.io/Ronin-Server-Manager/servers/) for details.
+> Make sure your server has been launched manually at least once before adding it to RSM. RSM manages servers--it does not install or configure them... *yet*. See the [Server Setup docs](https://phonicspider.github.io/Ronin-Server-Manager/servers/) for details.
 
 ---
 
@@ -99,7 +102,7 @@ Bug fixes, new game modules, and UI improvements are all welcome. Here's how to 
 ### 1. 🏗️ Prerequisites
 * **Node.js** v18 or higher
 * **npm** (bundled with Node.js)
-* **Python** — only needed if you want to preview the MkDocs documentation locally
+* **Python**--only needed if you want to preview the MkDocs documentation locally
 
 ### 2. 🌿 Branching Strategy
 * **Fork** the repository to your own GitHub account.
@@ -107,7 +110,7 @@ Bug fixes, new game modules, and UI improvements are all welcome. Here's how to 
   ```bash
   git checkout -b feature/[your-feature-name]
   ```
-* Keep commits concise and descriptive — one logical change per commit.
+* Keep commits concise and descriptive--one logical change per commit.
 
 ### 3. 💻 Coding Standards
 * **JavaScript/Electron:** Follow standard JS naming conventions (camelCase for variables and functions).

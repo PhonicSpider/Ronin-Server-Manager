@@ -1,6 +1,6 @@
 'use strict';
 
-// RSM REST API — exposes server management over HTTPS so external tools
+// RSM REST API--exposes server management over HTTPS so external tools
 // (e.g. ArkenBot's rsm-manager addon, the Ronin Citadel portal) can control
 // servers remotely.  Auth: x-api-key header, constant-time comparison.
 // All requests/responses are application/json.
@@ -37,7 +37,7 @@ function _recordFailure(ip) {
     entry.lastFailure = now;
     if (entry.count >= RATE_LIMIT_MAX) {
         entry.blockedUntil = now + RATE_LIMIT_MS;
-        console.warn(`[RSM-API] Rate limit triggered for ${ip} — blocked for ${RATE_LIMIT_MS / 1000}s`);
+        console.warn(`[RSM-API] Rate limit triggered for ${ip}--blocked for ${RATE_LIMIT_MS / 1000}s`);
     }
     _failedAuth.set(ip, entry);
 }
@@ -183,7 +183,7 @@ function dispatch(req, res, body) {
         return;
     }
 
-    // ── Health check (unauthenticated — lets monitors confirm the API is up) ─
+    // ── Health check (unauthenticated--lets monitors confirm the API is up) ─
     if (m === 'GET' && url === '/api/health') {
         send(res, 200, { status: 'ok', version: _getAppVersion() });
         return;
@@ -191,7 +191,7 @@ function dispatch(req, res, body) {
 
     // ── Rate limit check ─────────────────────────────────────────────────
     if (_isRateLimited(clientIp)) {
-        console.warn(`[RSM-API] ${m} ${url} — 429 blocked (${clientIp})`);
+        console.warn(`[RSM-API] ${m} ${url}--429 blocked (${clientIp})`);
         send(res, 429, { error: 'Too many failed attempts. Try again later.' });
         return;
     }
@@ -211,7 +211,7 @@ function dispatch(req, res, body) {
     _clearFailure(clientIp);
 
     // ── Access log ───────────────────────────────────────────────────────
-    console.log(`[RSM-API] ${m} ${url} — from ${clientIp}`);
+    console.log(`[RSM-API] ${m} ${url}--from ${clientIp}`);
 
     // ── System ───────────────────────────────────────────────────────────
 
@@ -454,6 +454,7 @@ function dispatch(req, res, body) {
     }
 
     // POST /api/servers/:id/kill
+    // Hard kill via taskkill--use when stop is unresponsive.
     if (m === 'POST' && srvSub === 'kill') {
         const processInfo = _getActiveProcesses()[srv.id];
         if (!processInfo?.pid) {
@@ -482,7 +483,7 @@ function dispatch(req, res, body) {
         }
         const processInfo = _getActiveProcesses()[srv.id];
         if (!processInfo) {
-            send(res, 409, { error: 'Server process not attached — restart the server through RSM to enable this endpoint' });
+            send(res, 409, { error: 'Server process not attached--restart the server through RSM to enable this endpoint' });
             return;
         }
         fetchPlayers(srv, processInfo)
@@ -612,7 +613,7 @@ function send(res, statusCode, body) {
         'Content-Type':   'application/json',
         'Content-Length': buf.length,
         'Connection':     'close',
-        // Wildcard is intentional — RSM binds to 0.0.0.0 for LAN tools (e.g. ArkenBot).
+        // Wildcard is intentional--RSM binds to 0.0.0.0 for LAN tools (e.g. ArkenBot).
         // Tighten this if you expose the API beyond the local network.
         'Access-Control-Allow-Origin':  '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
@@ -652,7 +653,7 @@ function makeReplyEvent() {
 async function executeCommand(srv, processInfo, command) {
     const serverCategory = _findServType(srv);
 
-    // DIRECT_CONSOLE servers (Minecraft, Terraria, 7DaysToDie) — write to stdin
+    // DIRECT_CONSOLE servers (Minecraft, Terraria, 7DaysToDie)--write to stdin
     // and capture whatever the server echoes back on stdout within 1.5 s.
     if (serverCategory === 'DIRECT_CONSOLE') {
         const child = processInfo.shell;
@@ -672,7 +673,7 @@ async function executeCommand(srv, processInfo, command) {
         });
     }
 
-    // Space Engineers — VRage Remote HTTP API
+    // Space Engineers--VRage Remote HTTP API
     if (srv.type === 'space-engineers') {
         if (!srv.apiPort || !srv.apiPass) {
             throw new Error('API Port and Password are required for Space Engineers commands');
@@ -707,7 +708,7 @@ async function executeCommand(srv, processInfo, command) {
 }
 
 async function fetchPlayers(srv, processInfo) {
-    // Space Engineers — VRage HTTP session endpoint returns structured data;
+    // Space Engineers--VRage HTTP session endpoint returns structured data;
     // executeCommand only returns 'Command sent' so we need the direct HTTP call here.
     if (srv.type === 'space-engineers') {
         if (!srv.apiPort) throw new Error('API Port is required for Space Engineers player count');
@@ -720,7 +721,7 @@ async function fetchPlayers(srv, processInfo) {
     }
 
     // All other game types: send the command defined in the game config and parse the output.
-    // New games never need to touch this function — just set backend.playerListCommand in their config.
+    // New games never need to touch this function--just set backend.playerListCommand in their config.
     if (!srv.playerListCommand) {
         return { online: null, max: null, players: [], note: 'Player list not supported for this server type' };
     }
@@ -744,7 +745,7 @@ async function fetchPlayers(srv, processInfo) {
         return { online: players.length, max: null, players };
     }
 
-    // Generic fallback — return raw output for the caller to interpret
+    // Generic fallback--return raw output for the caller to interpret
     return { online: null, max: null, players: [], rawOutput: output.trim() };
 }
 

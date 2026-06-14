@@ -23,7 +23,7 @@ const apiServer = require('./api-server');
 
 // Wire up api-server dependencies at module load time so they are always set
 // before any HTTP request or IPC handler can reach the server.
-// The closures capture module-level variables by reference — always current.
+// The closures capture module-level variables by reference -- always current.
 // Helper functions referenced below (_apiAddServer, etc.) are function
 // declarations defined near the bottom of this file and are hoisted.
 apiServer.init({
@@ -64,8 +64,8 @@ apiServer.init({
 let mainWindow;
 let tray = null;
 const activeProcesses  = {};
-const serverStats      = {}; // { [srvId]: { cpu, ramMB } } — updated each heartbeat tick
-const pendingRestarts  = {}; // { [srvId]: srv } — set by restart-server, consumed by stopServerCleanup
+const serverStats      = {}; // { [srvId]: { cpu, ramMB } } -- updated each heartbeat tick
+const pendingRestarts  = {}; // { [srvId]: srv } -- set by restart-server, consumed by stopServerCleanup
 const DATA_FILE       = path.join(app.getPath('userData'), 'servers.json');
 const API_CONFIG_FILE = path.join(app.getPath('userData'), 'api-config.json');
 const TLS_CERT_FILE   = path.join(app.getPath('userData'), 'rsm-tls-cert.pem');
@@ -87,11 +87,11 @@ let managedServers = loadServers(); // hoisted from DATA section below
 // --- WINDOW CREATION & CONFIGURATION ---
 function createWindow() {
     if (mainWindow) return;
-    console.log('[RSM] createWindow — creating main BrowserWindow');
+    console.log('[RSM] createWindow -- creating main BrowserWindow');
 
     mainWindow = new BrowserWindow({
-        width: 1250,
-        height: 850,
+        width: 1300,
+        height: 1000,
         title: "Ronin Server Manager",
         icon: path.join(__dirname, 'icon.png'),
         backgroundColor: '#0f111a',
@@ -105,7 +105,7 @@ function createWindow() {
     });
 
     mainWindow.loadFile(path.join(__dirname, 'public/index.html'));
-    console.log('[RSM] createWindow — window created, loading index.html');
+    console.log('[RSM] createWindow -- window created, loading index.html');
 
     mainWindow.on('close', (event) => {
         if (!app.isQuiting) {
@@ -117,7 +117,7 @@ function createWindow() {
 
 // --- SYSTEM TRAY CREATION & LOGIC ---
 function createTray() {
-    console.log('[RSM] createTray — initializing system tray icon');
+    console.log('[RSM] createTray -- initializing system tray icon');
     const iconPath = path.join(__dirname, 'icon.png');
     tray = new Tray(iconPath);
 
@@ -134,7 +134,7 @@ function createTray() {
 
     tray.setToolTip('Ronin Server Manager');
     tray.setContextMenu(contextMenu);
-    console.log('[RSM] createTray — tray ready, context menu registered');
+    console.log('[RSM] createTray -- tray ready, context menu registered');
 
     tray.on('click', () => {
         mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show();
@@ -153,70 +153,370 @@ function createTray() {
 }
 
 // --- STARTUP SYNC AND PROCESS RE-LINKING ---
-function syncActiveServers() {
-    console.log("[RSM] Scanning for orphaned server processes...");
 
-    // Group servers by EXE name — one WMIC query per unique executable
+// Attaches RSM monitoring to a server process that was already running before RSM started.
+// Sets up the same heartbeat + log watcher that a normal start-server would create.
+function relinkServer(srv, pid, serviceName = null) {
+    const index = managedServers.findIndex(s => s.id === srv.id);
+    if (index === -1) {
+        console.warn(`[RSM] relinkServer -- server "${srv.name}" not found in managedServers`);
+        return;
+    }
+
+    let monitorInterval = null;
+    let logWatcher = null;
+
+    const fakeEvent = {
+        reply: (ch, data) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(ch, data); }
+    };
+
+    const stopServerCleanup = () => {
+        if (monitorInterval) { clearInterval(monitorInterval); monitorInterval = null; }
+        if (logWatcher) { clearInterval(logWatcher); logWatcher = null; }
+
+        const restartSrv = pendingRestarts[srv.id];
+        delete pendingRestarts[srv.id];
+        delete activeProcesses[srv.id];
+        delete serverStats[srv.id];
+
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('status-change', { id: srv.id, status: 'Offline' });
+            mainWindow.webContents.send('system-info', `[RSM] ${srv.name} has stopped and is now Offline.`);
+        }
+
+        if (restartSrv) {
+            console.log(`[RSM] relinkServer cleanup -- restarting "${restartSrv.name}"`);
+            setTimeout(() => ipcMain.emit('start-server', fakeEvent, restartSrv), 1500);
+        }
+    };
+
+    // Update in-memory state
+    managedServers[index].pid = pid;
+    managedServers[index].status = 'Online';
+    activeProcesses[srv.id] = { pid, shell: null, cleanup: stopServerCleanup, startedAt: Date.now(), serviceName: serviceName || null };
+
+    // Persist Online status so it survives a second app restart
+    try {
+        fs.writeFileSync(DATA_FILE, JSON.stringify(managedServers, null, 2));
+    } catch (e) {
+        console.warn(`[RSM] relinkServer -- could not persist status for "${srv.name}":`, e.message);
+    }
+
+    // Notify renderer
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('status-change', { id: srv.id, status: 'Online', pid });
+        mainWindow.webContents.send('system-info', `[RSM] Re-linked "${srv.name}" to existing process (PID ${pid}).`);
+    }
+
+    // Start log file watcher for POWERSHELL_BRIDGE servers (DIRECT_CONSOLE uses shell pipe, unavailable here)
+    const serverCategory = findServType(srv);
+    if (serverCategory !== 'DIRECT_CONSOLE' && srv.logPath && fs.existsSync(srv.logPath)) {
+        logWatcher = startLogging(srv.logPath, fakeEvent, srv);
+    }
+
+    // Start performance heartbeat -- same logic as startHeartbeat inside start-server
+    const totalRamMB = Math.floor(os.totalmem() / 1024 / 1024);
+    const numCores = os.cpus().length;
+    let prevCpuTime = 0;
+    let prevCpuSample = 0;
+
+    monitorInterval = setInterval(() => {
+        exec(`tasklist /fi "PID eq ${pid}" /fo csv /nh`, (err, stdout) => {
+            if (!stdout || !stdout.includes(`"${pid}"`)) {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('server-perf-update', {
+                        id: srv.id, cpu: 0, ramPercent: 0, ramDisplay: 'Offline'
+                    });
+                }
+                stopServerCleanup();
+                return;
+            }
+
+            const parts = stdout.split('","');
+            if (parts.length >= 5) {
+                const memRaw = parts[4].replace(/[^\d]/g, '');
+                const memMB = Math.floor(parseInt(memRaw) / 1024);
+                const displayMem = memMB > 1024 ? (memMB / 1024).toFixed(2) + ' GB' : memMB + ' MB';
+                const ramPercent = Math.min(Math.floor((memMB / totalRamMB) * 100), 100);
+
+                exec(`wmic process where processid=${pid} get KernelModeTime,UserModeTime /value`, (cpuErr, cpuStdout) => {
+                    let cpuPercent = 0;
+                    if (!cpuErr && cpuStdout) {
+                        const kMatch = cpuStdout.replace(/\s/g, '').match(/KernelModeTime=(\d+)/);
+                        const uMatch = cpuStdout.replace(/\s/g, '').match(/UserModeTime=(\d+)/);
+                        if (kMatch && uMatch) {
+                            const currentTotal = parseInt(kMatch[1]) + parseInt(uMatch[1]);
+                            const now = Date.now();
+                            if (prevCpuTime > 0) {
+                                const elapsed100ns = (now - prevCpuSample) * 10000;
+                                const delta = currentTotal - prevCpuTime;
+                                cpuPercent = Math.min(Math.round((delta / elapsed100ns / numCores) * 100), 100);
+                            }
+                            prevCpuTime = currentTotal;
+                            prevCpuSample = now;
+                        }
+                    }
+
+                    const finalCpu = isNaN(cpuPercent) ? 0 : cpuPercent;
+                    const finalRam = isNaN(ramPercent) ? 0 : ramPercent;
+                    serverStats[srv.id] = { cpu: finalCpu, ramMB: memMB };
+
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.webContents.send('server-perf-update', {
+                            id: srv.id, cpu: finalCpu, ramPercent: finalRam, ramDisplay: displayMem
+                        });
+                    }
+                });
+            }
+        });
+    }, 2000);
+
+    console.log(`[RSM] relinkServer -- "${srv.name}" linked to PID ${pid}, monitoring started`);
+}
+
+// Four-pass scan that runs once on app startup to find servers already running.
+//
+// Pass 1  -- workingDir in CommandLine: precise, handles Java/script servers and any
+//            game that passes its instance path as a CLI argument.
+// Pass 1b -- Windows service PathName: for games launched as services, the Win32_Service
+//            PathName field contains the full command line including the instance -path.
+//            Needed when 3+ identical-EXE servers are running as services and Pass 1 can
+//            only differentiate them by instance path in the service definition.
+// Pass 2  -- netstat LISTENING port: each instance binds a unique apiPort, so the PID
+//            that owns that port is unambiguous. Rejects kernel PIDs (e.g. http.sys PID 4)
+//            by cross-validating against wmicResults.
+// Pass 3  -- EXE basename + order-based: last resort for truly identical CommandLines
+//            where no port is available; assigns remaining servers in list order.
+function syncActiveServers(isRescan = false) {
+    console.log("[RSM] syncActiveServers -- scanning for pre-existing server processes...");
+    if (managedServers.length === 0) {
+        console.log("[RSM] syncActiveServers -- no servers configured, skipping scan");
+        if (!isRescan && mainWindow && !mainWindow.isDestroyed())
+            mainWindow.webContents.send('startup-scan-complete', { linked: 0, total: 0 });
+        return;
+    }
+
+    const unlinked = new Set(managedServers.map(s => s.id));
+    const claimedPids = new Set();
+
+    // Group servers by EXE basename -- one WMIC query per unique executable
     const byExe = {};
     managedServers.forEach(srv => {
+        if (!srv.path) return;
         const exeName = path.basename(srv.path);
         if (!byExe[exeName]) byExe[exeName] = [];
         byExe[exeName].push(srv);
     });
 
     const exeNames = Object.keys(byExe);
-    if (exeNames.length === 0) {
-        console.log("[RSM] Startup scan complete.");
-        return;
-    }
+    // +1 for the parallel Windows service query (Pass 1b)
+    let pending = exeNames.length + 1;
+    const wmicResults = {}; // { [exeName]: [{ cmdLine, pid }] }
+    let serviceResults = []; // [{ serviceName, pathName, pid }] -- from Win32_Service for Pass 1b
 
-    // Prevent the same PID from being claimed by two different servers
-    const claimedPids = new Set();
-    let pending = exeNames.length;
-    const onDone = () => { if (--pending === 0) console.log("[RSM] Startup scan complete."); };
+    const done = () => {
+        if (unlinked.size > 0) {
+            const names = managedServers.filter(s => unlinked.has(s.id)).map(s => s.name).join(', ');
+            console.log(`[RSM] syncActiveServers -- not found: ${names}`);
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('system-info', `Startup scan: ${unlinked.size} server(s) not running -- ${names}`);
+            }
+        }
+        console.log("[RSM] syncActiveServers -- scan complete");
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            const linked = managedServers.length - unlinked.size;
+            const send = () => {
+                mainWindow.webContents.send('system-info', 'Startup scan complete.');
+                if (!isRescan)
+                    mainWindow.webContents.send('startup-scan-complete', { linked, total: managedServers.length });
+            };
+            // Defer if the renderer hasn't finished loading yet (unlikely with the 3s delay,
+            // but possible on slow machines) so the IPC listener is guaranteed to be registered.
+            if (mainWindow.webContents.isLoading()) {
+                mainWindow.webContents.once('did-finish-load', send);
+            } else {
+                send();
+            }
+        }
+    };
 
+    const runPass3 = () => {
+        if (unlinked.size === 0) return done();
+
+        for (const [exeName, srvList] of Object.entries(byExe)) {
+            const results = wmicResults[exeName] || [];
+            const unlinkedForExe = srvList.filter(s => unlinked.has(s.id));
+            const unclaimedPids = results.map(r => r.pid).filter(p => !claimedPids.has(p));
+
+            for (let i = 0; i < Math.min(unlinkedForExe.length, unclaimedPids.length); i++) {
+                const srv = unlinkedForExe[i];
+                const pid = unclaimedPids[i];
+                claimedPids.add(pid);
+                unlinked.delete(srv.id);
+                console.log(`[RSM] Pass 3 -- "${srv.name}" -> PID ${pid} (order-based, EXE: ${exeName})`);
+                relinkServer(srv, pid);
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('system-info',
+                        `[WARN] "${srv.name}" was matched to PID ${pid} by process order (Pass 3) -- if this looks wrong, check that workingDir or service name matches the instance.`);
+                }
+            }
+        }
+
+        done();
+    };
+
+    const runPass2 = () => {
+        if (unlinked.size === 0) return done();
+
+        const portServers = managedServers.filter(s => unlinked.has(s.id) && s.apiPort);
+        if (portServers.length === 0) return runPass3();
+
+        exec('netstat -ano', (nsErr, nsOut) => {
+            if (!nsErr && nsOut) {
+                const netLines = nsOut.split('\n');
+                for (const srv of portServers) {
+                    if (!unlinked.has(srv.id)) continue;
+                    const targetPort = String(srv.apiPort);
+                    // Cross-reference against WMIC results so we never accept a system-owned
+                    // port. SE's VRage HTTP API registers through http.sys (a kernel driver),
+                    // so netstat reports PID 4 (System) instead of the game process. Rejecting
+                    // any PID that doesn't appear in the WMIC results for this EXE prevents
+                    // a false match and lets the server fall through to Pass 3 instead.
+                    const exeName = path.basename(srv.path);
+                    const knownPids = new Set((wmicResults[exeName] || []).map(r => r.pid));
+                    for (const line of netLines) {
+                        const parts = line.trim().split(/\s+/);
+                        // netstat -ano columns: Proto LocalAddress ForeignAddress State PID
+                        if (parts.length < 5 || parts[3] !== 'LISTENING') continue;
+                        const localAddr = parts[1] || '';
+                        // lastIndexOf(':') handles both 0.0.0.0:port and [::]:port formats
+                        const listenPort = localAddr.substring(localAddr.lastIndexOf(':') + 1);
+                        if (listenPort !== targetPort) continue;
+                        const pid = parseInt(parts[4]);
+                        if (isNaN(pid) || pid === 0 || claimedPids.has(pid)) continue;
+                        if (!knownPids.has(pid)) continue;
+                        claimedPids.add(pid);
+                        unlinked.delete(srv.id);
+                        console.log(`[RSM] Pass 2 -- "${srv.name}" -> PID ${pid} (port ${targetPort} match)`);
+                        relinkServer(srv, pid);
+                        break;
+                    }
+                }
+            }
+            runPass3();
+        });
+    };
+
+    const runPasses = () => {
+        // Pass 1: workingDir appears in CommandLine -- precise match for most servers
+        for (const [exeName, srvList] of Object.entries(byExe)) {
+            const results = wmicResults[exeName] || [];
+            for (const srv of srvList) {
+                if (!unlinked.has(srv.id)) continue;
+                const searchDir = (srv.workingDir || path.dirname(srv.path))
+                    .toLowerCase().replace(/\\/g, '/');
+                for (const { cmdLine, pid } of results) {
+                    if (claimedPids.has(pid)) continue;
+                    const idx = cmdLine.indexOf(searchDir);
+                    if (idx === -1) continue;
+                    // Boundary check: reject if the next character continues a path segment.
+                    // Prevents "instance" from matching "instance2" or "instance-b".
+                    const after = cmdLine[idx + searchDir.length];
+                    if (after && /[a-z0-9_\-./]/.test(after)) continue;
+                    claimedPids.add(pid);
+                    unlinked.delete(srv.id);
+                    console.log(`[RSM] Pass 1 -- "${srv.name}" -> PID ${pid} (workingDir match)`);
+                    relinkServer(srv, pid);
+                    break;
+                }
+            }
+        }
+
+        // Pass 1b: Windows service match -- handles servers launched as Windows services.
+        // Two sub-strategies, tried in order:
+        //   Path match -- service PathName contains both the EXE name and the instance workingDir.
+        //                Works when the service was registered with the full command line.
+        //   Name match -- service Name equals the last directory component of workingDir.
+        //                Works for SE-style services where the service is named after the instance
+        //                directory (PathName is bare EXE with no arguments).
+        if (unlinked.size > 0 && serviceResults.length > 0) {
+            for (const srv of managedServers) {
+                if (!unlinked.has(srv.id) || !srv.path) continue;
+                const exeName = path.basename(srv.path);
+                const searchDir = (srv.workingDir || path.dirname(srv.path))
+                    .toLowerCase().replace(/\\/g, '/');
+                const instanceDirName = path.basename(srv.workingDir || path.dirname(srv.path)).toLowerCase();
+                const knownPids = new Set((wmicResults[exeName] || []).map(r => r.pid));
+                for (const { serviceName, pathName, pid } of serviceResults) {
+                    if (claimedPids.has(pid)) continue;
+                    if (!knownPids.has(pid)) continue;
+                    const normPath = pathName.toLowerCase().replace(/\\/g, '/');
+                    // Must at least be running the right EXE
+                    if (!normPath.includes(exeName.toLowerCase())) continue;
+                    const pathMatch = normPath.includes(searchDir);
+                    const nameMatch = serviceName.toLowerCase() === instanceDirName;
+                    if (!pathMatch && !nameMatch) continue;
+                    claimedPids.add(pid);
+                    unlinked.delete(srv.id);
+                    const how = pathMatch ? 'path' : 'name';
+                    console.log(`[RSM] Pass 1b -- "${srv.name}" -> PID ${pid} (service ${how} match, service: "${serviceName}")`);
+                    relinkServer(srv, pid, serviceName);
+                    break;
+                }
+            }
+        }
+
+        runPass2();
+    };
+
+    // Fire all WMIC queries in parallel; once the last one returns (including the service
+    // query), run the passes. pending was initialised to exeNames.length + 1 to account
+    // for the service query below.
     exeNames.forEach(exeName => {
         exec(`wmic process where "Name='${exeName}'" get CommandLine,ProcessId /format:csv`, (err, stdout) => {
+            wmicResults[exeName] = [];
             if (!err && stdout) {
-                // Each CSV line ends with the PID; CommandLine may contain commas so
-                // we always take only the very last comma-delimited field as the PID.
-                const lines = stdout.trim().split('\n').filter(l => l.trim() && !l.startsWith('Node'));
-
-                byExe[exeName].forEach(srv => {
-                    const searchDir = (srv.workingDir || path.dirname(srv.path))
-                        .toLowerCase().replace(/\\/g, '/');
-
-                    for (const line of lines) {
-                        const lineLow = line.toLowerCase().replace(/\\/g, '/');
-                        const lastComma = line.lastIndexOf(',');
-                        if (lastComma === -1) continue;
-
-                        const foundPid = parseInt(line.substring(lastComma + 1).trim());
-                        if (isNaN(foundPid) || foundPid === 0 || claimedPids.has(foundPid)) continue;
-
-                        if (lineLow.includes(searchDir)) {
-                            claimedPids.add(foundPid);
-                            console.log(`[RSM] Found existing process for ${srv.name} (PID: ${foundPid})`);
-                            activeProcesses[srv.id] = { pid: foundPid };
-                            if (mainWindow) {
-                                mainWindow.webContents.send('status-change', {
-                                    id: srv.id, status: 'Online', pid: foundPid,
-                                    msg: "[RSM] Re-linked to existing process."
-                                });
-                            }
-                            break;
-                        }
-                    }
-                });
+                const lines = stdout.trim().split('\n').filter(l => l.trim() && !l.toLowerCase().startsWith('node,'));
+                for (const line of lines) {
+                    const lastComma = line.lastIndexOf(',');
+                    if (lastComma === -1) continue;
+                    const pid = parseInt(line.substring(lastComma + 1).trim());
+                    if (isNaN(pid) || pid === 0) continue;
+                    const cmdLine = line.substring(0, lastComma).toLowerCase().replace(/\\/g, '/');
+                    wmicResults[exeName].push({ cmdLine, pid });
+                }
             }
-            onDone();
+            if (--pending === 0) runPasses();
         });
+    });
+
+    // Pass 1b data source: running Windows services -- Name, PathName, and ProcessId.
+    // WMIC CSV alphabetises columns, so the output order is: Node, Name, PathName, ProcessId.
+    exec(`wmic service where "State='Running'" get Name,PathName,ProcessId /format:csv`, (err, stdout) => {
+        if (!err && stdout) {
+            const lines = stdout.trim().split('\n').filter(l => l.trim() && !l.toLowerCase().startsWith('node,'));
+            for (const line of lines) {
+                const lastComma = line.lastIndexOf(',');
+                if (lastComma === -1) continue;
+                const pid = parseInt(line.substring(lastComma + 1).trim());
+                if (isNaN(pid) || pid === 0) continue;
+                // CSV layout: Node , Name , PathName , ProcessId
+                const firstComma = line.indexOf(',');
+                if (firstComma === -1) continue;
+                const secondComma = line.indexOf(',', firstComma + 1);
+                if (secondComma === -1 || secondComma >= lastComma) continue;
+                const serviceName = line.substring(firstComma + 1, secondComma).trim();
+                const pathName = line.substring(secondComma + 1, lastComma).trim().replace(/^"|"$/g, '');
+                if (serviceName || pathName) serviceResults.push({ serviceName, pathName, pid });
+            }
+        }
+        if (--pending === 0) runPasses();
     });
 }
 
 // --- APP LIFECYCLE EVENTS ---
 app.whenReady().then(() => {
-    console.log('[RSM] app.whenReady — Electron app is ready, starting up...');
+    console.log('[RSM] app.whenReady -- Electron app is ready, starting up...');
     createWindow();
     createTray();
 
@@ -230,17 +530,17 @@ app.whenReady().then(() => {
         apiServer.start(apiCfg.port || 3002, apiCfg.apiKey, { key: tls.key, cert: tls.cert });
         console.log(`[RSM] REST API started on port ${apiCfg.port || 3002}`);
     } else {
-        console.log('[RSM] REST API is disabled — skipping startup');
+        console.log('[RSM] REST API is disabled -- skipping startup');
     }
 });
 
 app.on('window-all-closed', () => {
-    console.log('[RSM] window-all-closed — quitting app');
+    console.log('[RSM] window-all-closed -- quitting app');
     if (process.platform !== 'darwin') app.quit();
 });
 
 app.on('will-quit', () => {
-    console.log('[RSM] will-quit — stopping API server and shutting down');
+    console.log('[RSM] will-quit -- stopping API server and shutting down');
     apiServer.stop();
 });
 
@@ -258,21 +558,21 @@ app.setLoginItemSettings({ openAtLogin: false });
 
 // --- SERVER LIST LOADING ---
 function loadServers() {
-    console.log('[RSM] loadServers — reading servers.json from', DATA_FILE);
+    console.log('[RSM] loadServers -- reading servers.json from', DATA_FILE);
     if (fs.existsSync(DATA_FILE)) {
         try {
             const servers = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-            // Always start with every server Offline — syncActiveServers() will
+            // Always start with every server Offline -- syncActiveServers() will
             // re-link any that are genuinely still running after the app loads.
             const result = servers.map(s => ({ ...s, status: 'Offline', pid: null }));
-            console.log(`[RSM] loadServers — loaded ${result.length} server(s)`);
+            console.log(`[RSM] loadServers -- loaded ${result.length} server(s)`);
             return result;
         } catch (e) {
             console.error("[RSM] Failed to load servers.json:", e);
             return [];
         }
     }
-    console.log('[RSM] loadServers — no servers.json found, starting fresh');
+    console.log('[RSM] loadServers -- no servers.json found, starting fresh');
     return [];
 }
 
@@ -323,7 +623,7 @@ function loadApiConfig() {
     if (fs.existsSync(API_CONFIG_FILE)) {
         try {
             const cfg = JSON.parse(fs.readFileSync(API_CONFIG_FILE, 'utf8'));
-            console.log('[RSM] loadApiConfig — loaded:', { enabled: cfg.enabled, port: cfg.port });
+            console.log('[RSM] loadApiConfig -- loaded:', { enabled: cfg.enabled, port: cfg.port });
             return cfg;
         } catch (e) {
             console.error('[RSM] Failed to load api-config.json:', e);
@@ -333,7 +633,7 @@ function loadApiConfig() {
 }
 
 function saveApiConfig(config) {
-    console.log('[RSM] saveApiConfig — saving:', { enabled: config.enabled, port: config.port });
+    console.log('[RSM] saveApiConfig -- saving:', { enabled: config.enabled, port: config.port });
     fs.writeFileSync(API_CONFIG_FILE, JSON.stringify(config, null, 2));
     // Write a convenience file ArkenBot / external tools can read to get the key and cert fingerprint
     try {
@@ -351,7 +651,7 @@ function saveApiConfig(config) {
 }
 
 // Generates (or loads from cache) a self-signed TLS cert for the REST API.
-// Returns { key, cert, fingerprint } — fingerprint is SHA-256 in AA:BB:CC format.
+// Returns { key, cert, fingerprint } -- fingerprint is SHA-256 in AA:BB:CC format.
 function ensureTlsCert() {
     if (fs.existsSync(TLS_CERT_FILE) && fs.existsSync(TLS_KEY_FILE)) {
         try {
@@ -378,13 +678,13 @@ function ensureTlsCert() {
 
 // --- GET SERVER LIST ---
 ipcMain.handle('get-servers', () => {
-    console.log(`[RSM] get-servers — returning ${managedServers.length} server(s)`);
+    console.log(`[RSM] get-servers -- returning ${managedServers.length} server(s)`);
     return managedServers;
 });
 
 // --- SAVE SERVER LIST (with persistence logic for running servers) ---
 ipcMain.on('save-servers', (event, updatedList) => {
-    console.log(`[RSM] save-servers — merging ${updatedList.length} server(s) and persisting`);
+    console.log(`[RSM] save-servers -- merging ${updatedList.length} server(s) and persisting`);
     managedServers = updatedList.map(newSrv => {
         const existing = managedServers.find(s => s.id === newSrv.id);
         return {
@@ -426,7 +726,7 @@ ipcMain.on('update-startup-settings', (event, isEnabled) => {
 ipcMain.handle('get-api-config', () => loadApiConfig());
 
 ipcMain.on('save-api-config', (event, config) => {
-    console.log(`[RSM] save-api-config — enabled: ${config.enabled} | port: ${config.port}`);
+    console.log(`[RSM] save-api-config -- enabled: ${config.enabled} | port: ${config.port}`);
     saveApiConfig(config);
     if (config.enabled && config.apiKey) {
         const tls = ensureTlsCert();
@@ -438,7 +738,7 @@ ipcMain.on('save-api-config', (event, config) => {
 });
 
 ipcMain.handle('regenerate-api-key', () => {
-    console.log('[RSM] regenerate-api-key — generating new API key');
+    console.log('[RSM] regenerate-api-key -- generating new API key');
     const config = loadApiConfig();
     config.apiKey = apiServer.generateApiKey();
     if (!config.port) config.port = 3002;
@@ -453,11 +753,11 @@ ipcMain.handle('regenerate-api-key', () => {
 
 // --- ADMIN CHECK ---
 ipcMain.handle('check-admin', async () => {
-    console.log('[RSM] check-admin — checking for Administrator privileges');
+    console.log('[RSM] check-admin -- checking for Administrator privileges');
     return new Promise((resolve) => {
         exec('net session', (err) => {
             const isAdmin = !err;
-            console.log(`[RSM] check-admin — result: ${isAdmin ? 'Administrator' : 'Standard user'}`);
+            console.log(`[RSM] check-admin -- result: ${isAdmin ? 'Administrator' : 'Standard user'}`);
             resolve(isAdmin);
         });
     });
@@ -473,7 +773,7 @@ ipcMain.handle('check-admin', async () => {
 
 // --- SERVER START LOGIC ---
 ipcMain.on('start-server', (event, srv) => {
-    console.log(`[RSM] start-server — name: "${srv.name}" | type: ${srv.type} | category: ${findServType(srv)}`);
+    console.log(`[RSM] start-server -- name: "${srv.name}" | type: ${srv.type} | category: ${findServType(srv)}`);
     event.reply('system-info', `[RSM] Gathering information for: ${srv.name}`);
     DebugLog(`Starting server with config:`, srv);
 
@@ -568,7 +868,7 @@ ipcMain.on('start-server', (event, srv) => {
         event.reply('system-info', `[RSM] ${srv.name} has been cleaned up and set to Offline.`);
 
         if (restartSrv) {
-            console.log(`[RSM] restart-server — restarting "${restartSrv.name}" after cleanup`);
+            console.log(`[RSM] restart-server -- restarting "${restartSrv.name}" after cleanup`);
             setTimeout(() => ipcMain.emit('start-server', {
                 reply: (ch, data) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(ch, data); }
             }, restartSrv), 1500);
@@ -585,7 +885,7 @@ ipcMain.on('start-server', (event, srv) => {
         const srvId = serverObject.id;
         const srvName = serverObject.name;
 
-        // CPU delta state — KernelModeTime+UserModeTime are 100-ns counters;
+        // CPU delta state -- KernelModeTime+UserModeTime are 100-ns counters;
         // we diff two readings across the heartbeat interval to get real %
         let prevCpuTime = 0;
         let prevCpuSample = 0;
@@ -767,7 +1067,7 @@ ipcMain.on('start-server', (event, srv) => {
 
 // --- SERVER STOP LOGIC ---
 ipcMain.on('stop-server', (event, srvId) => {
-    console.log(`[RSM] stop-server — srvId: ${srvId}`);
+    console.log(`[RSM] stop-server -- srvId: ${srvId}`);
     DebugLog(`Received stop-server request for ID: ${srvId}`);
     event.reply('system-info', `[RSM] Stop signal received for: ${srvId}`);
 
@@ -788,89 +1088,114 @@ ipcMain.on('stop-server', (event, srvId) => {
         return;
     }
 
-    const { pid, shell, cleanup } = processInfo;
+    const { pid, shell, cleanup, serviceName } = processInfo;
     event.reply('system-info', `[RSM] Identifying PID ${pid}. Sending graceful shutdown sequence...`);
-    DebugLog(`Preparing to stop PID ${pid} with shell:`, !!shell);
+    DebugLog(`Preparing to stop PID ${pid} -- shell: ${!!shell}, service: ${serviceName || 'none'}`);
 
-    // Track A: Command Injection (Minecraft/Java)
+    // Track A: Command Injection (Minecraft/Java direct-console servers)
     try {
         if (shell && shell.stdin && shell.stdin.writable) {
             shell.stdin.write("/save-all\r\n");
-            console.log(`[RSM-DEBUG] Sent 'save-all' command to PID ${pid} stdin.`);
             shell.stdin.write("/stop\r\n");
-            console.log(`[RSM-DEBUG] Sent 'stop' command to PID ${pid} stdin.`);
             shell.stdin.write("/exit\r\n");
-            event.reply('system-info', `[RSM] Sent 'Exit' commands to stdin.`);
+            event.reply('system-info', `[RSM] Sent stop commands to stdin.`);
         }
     } catch (e) {
         console.log("[RSM] Stdin write skipped.");
     }
 
-    // Track B: Windows Signal (Space Engineers / General)
-    const stopCmd = `
-        $p = Get-Process -Id ${pid} -ErrorAction SilentlyContinue;
-        if ($p) {
-            $p.CloseMainWindow();
-            Start-Sleep -Seconds 2;
-            if (!$p.HasExited) {
-                Stop-Process -Id ${pid} -Confirm:$false;
+    // Track B: Service stop (servers re-linked from a Windows service) or
+    //          PowerShell signal (servers started directly by RSM via POWERSHELL_BRIDGE)
+    if (serviceName) {
+        // Proper SCM stop -- prevents the service from auto-restarting
+        event.reply('system-info', `[RSM] Stopping Windows service "${serviceName}"...`);
+        exec(`sc stop "${serviceName}"`, (err, stdout, stderr) => {
+            if (err) {
+                event.reply('system-info', `[RSM-WARN] sc stop failed, falling back to Stop-Process: ${stderr || err.message}`);
+                exec(`powershell -Command "Stop-Process -Id ${pid} -Force -ErrorAction SilentlyContinue"`, () => {
+                    if (typeof cleanup === 'function') cleanup();
+                });
+            } else {
+                event.reply('system-info', `[RSM] Service "${serviceName}" stop signal sent.`);
+                if (typeof cleanup === 'function') cleanup();
             }
-        }
-    `;
-
-    exec(`powershell -Command "${stopCmd.replace(/\n/g, ' ')}"`, (err, stdout, stderr) => {
-        if (err) {
-            event.reply('system-info', `[RSM-DEBUG] OS Signal Feedback: ${stderr || "Process may have already closed."}`);
-        } else {
-            event.reply('system-info', `[RSM] Windows OS has acknowledged the stop request for PID ${pid}.`);
-        }
-        if (typeof cleanup === 'function') {
-            cleanup();
-        }
-    });
+        });
+    } else {
+        const stopCmd = `$p = Get-Process -Id ${pid} -ErrorAction SilentlyContinue; if ($p) { $p.CloseMainWindow(); Start-Sleep -Seconds 2; if (!$p.HasExited) { Stop-Process -Id ${pid} -Confirm:$false; } }`;
+        exec(`powershell -Command "${stopCmd}"`, (err, stdout, stderr) => {
+            if (err) {
+                event.reply('system-info', `[RSM-DEBUG] OS Signal Feedback: ${stderr || "Process may have already closed."}`);
+            } else {
+                event.reply('system-info', `[RSM] Windows OS has acknowledged the stop request for PID ${pid}.`);
+            }
+            if (typeof cleanup === 'function') cleanup();
+        });
+    }
 
     event.reply('system-info', `[RSM] Shutdown signals sent. Monitoring for exit...`);
 });
 
 // --- FORCE KILL LOGIC ---
 ipcMain.on('kill-server', (event, pid) => {
-    console.log(`[RSM] kill-server — PID: ${pid}`);
+    console.log(`[RSM] kill-server -- PID: ${pid}`);
     if (!pid) return;
 
-    event.reply('system-info', `Sending TaskKill command to PID ${pid}...`);
+    // Look up service name in case this process is a Windows service --
+    // sc stop prevents SCM from auto-restarting it after taskkill
+    const procEntry = Object.values(activeProcesses).find(p => p.pid === pid || p.pid === parseInt(pid));
+    const serviceName = procEntry?.serviceName || null;
 
-    exec(`taskkill /F /T /PID ${pid}`, (err) => {
-        if (err) {
-            console.error(`Failed to kill process ${pid}:`, err);
-        } else {
-            console.log(`[RSM] Process tree ${pid} force terminated.`);
-            const entry = Object.entries(activeProcesses).find(([, v]) => v.pid === pid);
-            if (entry) entry[1].cleanup();
-        }
-    });
+    const doKill = () => {
+        exec(`taskkill /F /T /PID ${pid}`, (err) => {
+            if (err) {
+                console.error(`[RSM] kill-server -- taskkill failed for PID ${pid}:`, err.message);
+                event.reply('system-info', `[RSM-WARN] Force kill failed for PID ${pid}: ${err.message}`);
+            } else {
+                console.log(`[RSM] kill-server -- process tree ${pid} force terminated`);
+                const entry = Object.entries(activeProcesses).find(([, v]) => v.pid === pid);
+                if (entry) entry[1].cleanup();
+            }
+        });
+    };
+
+    if (serviceName) {
+        event.reply('system-info', `[RSM] Stopping service "${serviceName}" before force kill...`);
+        exec(`sc stop "${serviceName}"`, () => doKill());
+    } else {
+        event.reply('system-info', `[RSM] Sending force kill to PID ${pid}...`);
+        doKill();
+    }
+});
+
+// --- MANUAL RE-SCAN ---
+ipcMain.on('resync-servers', () => {
+    console.log('[RSM] resync-servers -- manual re-scan triggered');
+    if (mainWindow && !mainWindow.isDestroyed())
+        mainWindow.webContents.send('system-info', '[RSM] Manual re-scan started...');
+    syncActiveServers(true);
 });
 
 // --- RESTART LOGIC ---
 // Sets a pendingRestarts flag on the server, then fires stop-server.
 // stopServerCleanup (in the start-server closure) detects the flag on process exit
-// and re-emits start-server after a short delay — no polling required.
+// and re-emits start-server after a short delay -- no polling required.
 ipcMain.on('restart-server', (event, srvId) => {
-    console.log(`[RSM] restart-server — srvId: ${srvId}`);
+    console.log(`[RSM] restart-server -- srvId: ${srvId}`);
     const srv = managedServers.find(s => s.id === srvId);
     if (!srv) {
-        console.warn(`[RSM] restart-server — server ${srvId} not found`);
+        console.warn(`[RSM] restart-server -- server ${srvId} not found`);
         event.reply('system-info', `[RSM-WARN] Restart failed: server not found`);
         return;
     }
     if (srv.status === 'Offline') {
-        // Already stopped — skip the stop step and start directly
-        console.log(`[RSM] restart-server — "${srv.name}" is Offline, starting directly`);
+        // Already stopped -- skip the stop step and start directly
+        console.log(`[RSM] restart-server -- "${srv.name}" is Offline, starting directly`);
         ipcMain.emit('start-server', event, { ...srv });
         return;
     }
     pendingRestarts[srvId] = { ...srv };
     ipcMain.emit('stop-server', event, srvId);
-    event.reply('system-info', `[RSM] Restart initiated for "${srv.name}" — stopping first...`);
+    event.reply('system-info', `[RSM] Restart initiated for "${srv.name}" -- stopping first...`);
 });
 
 
@@ -973,7 +1298,7 @@ const startLogging = (logFolderPath, event, srv) => {
 
 // --- COMMAND INJECTION LOGIC ---
 ipcMain.on('send-command', async (event, { srvId, command }) => {
-    console.log(`[RSM] send-command — srvId: ${srvId} | command: "${command}"`);
+    console.log(`[RSM] send-command -- srvId: ${srvId} | command: "${command}"`);
     const processInfo = activeProcesses[srvId];
     if (!processInfo || !processInfo.shell) {
         event.reply('console-out', { id: srvId, msg: `[RSM-ERROR] Server is not active. Cannot send command.\n` });
@@ -982,7 +1307,7 @@ ipcMain.on('send-command', async (event, { srvId, command }) => {
 
     const srv = managedServers.find(s => s.id === srvId);
     if (!srv) {
-        console.warn(`[RSM] send-command — server not found for srvId: ${srvId}`);
+        console.warn(`[RSM] send-command -- server not found for srvId: ${srvId}`);
         return;
     }
 
@@ -1071,12 +1396,12 @@ ipcMain.on('get-player-count', async (event, srvId) => {
     const srv = managedServers.find(s => s.id === srvId);
     const processInfo = activeProcesses[srvId];
     if (!srv || !processInfo) {
-        console.warn(`[RSM] get-player-count — skipped: server or process not found for srvId: ${srvId}`);
+        console.warn(`[RSM] get-player-count -- skipped: server or process not found for srvId: ${srvId}`);
         return;
     }
 
     const type = (srv.type || '').toLowerCase();
-    console.log(`[RSM] get-player-count — srvId: ${srvId} | type: ${type}`);
+    console.log(`[RSM] get-player-count -- srvId: ${srvId} | type: ${type}`);
 
     // Minecraft: write 'list' to stdin; parsed in renderer's console-out handler
     if (type === 'minecraft') {
@@ -1137,7 +1462,7 @@ ipcMain.on('get-player-count', async (event, srvId) => {
 
 // --- OPENING FILE DIALOGS ---
 ipcMain.handle('open-dialog', async () => {
-    console.log('[RSM] open-dialog — showing file picker');
+    console.log('[RSM] open-dialog -- showing file picker');
     const result = await dialog.showOpenDialog(mainWindow, {
         properties: ['openFile'],
         filters: [
@@ -1146,18 +1471,18 @@ ipcMain.handle('open-dialog', async () => {
         ]
     });
     const selected = result.canceled ? null : result.filePaths[0];
-    console.log(`[RSM] open-dialog — result: ${selected || 'cancelled'}`);
+    console.log(`[RSM] open-dialog -- result: ${selected || 'cancelled'}`);
     return selected;
 });
 
 // --- OPENING FOLDER DIALOGS ---
 ipcMain.handle('select-folder', async () => {
-    console.log('[RSM] select-folder — showing folder picker');
+    console.log('[RSM] select-folder -- showing folder picker');
     const result = await dialog.showOpenDialog(mainWindow, {
         properties: ['openDirectory']
     });
     const selected = result.canceled ? null : result.filePaths[0];
-    console.log(`[RSM] select-folder — result: ${selected || 'cancelled'}`);
+    console.log(`[RSM] select-folder -- result: ${selected || 'cancelled'}`);
     return selected;
 });
 
@@ -1166,21 +1491,21 @@ ipcMain.handle('get-desktop-path', () => app.getPath('desktop'));
 
 // --- FIREWALL RULE MANAGEMENT (Portier integration) ---
 ipcMain.handle('check-firewall-rules', async (event, { serverName }) => {
-    console.log(`[RSM] check-firewall-rules — serverName: "${serverName}"`);
+    console.log(`[RSM] check-firewall-rules -- serverName: "${serverName}"`);
     const safeName = serverName.replace(/'/g, "''");
     const script = `$rules = Get-NetFirewallRule -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like 'RSM - ${safeName} - *' }\nif ($rules) { Write-Output 'ACTIVE' } else { Write-Output 'NONE' }`;
     const encoded = Buffer.from(script, 'utf16le').toString('base64');
     return new Promise((resolve) => {
         exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout) => {
             const result = (stdout || '').trim() === 'ACTIVE';
-            console.log(`[RSM] check-firewall-rules — result: ${result}`);
+            console.log(`[RSM] check-firewall-rules -- result: ${result}`);
             resolve(result);
         });
     });
 });
 
 ipcMain.handle('apply-firewall-rules', async (event, { serverName, ports }) => {
-    console.log(`[RSM] apply-firewall-rules — serverName: "${serverName}" | ports: ${ports?.length || 0}`);
+    console.log(`[RSM] apply-firewall-rules -- serverName: "${serverName}" | ports: ${ports?.length || 0}`);
     const safeName = serverName.replace(/'/g, "''");
     const lines = [
         `Get-NetFirewallRule -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like 'RSM - ${safeName} - *' } | Remove-NetFirewallRule -ErrorAction SilentlyContinue`
@@ -1194,20 +1519,20 @@ ipcMain.handle('apply-firewall-rules', async (event, { serverName, ports }) => {
     const encoded = Buffer.from(lines.join('\n'), 'utf16le').toString('base64');
     return new Promise((resolve) => {
         exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout, stderr) => {
-            console.log(`[RSM] apply-firewall-rules — success: ${!err}${err ? ' | error: ' + (stderr || err.message) : ''}`);
+            console.log(`[RSM] apply-firewall-rules -- success: ${!err}${err ? ' | error: ' + (stderr || err.message) : ''}`);
             resolve({ success: !err, error: err ? (stderr || err.message) : null });
         });
     });
 });
 
 ipcMain.handle('remove-firewall-rules', async (event, { serverName }) => {
-    console.log(`[RSM] remove-firewall-rules — serverName: "${serverName}"`);
+    console.log(`[RSM] remove-firewall-rules -- serverName: "${serverName}"`);
     const safeName = serverName.replace(/'/g, "''");
     const script = `Get-NetFirewallRule -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like 'RSM - ${safeName} - *' } | Remove-NetFirewallRule -ErrorAction SilentlyContinue`;
     const encoded = Buffer.from(script, 'utf16le').toString('base64');
     return new Promise((resolve) => {
         exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout, stderr) => {
-            console.log(`[RSM] remove-firewall-rules — success: ${!err}${err ? ' | error: ' + (stderr || err.message) : ''}`);
+            console.log(`[RSM] remove-firewall-rules -- success: ${!err}${err ? ' | error: ' + (stderr || err.message) : ''}`);
             resolve({ success: !err, error: err ? (stderr || err.message) : null });
         });
     });
@@ -1215,7 +1540,7 @@ ipcMain.handle('remove-firewall-rules', async (event, { serverName }) => {
 
 // --- PORTIER MANAGEMENT VIEW ---
 ipcMain.handle('get-firewall-rules', async () => {
-    console.log('[RSM] get-firewall-rules — fetching all Portier managed rules');
+    console.log('[RSM] get-firewall-rules -- fetching all Portier managed rules');
     const script = `
 $rules = Get-NetFirewallRule -Group 'Ronin Portier Rules' -ErrorAction SilentlyContinue
 if (-not $rules) { Write-Output '[]'; exit }
@@ -1237,7 +1562,7 @@ $out | ConvertTo-Json -Compress`.trim();
             try {
                 const parsed = JSON.parse(stdout.trim());
                 const rules = Array.isArray(parsed) ? parsed : [parsed];
-                console.log(`[RSM] get-firewall-rules — returned ${rules.length} rule(s)`);
+                console.log(`[RSM] get-firewall-rules -- returned ${rules.length} rule(s)`);
                 resolve(rules);
             } catch { resolve([]); }
         });
@@ -1245,7 +1570,7 @@ $out | ConvertTo-Json -Compress`.trim();
 });
 
 ipcMain.handle('add-firewall-rule', async (event, { displayName, port, tcp, udp }) => {
-    console.log(`[RSM] add-firewall-rule — displayName: "${displayName}" | port: ${port} | tcp: ${tcp} | udp: ${udp}`);
+    console.log(`[RSM] add-firewall-rule -- displayName: "${displayName}" | port: ${port} | tcp: ${tcp} | udp: ${udp}`);
     const safeName = displayName.replace(/'/g, "''");
     const lines = [];
     if (tcp) lines.push(`New-NetFirewallRule -DisplayName '${safeName}' -Direction Inbound -Protocol TCP -LocalPort ${port} -Action Allow -Group 'Ronin Portier Rules' -ErrorAction SilentlyContinue`);
@@ -1254,14 +1579,14 @@ ipcMain.handle('add-firewall-rule', async (event, { displayName, port, tcp, udp 
     const encoded = Buffer.from(lines.join('\n'), 'utf16le').toString('base64');
     return new Promise((resolve) => {
         exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout, stderr) => {
-            console.log(`[RSM] add-firewall-rule — success: ${!err}${err ? ' | error: ' + (stderr || err.message) : ''}`);
+            console.log(`[RSM] add-firewall-rule -- success: ${!err}${err ? ' | error: ' + (stderr || err.message) : ''}`);
             resolve({ success: !err, error: err ? (stderr || err.message) : null });
         });
     });
 });
 
 ipcMain.handle('check-port-conflicts', async (event, { ports, excludeServerName }) => {
-    console.log(`[RSM] check-port-conflicts — ports: ${JSON.stringify(ports)} | exclude: ${excludeServerName || 'none'}`);
+    console.log(`[RSM] check-port-conflicts -- ports: ${JSON.stringify(ports)} | exclude: ${excludeServerName || 'none'}`);
     if (!ports?.length) return [];
     const portList = ports.map(p => `'${p}'`).join(', ');
     // Exclude the server's own existing rules so a re-apply doesn't false-positive on itself
@@ -1291,7 +1616,7 @@ if ($out.Count -eq 0) { Write-Output '[]' } else { $out | ConvertTo-Json -Compre
             try {
                 const parsed = JSON.parse(stdout.trim());
                 const conflicts = Array.isArray(parsed) ? parsed : [parsed];
-                console.log(`[RSM] check-port-conflicts — found ${conflicts.length} conflict(s)`);
+                console.log(`[RSM] check-port-conflicts -- found ${conflicts.length} conflict(s)`);
                 resolve(conflicts);
             } catch { resolve([]); }
         });
@@ -1299,46 +1624,46 @@ if ($out.Count -eq 0) { Write-Output '[]' } else { $out | ConvertTo-Json -Compre
 });
 
 ipcMain.handle('remove-firewall-rule', async (event, { displayName }) => {
-    console.log(`[RSM] remove-firewall-rule — displayName: "${displayName}"`);
+    console.log(`[RSM] remove-firewall-rule -- displayName: "${displayName}"`);
     const safeName = displayName.replace(/'/g, "''");
     const script = `Remove-NetFirewallRule -DisplayName '${safeName}' -ErrorAction SilentlyContinue`;
     const encoded = Buffer.from(script, 'utf16le').toString('base64');
     return new Promise((resolve) => {
         exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout, stderr) => {
-            console.log(`[RSM] remove-firewall-rule — success: ${!err}${err ? ' | error: ' + (stderr || err.message) : ''}`);
+            console.log(`[RSM] remove-firewall-rule -- success: ${!err}${err ? ' | error: ' + (stderr || err.message) : ''}`);
             resolve({ success: !err, error: err ? (stderr || err.message) : null });
         });
     });
 });
 
 ipcMain.handle('toggle-firewall-rule', async (event, { displayName, enabled }) => {
-    console.log(`[RSM] toggle-firewall-rule — displayName: "${displayName}" | enabled: ${enabled}`);
+    console.log(`[RSM] toggle-firewall-rule -- displayName: "${displayName}" | enabled: ${enabled}`);
     const safeName = displayName.replace(/'/g, "''");
     const state = enabled ? 'True' : 'False';
     const script = `Set-NetFirewallRule -DisplayName '${safeName}' -Enabled ${state} -ErrorAction SilentlyContinue`;
     const encoded = Buffer.from(script, 'utf16le').toString('base64');
     return new Promise((resolve) => {
         exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout, stderr) => {
-            console.log(`[RSM] toggle-firewall-rule — success: ${!err}${err ? ' | error: ' + (stderr || err.message) : ''}`);
+            console.log(`[RSM] toggle-firewall-rule -- success: ${!err}${err ? ' | error: ' + (stderr || err.message) : ''}`);
             resolve({ success: !err, error: err ? (stderr || err.message) : null });
         });
     });
 });
 
 ipcMain.handle('read-config-file', async (event, filePath) => {
-    console.log(`[RSM] read-config-file — filePath: "${filePath}"`);
+    console.log(`[RSM] read-config-file -- filePath: "${filePath}"`);
     try {
         const content = fs.readFileSync(filePath, 'utf8');
-        console.log(`[RSM] read-config-file — success, ${content.length} chars`);
+        console.log(`[RSM] read-config-file -- success, ${content.length} chars`);
         return { success: true, content };
     } catch (err) {
-        console.log(`[RSM] read-config-file — failed: ${err.message}`);
+        console.log(`[RSM] read-config-file -- failed: ${err.message}`);
         return { success: false, error: err.message };
     }
 });
 
 ipcMain.handle('write-config-file', async (event, { filePath, content, backupDir, serverType, serverName }) => {
-    console.log(`[RSM] write-config-file — filePath: "${filePath}" | backupDir: ${backupDir || 'none'}`);
+    console.log(`[RSM] write-config-file -- filePath: "${filePath}" | backupDir: ${backupDir || 'none'}`);
     let backedUp = false;
     let backupError = null;
     try {
@@ -1360,22 +1685,22 @@ ipcMain.handle('write-config-file', async (event, { filePath, content, backupDir
             }
         }
         await fs.promises.writeFile(filePath, content, 'utf8');
-        console.log(`[RSM] write-config-file — success | backedUp: ${backedUp}`);
+        console.log(`[RSM] write-config-file -- success | backedUp: ${backedUp}`);
         return { success: true, backedUp, backupError };
     } catch (err) {
-        console.log(`[RSM] write-config-file — failed: ${err.message}`);
+        console.log(`[RSM] write-config-file -- failed: ${err.message}`);
         return { success: false, backedUp, backupError, error: err.message };
     }
 });
 
 ipcMain.handle('list-backups', async (event, { backupDir, serverType, serverName, fileName }) => {
-    console.log(`[RSM] list-backups — ${serverType}/${serverName} | file: ${fileName}`);
+    console.log(`[RSM] list-backups -- ${serverType}/${serverName} | file: ${fileName}`);
     try {
         const dir = serverType
             ? path.join(backupDir, serverType, serverName)
             : path.join(backupDir, serverName);
         if (!fs.existsSync(dir)) {
-            console.log(`[RSM] list-backups — backup dir not found: ${dir}`);
+            console.log(`[RSM] list-backups -- backup dir not found: ${dir}`);
             return { success: true, backups: [] };
         }
         const backups = fs.readdirSync(dir)
@@ -1383,29 +1708,29 @@ ipcMain.handle('list-backups', async (event, { backupDir, serverType, serverName
             .map(f => ({ name: f, path: path.join(dir, f), mtime: fs.statSync(path.join(dir, f)).mtimeMs }))
             .sort((a, b) => b.mtime - a.mtime)
             .map(({ name, path: p }) => ({ name, path: p }));
-        console.log(`[RSM] list-backups — found ${backups.length} backup(s)`);
+        console.log(`[RSM] list-backups -- found ${backups.length} backup(s)`);
         return { success: true, backups };
     } catch (err) {
-        console.error(`[RSM] list-backups — error: ${err.message}`);
+        console.error(`[RSM] list-backups -- error: ${err.message}`);
         return { success: false, error: err.message, backups: [] };
     }
 });
 
 // --- OPEN DOCS IN BROWSER ---
 ipcMain.on('open-docs', () => {
-    console.log('[RSM] open-docs — opening documentation in browser');
+    console.log('[RSM] open-docs -- opening documentation in browser');
     shell.openExternal('https://phonicspider.github.io/Ronin-Server-Manager/');
 });
 
 // --- WINDOW OPACITY ---
 ipcMain.on('update-window-opacity', (event, value) => {
-    console.log(`[RSM] update-window-opacity — setting to ${parseFloat(value).toFixed(2)}`);
+    console.log(`[RSM] update-window-opacity -- setting to ${parseFloat(value).toFixed(2)}`);
     mainWindow.setOpacity(parseFloat(value));
 });
 
 // --- OPEN FOLDER IN EXPLORER ---
 ipcMain.on('open-folder', (event, rawData) => {
-    console.log('[RSM] open-folder — requested for:', typeof rawData === 'string' ? rawData : JSON.stringify(rawData));
+    console.log('[RSM] open-folder -- requested for:', typeof rawData === 'string' ? rawData : JSON.stringify(rawData));
     let targetPath = (typeof rawData === 'object') ? (rawData.workingDir || rawData.exePath || rawData.path) : rawData;
 
     if (!targetPath) return;
@@ -1428,7 +1753,7 @@ ipcMain.on('open-folder', (event, rawData) => {
 
 // --- OPENING SERVER GUI (e.g. Space Engineers dedicated server GUI) ---
 ipcMain.on('show-server-gui', (event, srv) => {
-    console.log(`[RSM] show-server-gui — path: ${typeof srv === 'object' ? srv.path : srv}`);
+    console.log(`[RSM] show-server-gui -- path: ${typeof srv === 'object' ? srv.path : srv}`);
     let exePath = '';
     let instancePath = '';
 
@@ -1506,7 +1831,7 @@ setInterval(() => {
                 mainWindow.webContents.send('network-stats-update', { rxSec, txSec });
             }
         }).catch((err) => {
-            console.warn('[RSM] network-stats — si.networkStats() failed:', err.message);
+            console.warn('[RSM] network-stats -- si.networkStats() failed:', err.message);
         });
 
         // Parse netstat once and emit per-server TCP connection counts
@@ -1569,7 +1894,7 @@ function performSearch(parentPid, exeName, workingDir, finalizeCallback, event) 
     const searchExe = exeName.toLowerCase();
     const searchDir = workingDir.toLowerCase().replace(/\\/g, '/');
 
-    // PIDs already assigned to other servers — never steal them for a second instance
+    // PIDs already assigned to other servers -- never steal them for a second instance
     const claimedPids = new Set(
         Object.values(activeProcesses).map(p => p.pid).filter(Boolean)
     );

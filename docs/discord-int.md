@@ -1,28 +1,28 @@
 # <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🤖 Discord Integration</p>
 
-RSM includes a built-in HTTPS REST API so you can monitor and control your game servers from anywhere — including directly from a Discord bot or any HTTP-capable tool. This guide covers enabling the API, finding your server IDs, and using every available endpoint.
+RSM includes a built-in HTTPS REST API so you can monitor and control your game servers from anywhere--including directly from a Discord bot or any HTTP-capable tool. This guide covers enabling the API, finding your server IDs, and using every available endpoint.
 
 ---
 
-## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">⚙️ Step 1 — Enable the API</p>
+## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">⚙️ Step 1--Enable the API</p>
 
 1. Open RSM and click **⚙️ App Settings** in the sidebar.
 2. Scroll down to the **Remote API** card.
 3. Toggle **Enabled** on.
-4. Click **Regenerate Key** to generate a secure API key — copy it and store it somewhere safe.
+4. Click **Regenerate Key** to generate a secure API key--copy it and store it somewhere safe.
 5. Note the **Port** (default: `3002`). Change it here if another service already uses that port, then click **Save Port**.
 
 !!! warning "Keep your API key private"
     Your key grants full control over every managed server. Never paste it publicly in a Discord channel, commit it to a repository, or share it in a screenshot.
 
 !!! tip "TLS / Self-Signed Certificate"
-    The API runs over HTTPS using a self-signed certificate that RSM generates and stores locally. Your HTTP client will need to **skip certificate verification** or trust the cert. In most libraries this is a single flag — see the code examples below.
+    The API runs over HTTPS using a self-signed certificate that RSM generates and stores locally. Your HTTP client will need to **skip certificate verification** or trust the cert. In most libraries this is a single flag--see the code examples below.
 
 ---
 
-## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🔍 Step 2 — Find Your Server IDs</p>
+## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🔍 Step 2--Find Your Server IDs</p>
 
-Every request that targets a specific server requires its **ID** — a numeric string assigned the moment you add the server to RSM. IDs never change for an existing server.
+Every request that targets a specific server requires its **ID**--a numeric string assigned the moment you add the server to RSM. IDs never change for an existing server.
 
 Fetch them with a single call to the server list:
 
@@ -40,7 +40,7 @@ curl -k https://YOUR_PC_IP:3002/api/servers \
 }
 ```
 
-Save those IDs in your bot config — they are permanent.
+Save those IDs in your bot config--they are permanent.
 
 ---
 
@@ -141,7 +141,7 @@ Returns live details for a single server.
     });
     ```
 
-**Response** — same shape as a single entry from the list above.
+**Response**--same shape as a single entry from the list above.
 
 ---
 
@@ -223,7 +223,7 @@ Sends a graceful stop signal. Returns `409` if the server is already Offline.
 GET /api/servers/:id/players
 ```
 
-Returns the current player count and names. Server must be Online — returns `409` if not.
+Returns the current player count and names. Server must be Online--returns `409` if not.
 
 | Game | What's returned |
 |---|---|
@@ -284,9 +284,9 @@ Content-Type: application/json
 Executes a command on the server and returns the output. The command also appears in the RSM console window as `[API] > your command`.
 
 !!! info "How commands are routed by game type"
-    - **Minecraft / Terraria / 7 Days to Die** — written to `stdin`; the response is whatever the server prints to console in the next 1.5 seconds.
-    - **Space Engineers** — sent to the VRage Remote HTTP API.
-    - **Ark and others** — sent via RCON; the response string is returned directly.
+    - **Minecraft / Terraria / 7 Days to Die**--written to `stdin`; the response is whatever the server prints to console in the next 1.5 seconds.
+    - **Space Engineers**--sent to the VRage Remote HTTP API.
+    - **Ark and others**--sent via RCON; the response string is returned directly.
 
 === "cURL"
     ```bash
@@ -333,7 +333,7 @@ Executes a command on the server and returns the output. The command also appear
 | `401` | Missing or incorrect `x-api-key` header |
 | `404` | Route not recognised, or the server ID does not exist |
 | `405` | Wrong HTTP method for that endpoint |
-| `409` | State conflict — server already running, already stopped, or not online for a player/command request |
+| `409` | State conflict--server already running, already stopped, or not online for a player/command request |
 | `500` | Command or RCON execution failed on the server side |
 
 ---
@@ -361,7 +361,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 ---
 
-### !servers — Status Embed
+### !servers--Status Embed
 
 Posts a live embed showing every server, its status, CPU, and RAM.
 
@@ -374,8 +374,8 @@ async def servers(ctx):
     embed = discord.Embed(title="🖥️ Server Status", color=0xff4500)
     for srv in data["servers"]:
         icon = "🟢" if srv["status"] == "Online" else "🔴"
-        cpu  = f'{srv["cpu"]}%'    if srv["cpu"]   is not None else "—"
-        ram  = f'{srv["ramMB"]} MB' if srv["ramMB"] is not None else "—"
+        cpu  = f'{srv["cpu"]}%'    if srv["cpu"]   is not None else "--"
+        ram  = f'{srv["ramMB"]} MB' if srv["ramMB"] is not None else "--"
         embed.add_field(
             name=f'{icon} {srv["name"]}',
             value=f'**Status:** {srv["status"]}\n**CPU:** {cpu}  **RAM:** {ram}\n**ID:** `{srv["id"]}`',
@@ -386,7 +386,7 @@ async def servers(ctx):
 
 ---
 
-### !start / !stop — Server Control
+### !start / !stop--Server Control
 
 ```python
 @bot.command()
@@ -410,7 +410,7 @@ async def stop(ctx, server_id: str):
 
 ---
 
-### !players — Who's Online
+### !players--Who's Online
 
 ```python
 @bot.command()
@@ -428,7 +428,7 @@ async def players(ctx, server_id: str):
 
 ---
 
-### !rsmcmd — Send a Console Command
+### !rsmcmd--Send a Console Command
 
 ```python
 @bot.command()
@@ -457,7 +457,7 @@ async def rsmcmd(ctx, server_id: str, *, command: str):
 
 ## <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🔗 ArkenBot Integration</p>
 
-RSM's Remote API is designed to work natively with **ArkenBot**, a free community Discord bot that provides a no-code server management experience — no Python or bot hosting required.
+RSM's Remote API is designed to work natively with **ArkenBot**, a free community Discord bot that provides a no-code server management experience--no Python or bot hosting required.
 
 Once connected, ArkenBot can:
 
@@ -471,7 +471,7 @@ Once connected, ArkenBot can:
 -   :material-play-circle: **Slash Command Control**
 
     ---
-    Start and stop servers with slash commands — no terminal access needed.
+    Start and stop servers with slash commands--no terminal access needed.
 
 -   :material-bell-alert: **Offline Alerts**
 
