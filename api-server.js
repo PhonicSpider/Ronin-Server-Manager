@@ -1,15 +1,16 @@
 'use strict';
 
 // RSM REST API — exposes server management over HTTPS so external tools
-// (e.g. ArkenBot's rsm-manager addon) can control servers remotely.
-// Authentication: x-api-key request header (constant-time comparison).
-// All requests / responses are application/json.
+// (e.g. ArkenBot's rsm-manager addon, the Ronin Citadel portal) can control
+// servers remotely.  Auth: x-api-key header, constant-time comparison.
+// All requests/responses are application/json.
 
 const { Rcon } = require('rcon-client');
-const axios = require('axios');
+const axios  = require('axios');
 const http   = require('http');
 const https  = require('https');
 const crypto = require('crypto');
+const os     = require('os');
 
 const MAX_BODY = 1 * 1024 * 1024; // 1 MB request body cap
 
@@ -51,6 +52,24 @@ let _getMainWindow;
 let _findServType;
 let _ipcMain;
 let _logConsoleOut;
+// Server CRUD helpers
+let _addServer;
+let _updateServer;
+let _deleteServer;
+// Firewall helpers
+let _getFirewallRules;
+let _addFirewallRule;
+let _removeFirewallRule;
+let _toggleFirewallRule;
+// Config / backup helpers
+let _readConfigFile;
+let _writeConfigFile;
+let _listBackups;
+// Forge proxy config
+let _getForgeConfig;
+// App info / control
+let _getAppVersion;
+let _restartApp;
 
 // ── Runtime state ─────────────────────────────────────────────────────────
 let _server = null;
@@ -67,6 +86,20 @@ function init(deps) {
     _findServType       = deps.findServType;
     _ipcMain            = deps.ipcMain;
     _logConsoleOut      = deps.logConsoleOut;
+    // New deps — fall back gracefully so old callers without them still boot
+    _addServer          = deps.addServer          || null;
+    _updateServer       = deps.updateServer        || null;
+    _deleteServer       = deps.deleteServer        || null;
+    _getFirewallRules   = deps.getFirewallRules    || null;
+    _addFirewallRule    = deps.addFirewallRule      || null;
+    _removeFirewallRule = deps.removeFirewallRule   || null;
+    _toggleFirewallRule = deps.toggleFirewallRule   || null;
+    _readConfigFile     = deps.readConfigFile       || null;
+    _writeConfigFile    = deps.writeConfigFile      || null;
+    _listBackups        = deps.listBackups          || null;
+    _getForgeConfig     = deps.getForgeConfig       || null;
+    _getAppVersion      = deps.getAppVersion        || (() => '?');
+    _restartApp         = deps.restartApp           || null;
 }
 
 // tlsOpts: { key, cert } for HTTPS, omit for plain HTTP (dev/fallback only).
@@ -113,8 +146,9 @@ function generateApiKey() {
 // ── Core request dispatcher ────────────────────────────────────────────────
 
 function onRequest(req, res) {
-    // Collect body first for POST requests, then dispatch
-    if (req.method === 'POST') {
+    // Collect body for any method that may carry one
+    const hasBody = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
+    if (hasBody) {
         let raw = '';
         req.on('data', chunk => {
             if (raw.length + chunk.length > MAX_BODY) {
@@ -130,7 +164,6 @@ function onRequest(req, res) {
         });
         req.on('error', () => send(res, 400, { error: 'Bad request' }));
     } else {
-        // Drain any unexpected body so the socket stays healthy
         req.resume();
         req.on('end', () => dispatch(req, res, {}));
     }
@@ -138,23 +171,27 @@ function onRequest(req, res) {
 
 function dispatch(req, res, body) {
     const clientIp = req.socket?.remoteAddress || 'unknown';
-    const url      = (req.url || '/').split('?')[0].replace(/\/+$/, '') || '/';
+    const rawUrl   = req.url || '/';
+    const qIdx     = rawUrl.indexOf('?');
+    const url      = (qIdx === -1 ? rawUrl : rawUrl.slice(0, qIdx)).replace(/\/+$/, '') || '/';
+    const qs       = new URLSearchParams(qIdx === -1 ? '' : rawUrl.slice(qIdx + 1));
+    const m        = req.method;
 
     // ── CORS pre-flight ──────────────────────────────────────────────────
-    if (req.method === 'OPTIONS') {
+    if (m === 'OPTIONS') {
         send(res, 204, null);
         return;
     }
 
     // ── Health check (unauthenticated — lets monitors confirm the API is up) ─
-    if (req.method === 'GET' && url === '/api/health') {
-        send(res, 200, { status: 'ok', version: '1.0' });
+    if (m === 'GET' && url === '/api/health') {
+        send(res, 200, { status: 'ok', version: _getAppVersion() });
         return;
     }
 
     // ── Rate limit check ─────────────────────────────────────────────────
     if (_isRateLimited(clientIp)) {
-        console.warn(`[RSM-API] ${req.method} ${url} — 429 blocked (${clientIp})`);
+        console.warn(`[RSM-API] ${m} ${url} — 429 blocked (${clientIp})`);
         send(res, 429, { error: 'Too many failed attempts. Try again later.' });
         return;
     }
@@ -171,26 +208,182 @@ function dispatch(req, res, body) {
         send(res, 401, { error: 'Unauthorized' });
         return;
     }
-    _clearFailure(clientIp); // successful auth resets the counter
+    _clearFailure(clientIp);
 
     // ── Access log ───────────────────────────────────────────────────────
-    console.log(`[RSM-API] ${req.method} ${url} — from ${clientIp}`);
+    console.log(`[RSM-API] ${m} ${url} — from ${clientIp}`);
 
-    // ── GET /api/servers ─────────────────────────────────────────────────
-    if (req.method === 'GET' && url === '/api/servers') {
+    // ── System ───────────────────────────────────────────────────────────
+
+    if (m === 'GET' && url === '/api/system/status') {
+        const servers = _getManagedServers();
+        send(res, 200, {
+            platform:    os.platform(),
+            arch:        os.arch(),
+            hostname:    os.hostname(),
+            uptimeS:     os.uptime(),
+            freeMemMB:   Math.round(os.freemem()  / 1024 / 1024),
+            totalMemMB:  Math.round(os.totalmem() / 1024 / 1024),
+            cpuCount:    os.cpus().length,
+            rsmVersion:  _getAppVersion(),
+            serverCount: servers.length,
+            onlineCount: servers.filter(s => s.status === 'Online').length,
+        });
+        return;
+    }
+
+    if (m === 'POST' && url === '/api/system/restart') {
+        if (!_restartApp) { send(res, 501, { error: 'Not implemented' }); return; }
+        send(res, 200, { message: 'RSM is restarting...' });
+        setTimeout(() => _restartApp(), 500);
+        return;
+    }
+
+    // ── Firewall ──────────────────────────────────────────────────────────
+
+    if (url === '/api/firewall/rules') {
+        if (m === 'GET') {
+            if (!_getFirewallRules) { send(res, 501, { error: 'Not implemented' }); return; }
+            _getFirewallRules()
+                .then(rules => send(res, 200, { rules }))
+                .catch(err  => send(res, 500, { error: err.message }));
+            return;
+        }
+        if (m === 'POST') {
+            if (!_addFirewallRule) { send(res, 501, { error: 'Not implemented' }); return; }
+            const { displayName, port, tcp, udp } = body;
+            if (!displayName || !port) {
+                send(res, 400, { error: 'displayName and port are required' }); return;
+            }
+            if (!tcp && !udp) {
+                send(res, 400, { error: 'At least one of tcp or udp must be true' }); return;
+            }
+            _addFirewallRule({ displayName, port, tcp: !!tcp, udp: !!udp })
+                .then(r  => send(res, r.success ? 201 : 500, r))
+                .catch(e => send(res, 500, { error: e.message }));
+            return;
+        }
+        send(res, 405, { error: 'Method not allowed' }); return;
+    }
+
+    // DELETE /api/firewall/rules/:name  •  PATCH /api/firewall/rules/:name
+    const fwMatch = url.match(/^\/api\/firewall\/rules\/(.+)$/);
+    if (fwMatch) {
+        const ruleName = decodeURIComponent(fwMatch[1]);
+        if (m === 'DELETE') {
+            if (!_removeFirewallRule) { send(res, 501, { error: 'Not implemented' }); return; }
+            _removeFirewallRule(ruleName)
+                .then(r  => send(res, r.success ? 200 : 500, r))
+                .catch(e => send(res, 500, { error: e.message }));
+            return;
+        }
+        if (m === 'PATCH') {
+            if (!_toggleFirewallRule) { send(res, 501, { error: 'Not implemented' }); return; }
+            if (typeof body.enabled !== 'boolean') {
+                send(res, 400, { error: 'enabled (boolean) is required' }); return;
+            }
+            _toggleFirewallRule(ruleName, body.enabled)
+                .then(r  => send(res, r.success ? 200 : 500, r))
+                .catch(e => send(res, 500, { error: e.message }));
+            return;
+        }
+        send(res, 405, { error: 'Method not allowed' }); return;
+    }
+
+    // ── Install / Forge proxy ─────────────────────────────────────────────
+    // RSM proxies install requests to Forge's local API so the portal only
+    // needs to talk to a single endpoint.  Configure the Forge connection
+    // URL + key via forge-connection.json in RSM's userData directory.
+
+    if (url.startsWith('/api/install')) {
+        if (m === 'GET' && url === '/api/install/games') {
+            _forgeProxy('get', '/api/games')
+                .then(r => send(res, r.status, r.body))
+                .catch(e => send(res, 502, { error: e.message }));
+            return;
+        }
+        if (m === 'GET' && url === '/api/install/jobs') {
+            _forgeProxy('get', '/api/install')
+                .then(r => send(res, r.status, r.body))
+                .catch(e => send(res, 502, { error: e.message }));
+            return;
+        }
+        if (m === 'POST' && url === '/api/install/jobs') {
+            _forgeProxy('post', '/api/install', body)
+                .then(r => send(res, r.status, r.body))
+                .catch(e => send(res, 502, { error: e.message }));
+            return;
+        }
+        const jobMatch = url.match(/^\/api\/install\/jobs\/([a-f0-9]+)$/);
+        if (jobMatch) {
+            if (m === 'GET') {
+                _forgeProxy('get', `/api/install/${jobMatch[1]}`)
+                    .then(r => send(res, r.status, r.body))
+                    .catch(e => send(res, 502, { error: e.message }));
+                return;
+            }
+            if (m === 'DELETE') {
+                _forgeProxy('delete', `/api/install/${jobMatch[1]}`)
+                    .then(r => send(res, r.status, r.body))
+                    .catch(e => send(res, 502, { error: e.message }));
+                return;
+            }
+        }
+        send(res, 404, { error: 'Not found' }); return;
+    }
+
+    // ── Storage — skeleton (Disk Manager not yet implemented) ─────────────
+    if (url.startsWith('/api/storage')) {
+        send(res, 501, {
+            error:  'Not implemented',
+            detail: 'Storage / Disk Manager endpoints are reserved for a future release.',
+        });
+        return;
+    }
+
+    // ── Server list ───────────────────────────────────────────────────────
+
+    if (m === 'GET' && url === '/api/servers') {
         send(res, 200, { servers: _getManagedServers().map(formatServer) });
         return;
     }
 
+    // GET /api/servers/live — same as /api/servers but adds aggregate counts
+    if (m === 'GET' && url === '/api/servers/live') {
+        const servers = _getManagedServers().map(formatServer);
+        send(res, 200, {
+            servers,
+            online: servers.filter(s => s.status === 'Online').length,
+            total:  servers.length,
+        });
+        return;
+    }
+
+    // POST /api/servers — add a new server entry
+    if (m === 'POST' && url === '/api/servers') {
+        if (!_addServer) { send(res, 501, { error: 'Not implemented' }); return; }
+        const { name, type, path: exePath } = body;
+        if (!name || !type || !exePath) {
+            send(res, 400, { error: 'name, type, and path are required' }); return;
+        }
+        try {
+            const created = _addServer(body);
+            send(res, 201, created);
+        } catch (e) {
+            send(res, 500, { error: e.message });
+        }
+        return;
+    }
+
     // ── Routes with a server ID ──────────────────────────────────────────
-    const routeMatch = url.match(/^\/api\/servers\/([^/]+)(?:\/([^/]+))?$/);
-    if (!routeMatch) {
+    const srvMatch = url.match(/^\/api\/servers\/([^/]+)(\/.*)?$/);
+    if (!srvMatch) {
         send(res, 404, { error: 'Not found' });
         return;
     }
 
-    const srvId  = routeMatch[1];
-    const action = routeMatch[2];
+    const srvId  = srvMatch[1];
+    const srvSub = (srvMatch[2] || '').replace(/^\//, ''); // e.g. 'start', 'config', 'backups/restore'
     const srv    = _getManagedServers().find(s => s.id === srvId);
 
     if (!srv) {
@@ -199,13 +392,40 @@ function dispatch(req, res, body) {
     }
 
     // GET /api/servers/:id
-    if (req.method === 'GET' && !action) {
+    if (m === 'GET' && !srvSub) {
         send(res, 200, formatServer(srv));
         return;
     }
 
+    // PUT /api/servers/:id — update server config
+    if (m === 'PUT' && !srvSub) {
+        if (!_updateServer) { send(res, 501, { error: 'Not implemented' }); return; }
+        try {
+            const updated = _updateServer(srvId, body);
+            send(res, updated ? 200 : 404, updated || { error: 'Server not found' });
+        } catch (e) {
+            send(res, 500, { error: e.message });
+        }
+        return;
+    }
+
+    // DELETE /api/servers/:id — remove server entry (must be Offline)
+    if (m === 'DELETE' && !srvSub) {
+        if (!_deleteServer) { send(res, 501, { error: 'Not implemented' }); return; }
+        if (srv.status === 'Online' || srv.status === 'Starting') {
+            send(res, 409, { error: `Cannot delete a server that is ${srv.status}` }); return;
+        }
+        try {
+            const ok = _deleteServer(srvId);
+            send(res, ok ? 200 : 404, ok ? { deleted: true } : { error: 'Server not found' });
+        } catch (e) {
+            send(res, 500, { error: e.message });
+        }
+        return;
+    }
+
     // POST /api/servers/:id/start
-    if (req.method === 'POST' && action === 'start') {
+    if (m === 'POST' && srvSub === 'start') {
         if (srv.status === 'Online' || srv.status === 'Starting') {
             send(res, 409, { error: `Server is already ${srv.status}` });
             return;
@@ -216,7 +436,7 @@ function dispatch(req, res, body) {
     }
 
     // POST /api/servers/:id/stop
-    if (req.method === 'POST' && action === 'stop') {
+    if (m === 'POST' && srvSub === 'stop') {
         if (srv.status === 'Offline') {
             send(res, 409, { error: 'Server is already Offline' });
             return;
@@ -227,17 +447,14 @@ function dispatch(req, res, body) {
     }
 
     // POST /api/servers/:id/restart
-    // Delegates to the restart-server IPC handler in main.js which handles
-    // stop → wait for exit → start. Returns immediately; watch status-change for result.
-    if (req.method === 'POST' && action === 'restart') {
+    if (m === 'POST' && srvSub === 'restart') {
         _ipcMain.emit('restart-server', makeReplyEvent(), srv.id);
         send(res, 200, { message: `Restart signal sent to ${srv.name}` });
         return;
     }
 
     // POST /api/servers/:id/kill
-    // Hard kill via taskkill — use when stop is unresponsive.
-    if (req.method === 'POST' && action === 'kill') {
+    if (m === 'POST' && srvSub === 'kill') {
         const processInfo = _getActiveProcesses()[srv.id];
         if (!processInfo?.pid) {
             send(res, 409, { error: 'Server is not running' });
@@ -249,8 +466,7 @@ function dispatch(req, res, body) {
     }
 
     // GET /api/servers/:id/logs
-    // Returns the last 200 lines of buffered console output for the server.
-    if (req.method === 'GET' && action === 'logs') {
+    if (m === 'GET' && srvSub === 'logs') {
         const raw   = srv.logs || '';
         const lines = raw.split('\n');
         const tail  = lines.slice(-200).join('\n');
@@ -259,7 +475,7 @@ function dispatch(req, res, body) {
     }
 
     // GET /api/servers/:id/players
-    if (req.method === 'GET' && action === 'players') {
+    if (m === 'GET' && srvSub === 'players') {
         if (srv.status !== 'Online') {
             send(res, 409, { error: 'Server is not running' });
             return;
@@ -271,12 +487,12 @@ function dispatch(req, res, body) {
         }
         fetchPlayers(srv, processInfo)
             .then(data => send(res, 200, data))
-            .catch(err => send(res, 500, { error: err.message }));
+            .catch(err  => send(res, 500, { error: err.message }));
         return;
     }
 
     // POST /api/servers/:id/command
-    if (req.method === 'POST' && action === 'command') {
+    if (m === 'POST' && srvSub === 'command') {
         const command = (body.command || '').trim();
         if (!command) {
             send(res, 400, { error: 'command field is required' });
@@ -296,18 +512,102 @@ function dispatch(req, res, body) {
         return;
     }
 
-    send(res, 405, { error: 'Method not allowed' });
+    // GET /api/servers/:id/config?filePath=...
+    if (m === 'GET' && srvSub === 'config') {
+        if (!_readConfigFile) { send(res, 501, { error: 'Not implemented' }); return; }
+        const filePath = qs.get('filePath');
+        if (!filePath) { send(res, 400, { error: 'filePath query parameter is required' }); return; }
+        _readConfigFile(filePath)
+            .then(r  => send(res, r.success ? 200 : 500, r))
+            .catch(e => send(res, 500, { error: e.message }));
+        return;
+    }
+
+    // POST /api/servers/:id/config — write (and optionally backup) a config file
+    if (m === 'POST' && srvSub === 'config') {
+        if (!_writeConfigFile) { send(res, 501, { error: 'Not implemented' }); return; }
+        const { filePath, content, backupDir } = body;
+        if (!filePath || content === undefined) {
+            send(res, 400, { error: 'filePath and content are required' }); return;
+        }
+        _writeConfigFile({ filePath, content, backupDir: backupDir || null, serverType: srv.type, serverName: srv.name })
+            .then(r  => send(res, r.success ? 200 : 500, r))
+            .catch(e => send(res, 500, { error: e.message }));
+        return;
+    }
+
+    // GET /api/servers/:id/backups?backupDir=...&fileName=...
+    if (m === 'GET' && srvSub === 'backups') {
+        if (!_listBackups) { send(res, 501, { error: 'Not implemented' }); return; }
+        const backupDir = qs.get('backupDir');
+        const fileName  = qs.get('fileName');
+        if (!backupDir || !fileName) {
+            send(res, 400, { error: 'backupDir and fileName query parameters are required' }); return;
+        }
+        _listBackups({ backupDir, serverType: srv.type, serverName: srv.name, fileName })
+            .then(r  => send(res, r.success ? 200 : 500, r))
+            .catch(e => send(res, 500, { error: e.message }));
+        return;
+    }
+
+    // POST /api/servers/:id/backups/restore — copy a .bak file back to the original path
+    if (m === 'POST' && srvSub === 'backups/restore') {
+        if (!_readConfigFile || !_writeConfigFile) { send(res, 501, { error: 'Not implemented' }); return; }
+        const { backupPath, targetPath } = body;
+        if (!backupPath || !targetPath) {
+            send(res, 400, { error: 'backupPath and targetPath are required' }); return;
+        }
+        _readConfigFile(backupPath)
+            .then(r => {
+                if (!r.success) { send(res, 500, r); return; }
+                return _writeConfigFile({ filePath: targetPath, content: r.content, backupDir: null })
+                    .then(wr => send(res, wr.success ? 200 : 500, wr));
+            })
+            .catch(e => send(res, 500, { error: e.message }));
+        return;
+    }
+
+    send(res, 404, { error: 'Not found' });
+}
+
+// ── Forge proxy ───────────────────────────────────────────────────────────
+// Routes a request to Forge's local HTTP API, translating the response back.
+// Forge config (url + apiKey) is read from main.js via _getForgeConfig().
+
+async function _forgeProxy(method, forgePath, data) {
+    const cfg = _getForgeConfig ? _getForgeConfig() : null;
+    if (!cfg || !cfg.url || !cfg.apiKey) {
+        return {
+            status: 503,
+            body:   { error: 'Forge API not configured. Add forge-connection.json to RSM userData.' },
+        };
+    }
+    const url  = `${cfg.url.replace(/\/$/, '')}${forgePath}`;
+    const opts = {
+        method,
+        url,
+        headers: { 'x-api-key': cfg.apiKey, 'Content-Type': 'application/json' },
+        timeout: 30000,
+    };
+    if (data && Object.keys(data).length) opts.data = data;
+    // Forge binds to 127.0.0.1 and may use a self-signed cert
+    if (cfg.url.startsWith('https')) {
+        opts.httpsAgent = new https.Agent({ rejectUnauthorized: false });
+    }
+    try {
+        const resp = await axios(opts);
+        return { status: resp.status, body: resp.data };
+    } catch (err) {
+        if (err.response) return { status: err.response.status, body: err.response.data };
+        return { status: 502, body: { error: `Forge API unavailable: ${err.message}` } };
+    }
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-// Always sends a complete, self-contained HTTP response.
-// Explicit Content-Length + Connection:close so the client never has to wait
-// for chunked transfer or connection teardown to know the response is done.
 function send(res, statusCode, body) {
     const payload = body === null ? '' : JSON.stringify(body);
     const buf     = Buffer.from(payload, 'utf8');
-
     res.writeHead(statusCode, {
         'Content-Type':   'application/json',
         'Content-Length': buf.length,
@@ -315,8 +615,8 @@ function send(res, statusCode, body) {
         // Wildcard is intentional — RSM binds to 0.0.0.0 for LAN tools (e.g. ArkenBot).
         // Tighten this if you expose the API beyond the local network.
         'Access-Control-Allow-Origin':  '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, x-api-key'
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, x-api-key',
     });
     res.end(buf);
 }
@@ -326,14 +626,14 @@ function formatServer(srv) {
     const proc      = _getActiveProcesses()[srv.id] || {};
     const uptime    = proc.startedAt ? Math.floor((Date.now() - proc.startedAt) / 1000) : null;
     return {
-        id:             srv.id,
-        name:           srv.name,
-        type:           srv.type,
-        status:         srv.status,
-        pid:            srv.pid     || null,
-        cpu:            stats.cpu   ?? null,
-        ramMB:          stats.ramMB ?? null,
-        uptimeSeconds:  uptime
+        id:            srv.id,
+        name:          srv.name,
+        type:          srv.type,
+        status:        srv.status,
+        pid:           srv.pid     || null,
+        cpu:           stats.cpu   ?? null,
+        ramMB:         stats.ramMB ?? null,
+        uptimeSeconds: uptime,
     };
 }
 
@@ -377,7 +677,7 @@ async function executeCommand(srv, processInfo, command) {
         if (!srv.apiPort || !srv.apiPass) {
             throw new Error('API Port and Password are required for Space Engineers commands');
         }
-        const url   = `http://localhost:${srv.apiPort}/vrageremote/v1/server/command`;
+        const url = `http://localhost:${srv.apiPort}/vrageremote/v1/server/command`;
         await axios.post(url, { Command: command }, {
             headers: {
                 'Remote-Control-Http-Password': srv.apiPass,

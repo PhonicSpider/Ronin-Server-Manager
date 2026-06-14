@@ -24,6 +24,8 @@ const apiServer = require('./api-server');
 // Wire up api-server dependencies at module load time so they are always set
 // before any HTTP request or IPC handler can reach the server.
 // The closures capture module-level variables by reference — always current.
+// Helper functions referenced below (_apiAddServer, etc.) are function
+// declarations defined near the bottom of this file and are hoisted.
 apiServer.init({
     getManagedServers:  () => managedServers,
     getActiveProcesses: () => activeProcesses,
@@ -39,7 +41,24 @@ apiServer.init({
         const combined = (managedServers[idx].logs || '') + msg;
         const lines = combined.split('\n');
         managedServers[idx].logs = lines.slice(-MAX_LOG_LINES).join('\n');
-    }
+    },
+    // Server CRUD
+    addServer:          _apiAddServer,
+    updateServer:       _apiUpdateServer,
+    deleteServer:       _apiDeleteServer,
+    // Firewall
+    getFirewallRules:   _apiGetFirewallRules,
+    addFirewallRule:    _apiAddFirewallRule,
+    removeFirewallRule: _apiRemoveFirewallRule,
+    toggleFirewallRule: _apiToggleFirewallRule,
+    // Config / backups
+    readConfigFile:     _apiReadConfigFile,
+    writeConfigFile:    _apiWriteConfigFile,
+    listBackups:        _apiListBackups,
+    // Forge proxy + app info
+    getForgeConfig:     _apiGetForgeConfig,
+    getAppVersion:      () => app.getVersion(),
+    restartApp:         () => { app.relaunch(); app.exit(0); },
 });
 
 let mainWindow;
@@ -1614,4 +1633,182 @@ function DebugConsoleLogs(message) {
 
 function DebugCpuRam(message) {
     if (DebugCPURAM) console.log(`${debugPrefix} ${message}`);
+}
+
+
+//      _    ____ ___   _   _ _____ _     ____  _____ ____  ____
+//     / \  |  _ \_ _| | | | | ____| |   |  _ \| ____|  _ \/ ___|
+//    / _ \ | |_) | |  | |_| |  _| | |   | |_) |  _| | |_) \___ \
+//   / ___ \|  __/| |  |  _  | |___| |___|  __/| |___|  _ < ___) |
+//  /_/   \_\_|  |___| |_| |_|_____|_____|_|   |_____|_| \_\____/
+//
+// These functions are injected into api-server.js via apiServer.init() at the
+// top of this file.  They are function declarations so they are hoisted and
+// visible at the call site even though they are defined here.
+
+// ── Server CRUD ──────────────────────────────────────────────────────────────
+
+function _apiAddServer(srv) {
+    const { id: _id, pid, status, logs, ...safeProps } = srv;
+    const newSrv = {
+        ...safeProps,
+        id:     crypto.randomBytes(8).toString('hex'),
+        pid:    null,
+        status: 'Offline',
+        logs:   '',
+    };
+    managedServers.push(newSrv);
+    fs.writeFileSync(DATA_FILE, JSON.stringify(managedServers, null, 2));
+    return newSrv;
+}
+
+function _apiUpdateServer(id, updates) {
+    const idx = managedServers.findIndex(s => s.id === id);
+    if (idx === -1) return null;
+    // Never let the API overwrite runtime-only fields
+    const { id: _id, pid, status, logs, ...safeUpdates } = updates;
+    managedServers[idx] = { ...managedServers[idx], ...safeUpdates };
+    fs.writeFileSync(DATA_FILE, JSON.stringify(managedServers, null, 2));
+    return managedServers[idx];
+}
+
+function _apiDeleteServer(id) {
+    const idx = managedServers.findIndex(s => s.id === id);
+    if (idx === -1) return false;
+    managedServers.splice(idx, 1);
+    fs.writeFileSync(DATA_FILE, JSON.stringify(managedServers, null, 2));
+    return true;
+}
+
+// ── Firewall ─────────────────────────────────────────────────────────────────
+
+function _apiGetFirewallRules() {
+    const script = `
+$rules = Get-NetFirewallRule -Group 'Ronin Portier Rules' -ErrorAction SilentlyContinue
+if (-not $rules) { Write-Output '[]'; exit }
+$out = $rules | ForEach-Object {
+    $r = $_
+    $f = $r | Get-NetFirewallPortFilter -ErrorAction SilentlyContinue
+    [PSCustomObject]@{
+        name     = $r.DisplayName
+        protocol = if ($f) { [string]$f.Protocol } else { '' }
+        port     = if ($f) { [string]$f.LocalPort } else { '' }
+        enabled  = [string]$r.Enabled
+    }
+}
+$out | ConvertTo-Json -Compress`.trim();
+    const encoded = Buffer.from(script, 'utf16le').toString('base64');
+    return new Promise((resolve) => {
+        exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout) => {
+            if (err || !stdout.trim()) return resolve([]);
+            try {
+                const parsed = JSON.parse(stdout.trim());
+                resolve(Array.isArray(parsed) ? parsed : [parsed]);
+            } catch { resolve([]); }
+        });
+    });
+}
+
+function _apiAddFirewallRule({ displayName, port, tcp, udp }) {
+    const safeName = displayName.replace(/'/g, "''");
+    const lines = [];
+    if (tcp) lines.push(`New-NetFirewallRule -DisplayName '${safeName}' -Direction Inbound -Protocol TCP -LocalPort ${port} -Action Allow -Group 'Ronin Portier Rules' -ErrorAction SilentlyContinue`);
+    if (udp) lines.push(`New-NetFirewallRule -DisplayName '${safeName}' -Direction Inbound -Protocol UDP -LocalPort ${port} -Action Allow -Group 'Ronin Portier Rules' -ErrorAction SilentlyContinue`);
+    if (!lines.length) return Promise.resolve({ success: false, error: 'Select at least one protocol.' });
+    const encoded = Buffer.from(lines.join('\n'), 'utf16le').toString('base64');
+    return new Promise((resolve) => {
+        exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout, stderr) => {
+            resolve({ success: !err, error: err ? (stderr || err.message) : null });
+        });
+    });
+}
+
+function _apiRemoveFirewallRule(displayName) {
+    const safeName = displayName.replace(/'/g, "''");
+    const script = `Remove-NetFirewallRule -DisplayName '${safeName}' -ErrorAction SilentlyContinue`;
+    const encoded = Buffer.from(script, 'utf16le').toString('base64');
+    return new Promise((resolve) => {
+        exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout, stderr) => {
+            resolve({ success: !err, error: err ? (stderr || err.message) : null });
+        });
+    });
+}
+
+function _apiToggleFirewallRule(displayName, enabled) {
+    const safeName = displayName.replace(/'/g, "''");
+    const state    = enabled ? 'True' : 'False';
+    const script   = `Set-NetFirewallRule -DisplayName '${safeName}' -Enabled ${state} -ErrorAction SilentlyContinue`;
+    const encoded  = Buffer.from(script, 'utf16le').toString('base64');
+    return new Promise((resolve) => {
+        exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout, stderr) => {
+            resolve({ success: !err, error: err ? (stderr || err.message) : null });
+        });
+    });
+}
+
+// ── Config / backups ──────────────────────────────────────────────────────────
+
+function _apiReadConfigFile(filePath) {
+    try {
+        const content = fs.readFileSync(filePath, 'utf8');
+        return Promise.resolve({ success: true, content });
+    } catch (err) {
+        return Promise.resolve({ success: false, error: err.message });
+    }
+}
+
+function _apiWriteConfigFile({ filePath, content, backupDir, serverType, serverName }) {
+    let backedUp   = false;
+    let backupError = null;
+    try {
+        if (backupDir && serverName) {
+            try {
+                const serverBackupDir = serverType
+                    ? path.join(backupDir, serverType, serverName)
+                    : path.join(backupDir, serverName);
+                fs.mkdirSync(serverBackupDir, { recursive: true });
+                const timestamp  = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                const baseName   = path.basename(filePath);
+                const backupPath = path.join(serverBackupDir, `${baseName}-${timestamp}.bak`);
+                const existing   = fs.readFileSync(filePath, 'utf8');
+                fs.writeFileSync(backupPath, existing, 'utf8');
+                backedUp = true;
+            } catch (backupErr) {
+                backupError = backupErr.message;
+            }
+        }
+        fs.writeFileSync(filePath, content, 'utf8');
+        return Promise.resolve({ success: true, backedUp, backupError });
+    } catch (err) {
+        return Promise.resolve({ success: false, backedUp, backupError, error: err.message });
+    }
+}
+
+function _apiListBackups({ backupDir, serverType, serverName, fileName }) {
+    try {
+        const dir = serverType
+            ? path.join(backupDir, serverType, serverName)
+            : path.join(backupDir, serverName);
+        if (!fs.existsSync(dir)) return Promise.resolve({ success: true, backups: [] });
+        const backups = fs.readdirSync(dir)
+            .filter(f => f.startsWith(fileName + '-') && f.endsWith('.bak'))
+            .map(f => ({ name: f, path: path.join(dir, f), mtime: fs.statSync(path.join(dir, f)).mtimeMs }))
+            .sort((a, b) => b.mtime - a.mtime)
+            .map(({ name, path: p }) => ({ name, path: p }));
+        return Promise.resolve({ success: true, backups });
+    } catch (err) {
+        return Promise.resolve({ success: false, error: err.message, backups: [] });
+    }
+}
+
+// ── Forge proxy config ────────────────────────────────────────────────────────
+// Reads forge-connection.json from RSM's userData directory.
+// Schema: { "url": "http://127.0.0.1:3003", "apiKey": "<key>" }
+
+function _apiGetForgeConfig() {
+    try {
+        const p = path.join(app.getPath('userData'), 'forge-connection.json');
+        if (!fs.existsSync(p)) return null;
+        return JSON.parse(fs.readFileSync(p, 'utf8'));
+    } catch { return null; }
 }
