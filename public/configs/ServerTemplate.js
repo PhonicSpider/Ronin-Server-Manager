@@ -1,96 +1,122 @@
-﻿export const gameName = {
-    // --- Fields for adding game as an option to select when adding servers. ---
+export const gameName = {
+
+    // ── DISPLAY ─────────────────────────────────────────────────────────────────
     meta: {
-        displayName: "Game Name",
-        icon: "logos/gameLogo.png" // or a regular emoji will work as well (e.g. "🎮")
+        displayName: 'Game Name',
+        icon: 'logos/gameLogo.png', // relative path OR an emoji e.g. '🎮'
     },
+
+    // ── INSTALL (OPTIONAL) ──────────────────────────────────────────────────────
+    // Include this block if the game can be auto-installed via SteamCMD.
+    // Omit it entirely for games that must be installed manually.
+    forge: {
+        appId: '123456',                      // Steam App ID (string). null = not on Steam.
+        relExe: 'server.exe',                 // Executable path relative to the install folder.
+        // requiresExternalExe: true,         // Set true for Java/script-based servers where
+        //                                    // the launcher exe is NOT inside the install folder.
+        // exeLabel: 'Java Executable (java.exe)', // Label shown on the browse button for the exe.
+    },
+
+    // ── BACKEND ─────────────────────────────────────────────────────────────────
     backend: {
-        // DIRECT_CONSOLE --process is spawned directly; PID is captured immediately, no deep search needed.
-        //                   Use for Java/script-based servers (Minecraft, etc.).
-        // POWERSHELL_BRIDGE--process is launched hidden via PowerShell; PID is found via deep search.
-        //                   Use for native .exe servers (SE, Ark, Terraria, etc.).
-        //                   Multi-instance note: the deep search first tries parent-child (reliable for most
-        //                   games). If the game self-relaunches and breaks that link (like Space Engineers),
-        //                   it falls back to matching the workingDir path inside the process CommandLine.
-        //                   For self-relaunching games, make sure workingDir also appears in customArgs
-        //                   (e.g. SE uses -path "<workingDir>") so each instance can be told apart.
-        category: "DIRECT_CONSOLE",
-        // playerListCommand--console command RSM sends to retrieve the player list for the REST API.
-        //                     Set to null if the game uses a custom HTTP API instead of the command pipeline
-        //                     (e.g. Space Engineers). Omit entirely if player listing is not supported.
-        //                     RSM auto-parses Minecraft-style and RCON numbered-list responses.
-        playerListCommand: "list"
+        // DIRECT_CONSOLE   -- process is spawned directly; PID is captured immediately.
+        //                     Use for Java/script-based servers (Minecraft, Project Zomboid, etc.)
+        // POWERSHELL_BRIDGE -- process launched hidden via PowerShell; PID found via deep search.
+        //                     Use for native .exe servers (Rust, ARK, Valheim, etc.)
+        category: 'DIRECT_CONSOLE',
+
+        // Console command RSM sends to list players for the REST API.
+        // Set null if the game has no player-list command.
+        playerListCommand: 'list',
     },
-    
-    // --- Optional: Config files accessible via the in-app config editor. ---
-    // Omit this block entirely if the game has no editable config files.
+
+    // ── CONFIG FILES (OPTIONAL) ─────────────────────────────────────────────────
+    // Lists the config files RSM will open in the editor after install or when editing.
+    // Omit this block if the game has no editable config files (args-only games).
     gameFiles: {
-        // Optional subfolder relative to workingDir where the configs live.
-        // If omitted, files are looked up directly in workingDir.
-        configPath: "relative/subfolder",
+        // Subfolder relative to the server install/working directory.
+        // Omit configPath if the files live directly in the root folder.
+        configPath: 'optional\\subfolder',
 
         // Each entry becomes a tab in the config editor.
-        // 'label' is the tab name shown in the UI; 'file' is the filename inside configPath (or workingDir).
         configs: [
-            { label: "Server Config", file: "config.ini" },
-            // { label: "Second File",  file: "other.cfg" },
-        ]
+            { label: 'Server Config', file: 'config.ini' },
+            // { label: 'Second File', file: 'other.cfg' },
+        ],
     },
 
-    // --- Fields for configuring how the server setup modal should look and function for this game. ---
-    label: "DISPLAY LABEL (e.g. GAME_SERVER.EXE)", // The label above the input for the executable path. Make it descriptive to help users know what to put there.
+    // ── SETUP MODAL (EDIT FLOW) ─────────────────────────────────────────────────
+    // Controls which fields show in the "Edit Server" form.
+    label: 'SERVER EXECUTABLE (server.exe)',
     blocks: {
-        path: 'block',        // exePath container
-        workingDir: 'block',  // workingDir container
-        args: 'block',        // customArgs container
-        log: 'none',          // logPath container
-        port: 'none',         // portId container
-        portPass: 'none'      // portPass container
+        path: 'block',       // 'block' = visible, 'none' = hidden
+        workingDir: 'block',
+        args: 'block',
+        log: 'none',
+        port: 'none',
+        portPass: 'none',
     },
     defaults: {
-        // Optional placeholders if blocks are enabled, can set any block placeholder or value here
-        newName: "Server Display Name",
-        exePath: "C:\\Path\\To\\Executable",
-        workingDir: "C:\\Path\\To\\Folder",
-        customArgs: "-launch -flags",
-        logPath: "Path to log file...",
-        portId: "8080"
+        newName: 'Server Display Name',
+        exePath: 'C:\\Path\\To\\Executable',
+        workingDir: 'C:\\Path\\To\\ServerFolder',
+        customArgs: '-launch -flags',
+        // logPath: 'Path to log file...',
+        // portId: '8080',
+        // portPass: 'password',
     },
-    varInputs: { // Determine whether defaults will be placeholders or values
-        // or can use "value" if you want the default to be pre-filled instead of a placeholder
-        exePath: "placeholder",
-        workingDir: "placeholder",
-        logPath: "placeholder",
-        portId: "placeholder",
-        portPass: "placeholder",
-        customArgs: "value",
+    varInputs: {
+        // 'placeholder' = shown as greyed placeholder text
+        // 'value'       = pre-filled as an editable value
+        newName: 'placeholder',
+        exePath: 'placeholder',
+        workingDir: 'placeholder',
+        customArgs: 'value',
     },
 
-    // --- Optional: Firewall port definitions for the Portier integration. ---
-    // Each entry creates an editable row in the server panel's Firewall Ports card.
-    // Per-server overrides are saved in the server's JSON and merged over these defaults at runtime.
-    // Omit this block entirely if the game has no firewall ports to manage.
+    // ── FIREWALL PORTS ──────────────────────────────────────────────────────────
     firewallPorts: [
-        { id: 'game',  label: 'Game Port', default: 25565, tcp: true,  udp: true,  description: 'Player connections' },
+        { id: 'game', label: 'Game Port', default: 27015, tcp: true, udp: true, description: 'Player connections' },
         // { id: 'rcon',  label: 'RCON',      default: 25575, tcp: true,  udp: false, description: 'Admin console' },
         // { id: 'query', label: 'Query Port', default: 27015, tcp: false, udp: true,  description: 'Server browser' },
-        // { id: 'api',   label: 'API Port',   default: 8080,  tcp: true,  udp: false, description: 'HTTP API' },
-    ]
+    ],
+
+    // ── QUICK ACTIONS ───────────────────────────────────────────────────────────
+    quickActions: [
+        // { label: 'List Players', command: 'list' },
+    ],
+
+    // ── CONFIG PARSER (OPTIONAL) ────────────────────────────────────────────────
+    // Called after install or when adding an existing server.
+    // fileContentsMap: object keyed by filename (from gameFiles.configs[].file)
+    // { installDir, exePath }: pre-resolved paths from main process
+    // Returns partial RSM entry fields: args, apiPort, apiPass, logPath
+    // Omit this function if the game has no config files to parse.
+    parseForRsm(fileContentsMap, { installDir, exePath }) {
+        const content = fileContentsMap['config.ini'] || '';
+        // ... parse content ...
+        return {
+            args:    '-launch -flags',
+            apiPort: '27015',
+            apiPass: '',
+            logPath: '',
+        };
+    },
+
 };
 
-// --- BE SURE TO  ADD THE GAME TO THE INDEX.JS FILE AFTER CREATING THIS TEMPLATE! ---
+// ── ADD TO INDEX ──────────────────────────────────────────────────────────────
+// After creating this file, import it in index.js and add it to ServerTypeRegistry.
 
-
-// =================================================================================================\\
-//                 CONFIGURATION MODAL REFERENCE MAP   (ADD NEW SERVERS HERE)                       \\
-// =================================================================================================\\
-// CONTAINER ID         | DISPLAY OPTIONS  | PLACEHOLDER/VALUE ID | DESCRIPTION                     \\
-// ---------------------|------------------|----------------------|---------------------------------\\
-// label                | block (Static)   | newName              | The UI list display name        \\
-// path                 | block / none     | exePath              | The main file/app to run        \\
-// workingDir           | block / none     | workingDir           | Folder context for the app      \\
-// log                  | block / none     | logPath              | External file to read logs      \\
-// port                 | block / none     | portId               | Network port for API/RCON       \\
-// portPass             | block / none     | portPass             | Password for API access         \\
-// args                 | block / none     | customArgs           | Startup flags and switches      \\
-// =================================================================================================\\
+// =============================================================================
+//   BLOCKS REFERENCE
+// =============================================================================
+// ID          | Values           | Field shown
+// ------------|------------------|--------------------------------------------
+// path        | 'block' / 'none' | Executable path (+ browse button)
+// workingDir  | 'block' / 'none' | Server folder (+ browse button)
+// args        | 'block' / 'none' | Launch arguments textarea
+// log         | 'block' / 'none' | Log file/folder path (+ browse button)
+// port        | 'block' / 'none' | API / RCON port number
+// portPass    | 'block' / 'none' | API / RCON password
+// =============================================================================

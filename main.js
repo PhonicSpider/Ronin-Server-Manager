@@ -19,7 +19,8 @@ const si = require('systeminformation');
 const os = require('os');
 const { isNullOrUndefined } = require('util');
 const axios = require('axios');
-const apiServer = require('./api-server');
+const apiServer  = require('./api-server');
+const roninAgent = require('./ronin-agent');
 
 // Wire up api-server dependencies at module load time so they are always set
 // before any HTTP request or IPC handler can reach the server.
@@ -59,6 +60,21 @@ apiServer.init({
     getForgeConfig:     _apiGetForgeConfig,
     getAppVersion:      () => app.getVersion(),
     restartApp:         () => { app.relaunch(); app.exit(0); },
+});
+
+roninAgent.init({
+    getManagedServers:  () => managedServers,
+    getActiveProcesses: () => activeProcesses,
+    getServerStats:     () => serverStats,
+    getMainWindow:      () => mainWindow,
+    findServType,
+    ipcMain,
+    logConsoleOut: (id, msg) => {
+        const win = mainWindow;
+        if (win && !win.isDestroyed()) win.webContents.send('console-out', { id, msg });
+    },
+    getAppVersion: () => app.getVersion(),
+    app,
 });
 
 let mainWindow;
@@ -532,6 +548,15 @@ app.whenReady().then(() => {
     } else {
         console.log('[RSM] REST API is disabled -- skipping startup');
     }
+
+    // Boot the Citadel agent if configured
+    const citadelCfg = loadCitadelConfig();
+    if (citadelCfg.enabled && citadelCfg.portalUrl && citadelCfg.agentToken) {
+        roninAgent.start(citadelCfg.portalUrl, citadelCfg.agentToken);
+        console.log('[RSM] Citadel agent started');
+    } else {
+        console.log('[RSM] Citadel agent disabled -- skipping startup');
+    }
 });
 
 app.on('window-all-closed', () => {
@@ -542,6 +567,7 @@ app.on('window-all-closed', () => {
 app.on('will-quit', () => {
     console.log('[RSM] will-quit -- stopping API server and shutting down');
     apiServer.stop();
+    roninAgent.stop();
 });
 
 // Clear any previously registered startup entry so the app only launches on
@@ -818,6 +844,7 @@ ipcMain.on('start-server', (event, srv) => {
         }
 
         event.reply('status-change', { id: srv.id, status: 'Online', pid: pid });
+        roninAgent.notifyStatusChange(srv.id, 'Online', pid);
 
         if (serverCategory !== 'DIRECT_CONSOLE') {
             if (!logWatcher && srv.logPath) {
@@ -866,6 +893,7 @@ ipcMain.on('start-server', (event, srv) => {
         }
         event.reply('status-change', { id: srv.id, status: 'Offline' });
         event.reply('system-info', `[RSM] ${srv.name} has been cleaned up and set to Offline.`);
+        roninAgent.notifyStatusChange(srv.id, 'Offline', null);
 
         if (restartSrv) {
             console.log(`[RSM] restart-server -- restarting "${restartSrv.name}" after cleanup`);
@@ -1792,6 +1820,284 @@ ipcMain.on('show-server-gui', (event, srv) => {
 });
 
 
+//      ____  _____ ____  __     _______ ____      _    ____  _     _____
+//     |  _ \| ____/ ___|\ \   / / ____|  _ \    / \  |  _ \| |   | ____|
+//     | | | |  _| \___ \ \ \ / /|  _| | |_) |  / _ \ | |_) | |   |  _|
+//     | |_| | |___ ___) | \ V / | |___|  _ <  / ___ \|  _ <| |___| |___
+//     |____/|_____|____/   \_/  |_____|_| \_\/_/   \_\_| \_\_____|_____|
+//
+//  SteamCMD inlined -- no external module needed.
+//  Covers every game in the catalog (anonymous installs only).
+//  Authenticated installs are a future addition.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const https         = require('https');
+const extract       = require('extract-zip');
+
+const STEAMCMD_ZIP_URL = 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip';
+
+function steamcmdDownload (url, dest) {
+    return new Promise((resolve, reject) => {
+        const file = fs.createWriteStream(dest);
+        const req  = https.get(url, res => {
+            if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                file.close();
+                fs.unlink(dest, () => {});
+                return steamcmdDownload(res.headers.location, dest).then(resolve, reject);
+            }
+            if (res.statusCode !== 200) {
+                file.close();
+                fs.unlink(dest, () => {});
+                return reject(new Error(`Download failed: HTTP ${res.statusCode}`));
+            }
+            res.pipe(file);
+            file.on('finish', () => file.close(resolve));
+        });
+        req.on('error', err => { file.close(); fs.unlink(dest, () => {}); reject(err); });
+    });
+}
+
+async function steamcmdEnsure (steamcmdDir) {
+    const exePath = path.join(steamcmdDir, 'steamcmd.exe');
+    if (fs.existsSync(exePath)) return { exePath, alreadyInstalled: true };
+    fs.mkdirSync(steamcmdDir, { recursive: true });
+    const zipPath = path.join(steamcmdDir, 'steamcmd.zip');
+    await steamcmdDownload(STEAMCMD_ZIP_URL, zipPath);
+    await extract(zipPath, { dir: steamcmdDir });
+    fs.unlinkSync(zipPath);
+    if (!fs.existsSync(exePath)) throw new Error('SteamCMD zip extracted but steamcmd.exe is missing.');
+    return { exePath, alreadyInstalled: false };
+}
+
+function steamcmdBufferLines (stream, onLine) {
+    let buf = '';
+    stream.setEncoding('utf8');
+    stream.on('data', chunk => {
+        buf += chunk;
+        let idx;
+        while ((idx = buf.indexOf('\n')) !== -1) {
+            const line = buf.slice(0, idx).replace(/\r$/, '');
+            buf = buf.slice(idx + 1);
+            if (line.length) onLine(line);
+        }
+    });
+    stream.on('end', () => { if (buf.length) onLine(buf); });
+}
+
+function steamcmdInstallApp ({ exePath, appId, installDir, onLog = () => {}, onProgress = () => {}, extraArgs = [] }) {
+    if (!fs.existsSync(exePath)) return Promise.reject(new Error(`steamcmd.exe not found at ${exePath}`));
+    fs.mkdirSync(installDir, { recursive: true });
+    const args = ['+force_install_dir', installDir, '+login', 'anonymous', '+app_update', String(appId), 'validate', ...extraArgs, '+quit'];
+    onLog(`[steamcmd] ${exePath} ${args.join(' ')}`);
+
+    function attempt () {
+        return new Promise((resolve, reject) => {
+            const child = spawn(exePath, args, { windowsHide: true });
+            let sawSelfUpdate = false;
+            const handleLine = line => {
+                onLog(line);
+                if (/Update complete, launching|Installing update|Extracting package/.test(line)) sawSelfUpdate = true;
+                const m = line.match(/progress:\s+([\d.]+)\s+\((\d+)\s+\/\s+(\d+)\)/i);
+                if (m) onProgress({ percent: parseFloat(m[1]), downloadedBytes: parseInt(m[2], 10), totalBytes: parseInt(m[3], 10) });
+            };
+            steamcmdBufferLines(child.stdout, handleLine);
+            steamcmdBufferLines(child.stderr, handleLine);
+            child.on('error', reject);
+            child.on('close', code => resolve({ code, sawSelfUpdate }));
+        });
+    }
+
+    return attempt().then(({ code, sawSelfUpdate }) => {
+        if (code === 0) return { code };
+        if (code === 7 && sawSelfUpdate) {
+            onLog('[steamcmd] Self-update completed (exit 7) -- re-running to perform the install...');
+            return attempt().then(({ code: code2 }) => {
+                if (code2 === 0) return { code: code2 };
+                throw new Error(`SteamCMD exited ${code2} after self-update retry.`);
+            });
+        }
+        throw new Error(`SteamCMD exited with code ${code}`);
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Shared helper: load the registry via dynamic import (ES module)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function loadRegistry () {
+    const mod = await import('./public/configs/index.js');
+    return mod.ServerTypeRegistry;
+}
+
+function readConfigFiles (game, installDir) {
+    const configDir = (game.gameFiles && game.gameFiles.configPath)
+        ? path.join(installDir, game.gameFiles.configPath)
+        : installDir;
+    const fileContentsMap = {};
+    const configFiles     = [];
+    for (const cf of (game.gameFiles && game.gameFiles.configs) || []) {
+        const fullPath = path.join(configDir, cf.file);
+        const content  = fs.existsSync(fullPath) ? fs.readFileSync(fullPath, 'utf8') : '';
+        fileContentsMap[cf.file] = content;
+        configFiles.push({ label: cf.label, filePath: fullPath, content });
+    }
+    return { fileContentsMap, configFiles };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  IPC: INSTALL INTEGRATION
+// ─────────────────────────────────────────────────────────────────────────────
+
+// --- LIST INSTALLABLE GAMES ---
+ipcMain.handle('forge:get-games', async (event, { mode } = {}) => {
+    const registry = await loadRegistry();
+    return Object.entries(registry)
+        .filter(([, g]) => mode === 'install' ? (g.forge && g.forge.appId) : !!g.forge)
+        .map(([slug, g]) => ({
+            slug,
+            displayName: g.meta.displayName,
+            icon:        g.meta.icon,
+            forge:       g.forge || null,
+        }));
+});
+
+// --- GET DEFAULT INSTALL ROOT ---
+ipcMain.handle('forge:get-install-root', () => {
+    return path.join(app.getPath('desktop'), 'RSM-Files', 'Servers');
+});
+
+// --- INSTALL SERVER (streams forge:log / forge:phase / forge:progress) ---
+ipcMain.handle('forge:install', async (event, { gameSlug, serverName, installRoot }) => {
+    console.log(`[RSM] forge:install -- game: ${gameSlug} | name: "${serverName}" | root: ${installRoot}`);
+
+    const desktop     = app.getPath('desktop');
+    const steamcmdDir = path.join(desktop, 'RSM-Files', 'SteamCMD');
+    const root        = installRoot || path.join(desktop, 'RSM-Files', 'Servers');
+    const installDir  = path.join(root, serverName.replace(/\s+/g, '-'));
+
+    const send = (ch, data) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(ch, data); };
+
+    try {
+        const registry = await loadRegistry();
+        const game     = registry[gameSlug];
+        if (!game) throw new Error(`Unknown game slug: ${gameSlug}`);
+        if (!game.forge || !game.forge.appId) throw new Error(`${game.meta.displayName} does not support auto-install.`);
+
+        send('forge:phase', 'validate');
+        if (fs.existsSync(installDir) && fs.readdirSync(installDir).length > 0) {
+            throw new Error(`Install folder already exists and is not empty: ${installDir}`);
+        }
+        send('forge:log', `[RSM] Installing ${game.meta.displayName} to ${installDir}`);
+
+        send('forge:phase', 'install');
+        const sc = await steamcmdEnsure(steamcmdDir);
+        send('forge:log', sc.alreadyInstalled
+            ? `[steamcmd] Using existing install at ${sc.exePath}`
+            : `[steamcmd] Bootstrapped SteamCMD at ${sc.exePath}`);
+
+        await steamcmdInstallApp({
+            exePath:    sc.exePath,
+            appId:      game.forge.appId,
+            installDir,
+            onLog:      line => send('forge:log',      line),
+            onProgress: prog => send('forge:progress', prog),
+        });
+
+        send('forge:phase', 'done');
+        send('forge:log', `[RSM] Install complete.`);
+        console.log(`[RSM] forge:install -- done, installDir: ${installDir}`);
+        return { success: true, installDir };
+
+    } catch (err) {
+        console.error(`[RSM] forge:install -- failed: ${err.message}`);
+        send('forge:log', `[ERROR] ${err.message}`);
+        return { success: false, error: err.message };
+    }
+});
+
+// --- PARSE CONFIG FILES (called before step 4) ---
+ipcMain.handle('forge:parse-config', async (event, { gameSlug, installDir }) => {
+    console.log(`[RSM] forge:parse-config -- game: ${gameSlug} | dir: ${installDir}`);
+    try {
+        const registry = await loadRegistry();
+        const game     = registry[gameSlug];
+        if (!game) throw new Error(`Unknown game: ${gameSlug}`);
+
+        const { fileContentsMap, configFiles } = readConfigFiles(game, installDir);
+
+        const exePath = (game.forge && game.forge.relExe)
+            ? path.join(installDir, game.forge.relExe)
+            : null;
+
+        let parsed = {};
+        if (typeof game.parseForRsm === 'function') {
+            try { parsed = game.parseForRsm(fileContentsMap, { installDir, exePath }); }
+            catch (e) { console.error(`[RSM] parseForRsm error for ${gameSlug}: ${e.message}`); }
+        }
+
+        return {
+            success: true,
+            configFiles,
+            parsed,
+            defaults: {
+                args:          game.defaults && game.defaults.customArgs || '',
+                firewallPorts: game.firewallPorts || [],
+            },
+        };
+    } catch (err) {
+        console.error(`[RSM] forge:parse-config -- error: ${err.message}`);
+        return { success: false, error: err.message };
+    }
+});
+
+// --- REGISTER SERVER (step 4 "Add to RSM") ---
+ipcMain.handle('forge:register', async (event, { gameSlug, installDir, serverName, exePath, launchArgs, userFirewallPorts }) => {
+    console.log(`[RSM] forge:register -- game: ${gameSlug} | name: "${serverName}" | dir: ${installDir}`);
+    try {
+        const registry = await loadRegistry();
+        const game     = registry[gameSlug];
+        if (!game) throw new Error(`Unknown game: ${gameSlug}`);
+
+        const duplicate = managedServers.find(s => s.name === serverName && s.type === gameSlug);
+        if (duplicate) return { success: false, error: `A server named "${serverName}" (${gameSlug}) already exists in RSM.` };
+
+        const { fileContentsMap } = readConfigFiles(game, installDir);
+        const resolvedExe = exePath || ((game.forge && game.forge.relExe) ? path.join(installDir, game.forge.relExe) : '');
+
+        let parsed = {};
+        if (typeof game.parseForRsm === 'function') {
+            try { parsed = game.parseForRsm(fileContentsMap, { installDir, exePath: resolvedExe }); }
+            catch (e) { console.error(`[RSM] parseForRsm error: ${e.message}`); }
+        }
+
+        const entry = {
+            id:                `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            name:              serverName,
+            type:              gameSlug,
+            category:          (game.backend && game.backend.category) || 'POWERSHELL_BRIDGE',
+            playerListCommand: (game.backend && game.backend.playerListCommand) || null,
+            path:              resolvedExe,
+            workingDir:        installDir,
+            args:              launchArgs !== undefined ? launchArgs : (parsed.args || (game.defaults && game.defaults.customArgs) || ''),
+            apiPort:           parsed.apiPort  || '',
+            apiPass:           parsed.apiPass  || '',
+            logPath:           parsed.logPath  || '',
+            firewallPorts:     userFirewallPorts || game.firewallPorts || [],
+        };
+
+        managedServers.push(entry);
+        fs.writeFileSync(DATA_FILE, JSON.stringify(managedServers, null, 2));
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('servers-updated', managedServers);
+        console.log(`[RSM] forge:register -- registered "${entry.name}" (id: ${entry.id})`);
+        return { success: true, entry };
+
+    } catch (err) {
+        console.error(`[RSM] forge:register -- error: ${err.message}`);
+        return { success: false, error: err.message };
+    }
+});
+
+
 //      ____  _____ ____  _____ ___  ____  __  __    _    _   _  ____ _____
 //     |  _ \| ____|  _ \|  ___/ _ \|  _ \|  \/  |  / \  | \ | |/ ___| ____|
 //     | |_) |  _| | |_) | |_ | | | | |_) | |\/| | / _ \ |  \| | |   |  _|
@@ -2137,3 +2443,37 @@ function _apiGetForgeConfig() {
         return JSON.parse(fs.readFileSync(p, 'utf8'));
     } catch { return null; }
 }
+
+// ── Citadel agent config ──────────────────────────────────────────────────────
+
+const CITADEL_CONFIG_FILE = path.join(app.getPath('userData'), 'citadel-agent.json');
+
+function loadCitadelConfig() {
+    if (fs.existsSync(CITADEL_CONFIG_FILE)) {
+        try {
+            const cfg = JSON.parse(fs.readFileSync(CITADEL_CONFIG_FILE, 'utf8'));
+            console.log('[RSM] loadCitadelConfig -- loaded:', { enabled: cfg.enabled, portalUrl: cfg.portalUrl });
+            return cfg;
+        } catch (e) {
+            console.error('[RSM] Failed to load citadel-agent.json:', e);
+        }
+    }
+    return { enabled: false, portalUrl: '', agentToken: '' };
+}
+
+function saveCitadelConfig(config) {
+    console.log('[RSM] saveCitadelConfig -- saving:', { enabled: config.enabled, portalUrl: config.portalUrl });
+    fs.writeFileSync(CITADEL_CONFIG_FILE, JSON.stringify(config, null, 2));
+}
+
+ipcMain.handle('get-citadel-config', () => loadCitadelConfig());
+
+ipcMain.on('save-citadel-config', (event, config) => {
+    console.log(`[RSM] save-citadel-config -- enabled: ${config.enabled}`);
+    saveCitadelConfig(config);
+    if (config.enabled && config.portalUrl && config.agentToken) {
+        roninAgent.start(config.portalUrl, config.agentToken);
+    } else {
+        roninAgent.stop();
+    }
+});

@@ -25,6 +25,7 @@
         <img src="../icon.png" alt="Logo" class="sidebar-logo">
         <span>SERVER_MANAGER</span>
         <span id="admin-badge" style="display:none; font-size: 10px; background: var(--success); color: white; padding: 2px 5px; border-radius: 4px; margin-left: 5px;">ADMIN</span>
+        <span id="citadel-badge" style="display:none; font-size: 10px; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 5px; cursor:pointer;" title="Ronin Citadel Portal — click to configure">⬡ CITADEL</span>
     </div>
 
     <div class="nav-item" onclick="showView('home')" style="margin-bottom: 20px; border-left: 3px solid var(--accent);">
@@ -238,13 +239,24 @@
             <h1>Global Settings</h1>
         </header>
 
-        <!-- Config Backup Folder -->
+        <!-- Storage Paths -->
         <div class="card" style="margin-bottom: 25px; border: 1px solid var(--border); background: rgba(255,255,255,0.02);">
-            <div class="setting-info">
-                <h4>Config Backup Folder</h4>
-                <p>Before saving any config file, RSM writes a timestamped backup to this folder. Backups are sorted into subfolders by server name--e.g. <code>RSM-Backups\MyServer\server.properties-2026-05-04T15-30-00.bak</code></p>
+            <h4 style="margin: 0 0 14px;">Storage Paths</h4>
+
+            <div class="setting-info" style="margin-bottom: 8px;">
+                <h4 style="font-size: 13px; margin: 0 0 4px;">Server Install Folder</h4>
+                <p>Where Forge installs new game server files. Each server gets its own subfolder: <code>Servers\My-Rust-Server\</code></p>
             </div>
-            <div class="path-group" style="margin-top: 12px;">
+            <div class="path-group" style="margin-bottom: 16px;">
+                <input type="text" id="install-folder-input" readonly placeholder="Loading…">
+                <button class="btn btn-outline" onclick="browseInstallFolder()">Browse</button>
+            </div>
+
+            <div class="setting-info" style="margin-bottom: 8px;">
+                <h4 style="font-size: 13px; margin: 0 0 4px;">Config Backup Folder</h4>
+                <p>Before saving any config file, RSM writes a timestamped backup here. Backups are sorted by server name: <code>Backups\MyServer\server.properties-2026-05-04T15-30-00.bak</code></p>
+            </div>
+            <div class="path-group">
                 <input type="text" id="backup-folder-input" readonly placeholder="Loading…">
                 <button class="btn btn-outline" onclick="browseBackupFolder()">Browse</button>
             </div>
@@ -430,6 +442,47 @@
                 </div>
             </div>
         </div>
+
+        <!-- Ronin Citadel Portal -->
+        <div class="card" style="margin-top: 20px;">
+            <h3>⬡ Ronin Citadel Portal</h3>
+            <div class="setting-info">
+                <p style="margin: 0 0 14px;">Connect this RSM instance to your Ronin Citadel portal so you can monitor and control servers remotely from the web.</p>
+            </div>
+
+            <div class="setting-row" style="margin-bottom: 16px;">
+                <span>Enable Citadel Connection</span>
+                <input type="checkbox" id="citadel-enabled-chk" onchange="toggleCitadelEnabled(this.checked)">
+            </div>
+
+            <div id="citadel-settings-body">
+                <div style="margin-bottom: 14px;">
+                    <label class="tiny-label">PORTAL URL</label>
+                    <div class="path-group" style="gap: 8px;">
+                        <input type="text" id="citadel-url-input" placeholder="https://your-portal.example.com"
+                               style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 6px 10px;">
+                        <button class="btn btn-outline" onclick="saveCitadelSettings()">Save</button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="tiny-label">AGENT TOKEN</label>
+                    <div class="path-group" style="gap: 8px;">
+                        <input type="text" id="citadel-token-input" placeholder="Paste agent token from portal"
+                               style="font-family: monospace; font-size: 11px; letter-spacing: 0.5px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 6px 10px;">
+                    </div>
+                    <p style="font-size: 11px; color: var(--dim); margin-top: 8px; line-height: 1.5;">
+                        Generate an agent token from <strong>Portal → Servers → Tokens</strong>, then paste it here.
+                        The token is stored locally and never sent anywhere except your portal.
+                    </p>
+                </div>
+
+                <div style="margin-top: 14px;">
+                    <label class="tiny-label">CONNECTION STATUS</label>
+                    <div id="citadel-status-text" style="font-size: 12px; color: var(--dim); margin-top: 4px;">Not connected</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- ================================================================
@@ -487,23 +540,196 @@
 </main>
 
 <!-- ================================================================
-      ADD SERVER WIZARD MODAL -- Step 1: type cards, Step 2: config form
+      ADD / EDIT SERVER WIZARD MODAL
+      Step 0  -- Method choice (Install New / Add Existing)
+      Step 1  -- Game picker (shared by both modes)
+      Step 2a -- Install mode: server name + install path
+      Step 2b -- Existing mode: server name + browse folder
+      Step 3  -- Install progress (install mode only)
+      Step 4  -- Config editor + launch args + firewall ports (both modes)
+      Step 2  -- Edit server form (edit flow only, unchanged)
      ================================================================ -->
 <div id="modal" class="modal">
     <div class="modal-content">
 
-        <!-- Step 1: Pick the game / server type -->
-        <div id="wizard-step-1">
-            <h3 style="margin-bottom: 20px;">Select Server Type</h3>
-            <div class="server-type-grid">
-                <div id="server-type-grid" class="server-type-grid"></div>
+        <!-- Step 0: Install New vs Add Existing -->
+        <div id="wizard-step-0">
+            <h3 style="margin-bottom: 6px;">Add Server</h3>
+            <p style="font-size: 12px; color: var(--dim); margin-bottom: 20px;">How do you want to add this server?</p>
+            <div class="add-method-grid">
+                <div class="add-method-card" onclick="window.selectAddMethod('install')">
+                    <span class="add-method-icon">⬇️</span>
+                    <div>
+                        <h4>Install New Server</h4>
+                        <p>Download and install game server files automatically using SteamCMD. RSM handles the full setup.</p>
+                    </div>
+                </div>
+                <div class="add-method-card" onclick="window.selectAddMethod('existing')">
+                    <span class="add-method-icon">📂</span>
+                    <div>
+                        <h4>Add Existing Files</h4>
+                        <p>Point RSM to a server you have already installed. Browse to the server folder and RSM reads its config.</p>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer" style="margin-top: 20px;">
                 <button class="btn btn-outline full-width" onclick="closeModal()">Cancel</button>
             </div>
         </div>
 
-        <!-- Step 2: Fill in paths and launch settings -->
+        <!-- Step 1: Game picker (shared) -->
+        <div id="wizard-step-1" style="display:none;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                <button class="btn-back btn-outline small" onclick="window.showWizardStep(0)">← Back</button>
+                <h3 id="wizard-step1-title" style="margin: 0;">Select Game</h3>
+            </div>
+            <p style="font-size: 12px; color: var(--dim); margin-bottom: 14px;" id="wizard-step1-subtitle"></p>
+            <div id="wizard-game-grid" class="wizard-game-grid"></div>
+            <div id="wizard-step1-custom" style="display:none; margin-top: 12px;">
+                <button class="btn btn-outline full-width" onclick="window.selectWizardGame('other')">Custom / Other</button>
+            </div>
+            <div class="modal-footer" style="margin-top: 16px;">
+                <button class="btn btn-outline full-width" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Step 2a: Install mode -- server name + install path -->
+        <div id="wizard-step-2a" style="display:none;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <button class="btn-back btn-outline small" onclick="window.showWizardStep(1)">← Back</button>
+                <h3 id="wizard-2a-title" style="margin: 0;">Install Server</h3>
+            </div>
+            <div class="input-block">
+                <label class="tiny-label">SERVER NAME</label>
+                <input type="text" id="step2a-server-name" placeholder="e.g. My Rust Server" oninput="window.updateStep2aPath()">
+            </div>
+            <div class="input-block">
+                <label class="tiny-label">INSTALL LOCATION</label>
+                <div class="path-group">
+                    <input type="text" id="step2a-install-path" readonly style="font-size: 11px; color: var(--dim);">
+                    <button class="btn btn-outline" onclick="window.browseStep2aRoot()">Change</button>
+                </div>
+                <p style="font-size: 11px; color: var(--dim); margin-top: 4px;">Server files will be placed in a subfolder named after the server.</p>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 20px;">
+                <button id="step2a-begin-btn" class="btn btn-primary" style="flex: 2;" onclick="window.beginWizardInstall()">Begin Install</button>
+                <button class="btn btn-outline" style="flex: 1;" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Step 2b: Existing mode -- server name + browse folder -->
+        <div id="wizard-step-2b" style="display:none;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <button class="btn-back btn-outline small" onclick="window.showWizardStep(1)">← Back</button>
+                <h3 style="margin: 0;">Locate Server Files</h3>
+            </div>
+            <div class="input-block">
+                <label class="tiny-label">SERVER NAME</label>
+                <input type="text" id="step2b-server-name" placeholder="e.g. My Rust Server">
+            </div>
+            <div class="input-block">
+                <label class="tiny-label">SERVER FOLDER</label>
+                <div class="path-group">
+                    <input type="text" id="step2b-folder-path" readonly placeholder="Click Browse to select the server root folder...">
+                    <button class="btn btn-outline" onclick="window.browseExistingFolder()">Browse</button>
+                </div>
+            </div>
+            <div id="step2b-exe-block" class="input-block" style="display:none;">
+                <label class="tiny-label" id="step2b-exe-label">EXECUTABLE</label>
+                <div class="path-group">
+                    <input type="text" id="step2b-exe-path" readonly placeholder="Click Browse to select...">
+                    <button class="btn btn-outline" onclick="window.browseStep2bExe()">Browse</button>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-primary" style="flex: 2;" onclick="window.proceedStep2b()">Next</button>
+                <button class="btn btn-outline" style="flex: 1;" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Install progress -->
+        <div id="wizard-step-3" style="display:none;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                <h3 id="wizard-3-title" style="margin: 0;">Installing...</h3>
+            </div>
+            <div class="wizard-stepper" id="wizard-stepper">
+                <div class="forge-step" id="wiz-step-validate">
+                    <span class="forge-step-dot"></span>
+                    <span class="forge-step-label">Validate</span>
+                </div>
+                <div class="forge-step" id="wiz-step-install">
+                    <span class="forge-step-dot"></span>
+                    <span class="forge-step-label">Install</span>
+                </div>
+                <div class="forge-step" id="wiz-step-done">
+                    <span class="forge-step-dot"></span>
+                    <span class="forge-step-label">Done</span>
+                </div>
+            </div>
+            <div id="wizard-progress-bar-wrap" class="forge-progress-bar-wrap" style="display:none; margin-bottom: 8px;">
+                <div class="forge-progress-track">
+                    <div id="wizard-progress-fill" class="forge-progress-fill" style="width:0%"></div>
+                </div>
+                <span id="wizard-progress-label" class="forge-progress-label">0%</span>
+            </div>
+            <div class="terminal-container" style="margin-top: 8px;">
+                <div class="terminal-header">INSTALL LOG</div>
+                <div id="wizard-log" class="terminal-body" style="height: 200px;"></div>
+            </div>
+            <div id="wizard-install-error" class="alert-banner" style="display:none; margin-top: 10px;"></div>
+            <div class="modal-footer" style="justify-content: flex-end; margin-top: 16px;">
+                <button id="wizard-3-cancel-btn" class="btn btn-outline" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Step 4: Config editor + launch args + firewall ports (shared final step) -->
+        <div id="wizard-step-4" style="display:none;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+                <h3 id="wizard-4-title" style="margin: 0;">Review &amp; Add to RSM</h3>
+                <span id="wizard-4-game-label" style="font-size: 12px; color: var(--dim);"></span>
+            </div>
+
+            <!-- Config file tabs -->
+            <div id="step4-configs-section">
+                <div class="tiny-label" style="margin-bottom: 6px;">CONFIGURATION FILES</div>
+                <div id="step4-cfg-tabs" class="cfg-tabs" style="margin-bottom: 0;"></div>
+                <textarea id="step4-cfg-editor" class="wizard-cfg-editor" spellcheck="false"></textarea>
+                <div id="step4-cfg-path" style="font-size: 10px; color: var(--dim); margin-top: 4px; word-break: break-all;"></div>
+            </div>
+
+            <div id="step4-no-configs" style="display:none; margin-bottom: 14px;">
+                <p style="font-size: 12px; color: var(--dim); margin: 0;">No config files found. Configure the server using the launch arguments below.</p>
+            </div>
+
+            <!-- Launch arguments -->
+            <div class="input-block" style="margin-top: 14px;">
+                <label class="tiny-label">LAUNCH ARGUMENTS</label>
+                <textarea id="step4-launch-args" class="small-textarea" spellcheck="false" style="min-height: 72px;"></textarea>
+            </div>
+
+            <!-- External exe (Java games etc.) -->
+            <div id="step4-exe-block" class="input-block" style="display:none;">
+                <label class="tiny-label" id="step4-exe-label">EXECUTABLE PATH</label>
+                <div class="path-group">
+                    <input type="text" id="step4-exe-path" readonly placeholder="Click Browse to select...">
+                    <button class="btn btn-outline" onclick="window.browseStep4Exe()">Browse</button>
+                </div>
+            </div>
+
+            <!-- Firewall ports -->
+            <div id="step4-fw-ports-block" class="input-block" style="display:none;">
+                <label class="tiny-label">FIREWALL PORTS</label>
+                <p class="wizard-fw-note">Default ports for this game. Edit if your server uses non-standard ports.</p>
+                <div id="step4-fw-ports-rows" class="wizard-fw-rows"></div>
+            </div>
+
+            <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 20px;">
+                <button id="step4-add-btn" class="btn btn-primary" style="flex: 2;" onclick="window.registerWizardServer()">Add to RSM</button>
+                <button class="btn btn-outline" style="flex: 1;" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Edit server form (edit flow only, unchanged) -->
         <div id="wizard-step-2" style="display: none;">
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
                 <button class="btn-back btn-outline small" onclick="goBackToStep1()">← Back</button>
@@ -649,6 +875,7 @@
         </div>
     </div>
 </div>
+
 
 <script type="module" src="renderer.js"></script>
 </body>

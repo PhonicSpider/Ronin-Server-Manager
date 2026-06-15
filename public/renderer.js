@@ -110,6 +110,7 @@ async function init() {
 
     setInitStatus('Loading API settings...');
     await loadApiSettings();
+    await loadCitadelSettings();
 
     setInitStatus('Waiting for startup scan...');
     console.log('[RSM] init--renderer ready, awaiting startup scan');
@@ -1454,7 +1455,7 @@ window.openAddModal = () => {
     const form = document.querySelector('#wizard-step-2 form');
     if (form) form.reset();
 
-    window.showWizardStep(1);
+    window.showWizardStep(0);
     window.openModal();
 };
 
@@ -1467,21 +1468,10 @@ window.closeModal = () => {
     const fwBanner = document.getElementById('wizard-fw-conflict-banner');
     if (fwBanner) fwBanner.style.display = 'none';
     resetWizardSaveBtn();
-    window.showWizardStep(1);
+    window.showWizardStep(0);
 };
 
-// Swaps between Step 1 (game type cards) and Step 2 (config form)
-window.showWizardStep = (step) => {
-    const s1 = document.getElementById('wizard-step-1');
-    const s2 = document.getElementById('wizard-step-2');
-    if (step === 1) {
-        s1.style.display = 'block';
-        s2.style.display = 'none';
-    } else {
-        s1.style.display = 'none';
-        s2.style.display = 'block';
-    }
-};
+// showWizardStep and selectAddMethod are defined in the WIZARD section below
 
 // Triggered when a user clicks a game type card; configures the form for that game
 window.selectServerType = (type) => {
@@ -1580,6 +1570,10 @@ window.selectServerType = (type) => {
 
 window.goBackToStep1 = () => {
     window.showWizardStep(1);
+};
+
+window.goBackToStep0 = () => {
+    window.showWizardStep(0);
 };
 
 window.openActiveFolder = () => {
@@ -2162,6 +2156,98 @@ window.regenerateApiKey = async () => {
 };
 
 
+//       ____ ___ _____  _    ____  _____ _
+//      / ___|_ _|_   _|/ \  |  _ \| ____| |
+//     | |    | |  | | / _ \ | | | |  _| | |
+//     | |___ | |  | |/ ___ \| |_| | |___| |___
+//      \____|___| |_/_/   \_\____/|_____|_____|
+//
+
+let _citadelConfig = { enabled: false, portalUrl: '', agentToken: '' };
+
+async function loadCitadelSettings() {
+    try {
+        _citadelConfig = await window.api.invoke('get-citadel-config');
+    } catch (e) {
+        _citadelConfig = { enabled: false, portalUrl: '', agentToken: '' };
+    }
+    const enabledChk  = document.getElementById('citadel-enabled-chk');
+    const urlInput    = document.getElementById('citadel-url-input');
+    const tokenInput  = document.getElementById('citadel-token-input');
+    if (enabledChk) enabledChk.checked = !!_citadelConfig.enabled;
+    if (urlInput)   urlInput.value     = _citadelConfig.portalUrl  || '';
+    if (tokenInput) tokenInput.value   = _citadelConfig.agentToken || '';
+    _updateCitadelBodyOpacity(_citadelConfig.enabled);
+
+    const badge = document.getElementById('citadel-badge');
+    if (badge && (_citadelConfig.enabled || _citadelConfig.portalUrl)) {
+        badge.style.display = 'inline-block';
+    }
+}
+
+function _updateCitadelBodyOpacity(enabled) {
+    const body = document.getElementById('citadel-settings-body');
+    if (body) {
+        body.style.opacity       = enabled ? '1' : '0.5';
+        body.style.pointerEvents = enabled ? '' : 'none';
+    }
+}
+
+window.toggleCitadelEnabled = (enabled) => {
+    _citadelConfig.enabled = enabled;
+    _updateCitadelBodyOpacity(enabled);
+    const urlInput   = document.getElementById('citadel-url-input');
+    const tokenInput = document.getElementById('citadel-token-input');
+    _citadelConfig.portalUrl  = urlInput?.value.trim()   || _citadelConfig.portalUrl;
+    _citadelConfig.agentToken = tokenInput?.value.trim() || _citadelConfig.agentToken;
+    window.api.send('save-citadel-config', _citadelConfig);
+    window.updateSystemLog(`Citadel Portal ${enabled ? 'enabled — connecting…' : 'disabled.'}`);
+    const badge = document.getElementById('citadel-badge');
+    if (badge) badge.style.display = 'inline-block';
+};
+
+window.saveCitadelSettings = () => {
+    const urlInput   = document.getElementById('citadel-url-input');
+    const tokenInput = document.getElementById('citadel-token-input');
+    _citadelConfig.portalUrl  = urlInput?.value.trim()   || '';
+    _citadelConfig.agentToken = tokenInput?.value.trim() || '';
+    window.api.send('save-citadel-config', _citadelConfig);
+    window.updateSystemLog('Citadel Portal settings saved.');
+};
+
+// IPC listener: main.js → renderer whenever connection state changes
+window.api.receive('citadel-status', (status) => {
+    const badge      = document.getElementById('citadel-badge');
+    const statusText = document.getElementById('citadel-status-text');
+
+    if (badge) {
+        badge.style.display = 'inline-block';
+        badge.classList.remove('citadel-connecting', 'citadel-connected');
+        if (status === 'connected') {
+            badge.classList.add('citadel-connected');
+            badge.title = 'Ronin Citadel Portal — Connected';
+        } else if (status === 'connecting') {
+            badge.classList.add('citadel-connecting');
+            badge.title = 'Ronin Citadel Portal — Connecting…';
+        } else {
+            badge.title = 'Ronin Citadel Portal — Disconnected (click to configure)';
+        }
+    }
+
+    if (statusText) {
+        const labels = { connected: 'Connected', connecting: 'Connecting…', disconnected: 'Disconnected' };
+        statusText.textContent = labels[status] || status;
+        statusText.style.color = status === 'connected' ? 'var(--success)' : status === 'connecting' ? '#e6a817' : 'var(--dim)';
+    }
+});
+
+// Badge click → open settings view
+document.addEventListener('DOMContentLoaded', () => {
+    const badge = document.getElementById('citadel-badge');
+    if (badge) badge.addEventListener('click', () => showView('settings'));
+});
+
+
 //      ____  __   ____  _____ _______  __  _     ___   ____
 //     / ___| \ \ / / /_|_   _| ____| \/ / | |   / _ \ / ___|
 //     \___ \  \ V /  ___|| | |  _|  /  /  | |  | | | | |  _
@@ -2236,3 +2322,394 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+
+//      __        _____ _____    _    ____  ____
+//      \ \      / /_ _|__  /   / \  |  _ \|  _ \
+//       \ \ /\ / / | |  / /   / _ \ | |_) | | | |
+//        \ V  V /  | | / /_  / ___ \|  _ <| |_| |
+//         \_/\_/  |___/____\/_/   \_\_| \_\____/
+//
+//  Unified add-server wizard (Install New + Add Existing share the same modal)
+// ─────────────────────────────────────────────────────────────────────────────
+
+let wizardInstallMode  = false;   // true = Install New, false = Add Existing
+let wizardSelectedSlug = null;
+let wizardInstallRoot  = '';
+let wizardInstallDir   = null;    // set after install or after browsing existing folder
+let wizardStep4Data    = null;    // { configFiles, gameSlug, serverName }
+let wizardInstalling   = false;
+
+// Install progress callbacks -- registered once here, set per-install below to avoid listener accumulation
+let _wizLogCb      = null;
+let _wizPhaseCb    = null;
+let _wizProgressCb = null;
+window.api.receive('forge:log',      (...a) => _wizLogCb      && _wizLogCb(...a));
+window.api.receive('forge:phase',    (...a) => _wizPhaseCb    && _wizPhaseCb(...a));
+window.api.receive('forge:progress', (...a) => _wizProgressCb && _wizProgressCb(...a));
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+
+(async () => {
+    wizardInstallRoot = localStorage.getItem('forge-install-root')
+        || await window.api.invoke('forge:get-install-root')
+        || '';
+    const el = document.getElementById('install-folder-input');
+    if (el) el.value = wizardInstallRoot;
+})();
+
+// ── Settings panel browse button ─────────────────────────────────────────────
+
+window.browseInstallFolder = async () => {
+    const selected = await window.api.invoke('select-folder');
+    if (!selected) return;
+    wizardInstallRoot = selected;
+    localStorage.setItem('forge-install-root', wizardInstallRoot);
+    const el = document.getElementById('install-folder-input');
+    if (el) el.value = wizardInstallRoot;
+};
+
+// ── showWizardStep -- handles all steps 0/1/2/2a/2b/3/4 ─────────────────────
+
+window.showWizardStep = (step) => {
+    const all = ['0','1','2','2a','2b','3','4'];
+    for (const s of all) {
+        const el = document.getElementById(`wizard-step-${s}`);
+        if (el) el.style.display = 'none';
+    }
+    const target = document.getElementById(`wizard-step-${step}`);
+    if (target) target.style.display = 'block';
+};
+
+// ── Step 0: method choice ────────────────────────────────────────────────────
+
+window.selectAddMethod = async (method) => {
+    wizardInstallMode  = (method === 'install');
+    wizardSelectedSlug = null;
+    wizardInstallDir   = null;
+
+    const games = await window.api.invoke('forge:get-games', { mode: wizardInstallMode ? 'install' : 'existing' });
+    renderWizardGameGrid(games);
+
+    const titleEl    = document.getElementById('wizard-step1-title');
+    const subtitleEl = document.getElementById('wizard-step1-subtitle');
+    const customEl   = document.getElementById('wizard-step1-custom');
+
+    if (titleEl)    titleEl.textContent    = wizardInstallMode ? 'Select Game to Install' : 'Select Game Type';
+    if (subtitleEl) subtitleEl.textContent = wizardInstallMode
+        ? 'RSM will download and install the server files automatically using SteamCMD.'
+        : 'Select the game type that matches your existing server installation.';
+    if (customEl)   customEl.style.display = wizardInstallMode ? 'none' : 'block';
+
+    window.showWizardStep(1);
+};
+
+// ── Step 1: game picker ───────────────────────────────────────────────────────
+
+function renderWizardGameGrid (games) {
+    const grid = document.getElementById('wizard-game-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    for (const game of games) {
+        const card = document.createElement('div');
+        card.className = 'wizard-game-card';
+        const icon = game.icon && game.icon.includes('/')
+            ? `<img src="${game.icon}" class="wizard-game-icon-img">`
+            : `<span class="wizard-game-icon">${game.icon || '🎮'}</span>`;
+        card.innerHTML = `${icon}<span class="wizard-game-name">${game.displayName}</span>`;
+        card.onclick = () => window.selectWizardGame(game.slug);
+        grid.appendChild(card);
+    }
+}
+
+window.selectWizardGame = (slug) => {
+    wizardSelectedSlug = slug;
+    if (wizardInstallMode) {
+        const nameEl = document.getElementById('step2a-server-name');
+        if (nameEl) nameEl.value = '';
+        window.updateStep2aPath();
+        const titleEl = document.getElementById('wizard-2a-title');
+        if (titleEl) titleEl.textContent = `Install: ${wizardSelectedSlug}`;
+        window.showWizardStep('2a');
+    } else {
+        document.getElementById('step2b-server-name').value = '';
+        document.getElementById('step2b-folder-path').value = '';
+        document.getElementById('step2b-exe-path').value    = '';
+        window.showWizardStep('2b');
+    }
+};
+
+// ── Step 2a: install mode ─────────────────────────────────────────────────────
+
+window.updateStep2aPath = () => {
+    const name = (document.getElementById('step2a-server-name') || {}).value || '';
+    const safe = name.trim().replace(/\s+/g, '-') || 'My-Server';
+    const pathEl = document.getElementById('step2a-install-path');
+    if (pathEl) pathEl.value = wizardInstallRoot ? `${wizardInstallRoot}\\${safe}` : '';
+};
+
+window.browseStep2aRoot = async () => {
+    const selected = await window.api.invoke('select-folder');
+    if (!selected) return;
+    wizardInstallRoot = selected;
+    localStorage.setItem('forge-install-root', wizardInstallRoot);
+    const settingsEl = document.getElementById('install-folder-input');
+    if (settingsEl) settingsEl.value = wizardInstallRoot;
+    window.updateStep2aPath();
+};
+
+window.beginWizardInstall = async () => {
+    const serverName = (document.getElementById('step2a-server-name') || {}).value.trim();
+    if (!serverName) { alert('Enter a server name.'); return; }
+
+    wizardInstalling = true;
+    document.getElementById('step2a-begin-btn').disabled = true;
+
+    const logEl  = document.getElementById('wizard-log');
+    const errEl  = document.getElementById('wizard-install-error');
+    const fillEl = document.getElementById('wizard-progress-fill');
+    const lblEl  = document.getElementById('wizard-progress-label');
+
+    if (logEl)  logEl.innerHTML = '';
+    if (errEl)  errEl.style.display = 'none';
+    if (fillEl) fillEl.style.width = '0%';
+    if (lblEl)  lblEl.textContent = '0%';
+
+    const stepper = document.getElementById('wizard-stepper');
+    const progBar = document.getElementById('wizard-progress-bar-wrap');
+    if (stepper) stepper.querySelectorAll('.forge-step').forEach(s => {
+        s.classList.remove('forge-step-active', 'forge-step-done');
+    });
+    window.showWizardStep(3);
+    document.getElementById('wizard-3-cancel-btn').disabled = true;
+
+    // Wire module-level callbacks (registered once at load -- avoids listener accumulation)
+    _wizLogCb = (line) => {
+        if (!logEl) return;
+        const d = document.createElement('div');
+        d.textContent = line;
+        logEl.appendChild(d);
+        logEl.scrollTop = logEl.scrollHeight;
+    };
+    _wizPhaseCb = (phase) => {
+        const steps = { validate: 0, install: 1, done: 2 };
+        const cur = steps[phase] ?? -1;
+        ['wiz-step-validate','wiz-step-install','wiz-step-done'].forEach((id, i) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.classList.remove('forge-step-active', 'forge-step-done');
+            if (i < cur)        el.classList.add('forge-step-done');
+            else if (i === cur) el.classList.add('forge-step-active');
+        });
+        if (phase === 'install' && progBar) progBar.style.display = 'flex';
+    };
+    _wizProgressCb = (prog) => {
+        const pct = typeof prog.percent === 'number' ? prog.percent.toFixed(1) : 0;
+        if (fillEl) fillEl.style.width = `${pct}%`;
+        if (lblEl)  lblEl.textContent  = `${pct}%`;
+    };
+
+    const result = await window.api.invoke('forge:install', {
+        gameSlug:    wizardSelectedSlug,
+        serverName,
+        installRoot: wizardInstallRoot,
+    });
+
+    // Clear callbacks so stale events after install don't update a different wizard session
+    _wizLogCb = _wizPhaseCb = _wizProgressCb = null;
+
+    wizardInstalling = false;
+    document.getElementById('wizard-3-cancel-btn').disabled = false;
+
+    if (!result.success) {
+        if (errEl) { errEl.textContent = `Install failed: ${result.error}`; errEl.style.display = 'block'; }
+        return;
+    }
+
+    wizardInstallDir = result.installDir;
+    await loadStep4(wizardSelectedSlug, result.installDir, serverName);
+};
+
+// ── Step 2b: existing mode ────────────────────────────────────────────────────
+
+window.browseExistingFolder = async () => {
+    const selected = await window.api.invoke('select-folder');
+    if (!selected) return;
+    const pathEl = document.getElementById('step2b-folder-path');
+    if (pathEl) pathEl.value = selected;
+};
+
+window.browseStep2bExe = async () => {
+    const selected = await window.api.invoke('open-dialog');
+    if (selected) document.getElementById('step2b-exe-path').value = selected;
+};
+
+window.proceedStep2b = async () => {
+    const serverName = (document.getElementById('step2b-server-name') || {}).value.trim();
+    const folder     = (document.getElementById('step2b-folder-path') || {}).value.trim();
+    if (!serverName) { alert('Enter a server name.'); return; }
+    if (!folder)     { alert('Browse to your server folder.'); return; }
+    wizardInstallDir = folder;
+    await loadStep4(wizardSelectedSlug, folder, serverName);
+};
+
+// ── Step 4: config editor + launch args + firewall ports ─────────────────────
+
+async function loadStep4 (gameSlug, installDir, serverName) {
+    const titleEl = document.getElementById('wizard-4-title');
+    const lblEl   = document.getElementById('wizard-4-game-label');
+    if (titleEl) titleEl.textContent = serverName;
+
+    const parsed = await window.api.invoke('forge:parse-config', { gameSlug, installDir });
+    if (!parsed || !parsed.success) {
+        console.warn('[Wizard] forge:parse-config failed:', parsed && parsed.error);
+    }
+
+    const configFiles   = (parsed && parsed.configFiles)  || [];
+    const defaultArgs   = (parsed && parsed.defaults && parsed.defaults.args)          || '';
+    const defaultPorts  = (parsed && parsed.defaults && parsed.defaults.firewallPorts) || [];
+    const parsedArgs    = (parsed && parsed.parsed  && parsed.parsed.args)             || '';
+
+    if (lblEl) lblEl.textContent = gameSlug || '';
+
+    // Store for register step
+    wizardStep4Data = { gameSlug, installDir, serverName, configFiles };
+
+    // Config tabs
+    const cfgSection = document.getElementById('step4-configs-section');
+    const noConfigs  = document.getElementById('step4-no-configs');
+    const tabsEl     = document.getElementById('step4-cfg-tabs');
+    const editorEl   = document.getElementById('step4-cfg-editor');
+    const pathLbl    = document.getElementById('step4-cfg-path');
+
+    if (configFiles.length > 0) {
+        if (cfgSection) cfgSection.style.display = 'block';
+        if (noConfigs)  noConfigs.style.display  = 'none';
+        tabsEl.innerHTML = '';
+        configFiles.forEach((cf, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'cfg-tab' + (i === 0 ? ' cfg-tab-active' : '');
+            btn.textContent = cf.label;
+            btn.onclick = () => {
+                editorEl.value = cf.content || '';
+                if (pathLbl) pathLbl.textContent = cf.filePath;
+                tabsEl.querySelectorAll('.cfg-tab').forEach((t, ti) => t.classList.toggle('cfg-tab-active', ti === i));
+                // Keep content in sync when switching tabs
+                configFiles[i].content = editorEl.value;
+            };
+            tabsEl.appendChild(btn);
+        });
+        editorEl.value = configFiles[0].content || '';
+        // Track edits back into configFiles array so saves work
+        editorEl.oninput = () => {
+            const activeIdx = [...tabsEl.querySelectorAll('.cfg-tab')].findIndex(t => t.classList.contains('cfg-tab-active'));
+            if (activeIdx >= 0) configFiles[activeIdx].content = editorEl.value;
+        };
+        if (pathLbl) pathLbl.textContent = configFiles[0].filePath;
+    } else {
+        if (cfgSection) cfgSection.style.display = 'none';
+        if (noConfigs)  noConfigs.style.display  = 'block';
+    }
+
+    // Launch args (prefer parsed from actual config, fall back to game defaults)
+    const argsEl = document.getElementById('step4-launch-args');
+    if (argsEl) argsEl.value = parsedArgs || defaultArgs;
+
+    // External exe block (Java games etc.)
+    const exeBlock = document.getElementById('step4-exe-block');
+    const exeLabel = document.getElementById('step4-exe-label');
+    // If the 2b flow already has an exe path, pre-fill it
+    const existingExe = (document.getElementById('step2b-exe-path') || {}).value || '';
+    if (existingExe) {
+        if (exeBlock) exeBlock.style.display = 'block';
+        document.getElementById('step4-exe-path').value = existingExe;
+    } else {
+        if (exeBlock) exeBlock.style.display = 'none';
+    }
+
+    // Firewall ports
+    const fwBlock = document.getElementById('step4-fw-ports-block');
+    const fwRows  = document.getElementById('step4-fw-ports-rows');
+    if (defaultPorts.length > 0 && fwRows) {
+        if (fwBlock) fwBlock.style.display = 'block';
+        fwRows.innerHTML = '';
+        for (const port of defaultPorts) {
+            const row = document.createElement('div');
+            row.className = 'wizard-fw-row';
+            row.dataset.portId = port.id;
+            row.innerHTML =
+                `<span class="wizard-fw-label">${port.label}</span>` +
+                `<input type="number" class="wizard-fw-input" value="${port.default}" min="1" max="65535">` +
+                `<span class="wizard-fw-proto">${[port.tcp && 'TCP', port.udp && 'UDP'].filter(Boolean).join('/')}</span>`;
+            fwRows.appendChild(row);
+        }
+    } else {
+        if (fwBlock) fwBlock.style.display = 'none';
+    }
+
+    window.showWizardStep(4);
+}
+
+window.browseStep4Exe = async () => {
+    const selected = await window.api.invoke('open-dialog');
+    if (selected) document.getElementById('step4-exe-path').value = selected;
+};
+
+// Save edited config files before registering
+async function saveStep4Configs () {
+    if (!wizardStep4Data) return;
+    const editorEl = document.getElementById('step4-cfg-editor');
+    const tabsEl   = document.getElementById('step4-cfg-tabs');
+    if (!editorEl || !tabsEl) return;
+    // Flush current tab content back into data array
+    const activeIdx = [...tabsEl.querySelectorAll('.cfg-tab')].findIndex(t => t.classList.contains('cfg-tab-active'));
+    if (activeIdx >= 0 && wizardStep4Data.configFiles[activeIdx]) {
+        wizardStep4Data.configFiles[activeIdx].content = editorEl.value;
+    }
+    // Write each file
+    for (const cf of wizardStep4Data.configFiles) {
+        if (cf.filePath && cf.content !== undefined) {
+            await window.api.invoke('write-config-file', { filePath: cf.filePath, content: cf.content, backupDir: null });
+        }
+    }
+}
+
+window.registerWizardServer = async () => {
+    if (!wizardStep4Data) return;
+    const { gameSlug, installDir, serverName } = wizardStep4Data;
+
+    await saveStep4Configs();
+
+    const launchArgs      = (document.getElementById('step4-launch-args') || {}).value || '';
+    const exePath         = (document.getElementById('step4-exe-path')    || {}).value || null;
+    const fwRows          = document.querySelectorAll('#step4-fw-ports-rows .wizard-fw-row');
+    const userFirewallPorts = [...fwRows].map(row => ({
+        id:      row.dataset.portId,
+        label:   row.querySelector('.wizard-fw-label') && row.querySelector('.wizard-fw-label').textContent,
+        default: parseInt(row.querySelector('.wizard-fw-input').value, 10),
+    }));
+
+    document.getElementById('step4-add-btn').disabled = true;
+    document.getElementById('step4-add-btn').textContent = 'Adding...';
+
+    const result = await window.api.invoke('forge:register', {
+        gameSlug,
+        installDir,
+        serverName,
+        exePath:         exePath || null,
+        launchArgs,
+        userFirewallPorts: userFirewallPorts.length ? userFirewallPorts : null,
+    });
+
+    document.getElementById('step4-add-btn').disabled = false;
+    document.getElementById('step4-add-btn').textContent = 'Add to RSM';
+
+    if (!result.success) {
+        alert(`Failed to add server: ${result.error}`);
+        return;
+    }
+
+    closeModal();
+    SystemLog(`Server "${serverName}" added to RSM.`);
+    window.showView('home');
+};

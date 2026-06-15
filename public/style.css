@@ -87,6 +87,22 @@ body {
     height: 24px;
 }
 
+#citadel-badge {
+    background: #444;
+    transition: background 0.3s ease;
+}
+#citadel-badge.citadel-connecting {
+    background: #7a5200;
+    animation: citadel-pulse 1.4s ease-in-out infinite;
+}
+#citadel-badge.citadel-connected {
+    background: var(--success);
+}
+@keyframes citadel-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.55; }
+}
+
 sidebar-footer {
     margin-top: auto;
     padding-top: 20px;
@@ -1908,3 +1924,278 @@ textarea:focus {
     max-width: 480px;
     text-align: center;
 }
+
+
+/* ══════════════════════════════════════════════════════════════════
+    ADD SERVER - STEP 0 (METHOD CHOICE)
+   ══════════════════════════════════════════════════════════════════ */
+
+.add-method-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.add-method-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    background: rgba(var(--card-color), 0.04);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 18px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.add-method-card:hover {
+    background: rgba(var(--card-color), 0.08);
+    border-color: var(--accent);
+}
+
+.add-method-card .add-method-icon {
+    font-size: 36px;
+    display: block;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+}
+
+.add-method-card h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 6px;
+}
+
+.add-method-card p {
+    font-size: 12px;
+    color: var(--dim);
+    margin: 0;
+    line-height: 1.4;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+    WIZARD - GAME PICKER GRID
+   ══════════════════════════════════════════════════════════════════ */
+
+.wizard-game-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.wizard-game-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: rgba(var(--card-color), 0.04);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 10px;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.wizard-game-card:hover {
+    background: rgba(var(--card-color), 0.08);
+    border-color: var(--accent);
+}
+
+.wizard-game-icon {
+    font-size: 26px;
+    line-height: 1;
+}
+
+.wizard-game-icon-img {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+.wizard-game-name {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+/* ── Config editor textarea in step 4 ─────────────────────────── */
+
+.wizard-cfg-editor {
+    width: 100%;
+    min-height: 180px;
+    max-height: 300px;
+    resize: vertical;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    padding: 10px 12px;
+    color: var(--text);
+    outline: none;
+    box-sizing: border-box;
+}
+
+/* ── Phase stepper (shared with install progress step 3) ──────── */
+
+.wizard-stepper {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    margin: 16px 0 12px;
+}
+
+/* ---- Phase Stepper (forge-step* classes reused in wizard step 3) ---- */
+
+.forge-stepper {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    margin: 16px 0 12px;
+}
+
+.forge-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    position: relative;
+}
+
+.forge-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 11px;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: var(--border);
+    z-index: 0;
+}
+
+.forge-step-done:not(:last-child)::after {
+    background: var(--success);
+}
+
+.forge-step-dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: rgb(var(--bg-color));
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    margin-bottom: 6px;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.forge-step-active .forge-step-dot {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+}
+
+.forge-step-done .forge-step-dot {
+    border-color: var(--success);
+    background: var(--success);
+}
+
+.forge-step-done .forge-step-dot::before {
+    content: '✓';
+    color: #fff;
+    font-size: 11px;
+}
+
+.forge-step-label {
+    font-size: 11px;
+    color: var(--dim);
+    text-transform: capitalize;
+    text-align: center;
+}
+
+.forge-step-active .forge-step-label {
+    color: var(--accent);
+}
+
+.forge-step-done .forge-step-label {
+    color: var(--success);
+}
+
+/* ---- Progress Bar ---- */
+
+.forge-progress-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.forge-progress-track {
+    flex: 1;
+    height: 6px;
+    background: rgba(var(--card-color), 0.08);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.forge-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.forge-progress-label {
+    font-size: 12px;
+    color: var(--dim);
+    min-width: 38px;
+    text-align: right;
+}
+
+/* ---- Log Terminal ---- */
+
+.forge-log-container {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: 'Consolas', 'Courier New', monospace;
+    margin-bottom: 12px;
+}
+
+.forge-log {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.forge-log div {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.65);
+    line-height: 1.4;
+    word-break: break-all;
+}
+
+/* ---- Error Banner ---- */
+
+.forge-error-banner {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #ef4444;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
