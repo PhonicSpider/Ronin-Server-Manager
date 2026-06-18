@@ -17,7 +17,6 @@ const crypto = require('crypto');
 const { spawn, exec, execSync } = require('child_process');
 const si = require('systeminformation');
 const os = require('os');
-const { isNullOrUndefined } = require('util');
 const axios = require('axios');
 const apiServer  = require('./api-server');
 const roninAgent = require('./ronin-agent');
@@ -276,6 +275,7 @@ function relinkServer(srv, pid, serviceName = null) {
                     const finalCpu = isNaN(cpuPercent) ? 0 : cpuPercent;
                     const finalRam = isNaN(ramPercent) ? 0 : ramPercent;
                     serverStats[srv.id] = { cpu: finalCpu, ramMB: memMB };
+                    roninAgent.notifyPerfUpdate(srv.id, finalCpu, memMB);
 
                     if (mainWindow && !mainWindow.isDestroyed()) {
                         mainWindow.webContents.send('server-perf-update', {
@@ -970,6 +970,7 @@ ipcMain.on('start-server', (event, srv) => {
                         const finalRam = isNaN(ramPercent) ? 0 : ramPercent;
 
                         serverStats[srvId] = { cpu: finalCpu, ramMB: memMB };
+                        roninAgent.notifyPerfUpdate(srvId, finalCpu, memMB);
 
                         if (mainWindow && !mainWindow.isDestroyed()) {
                             mainWindow.webContents.send('server-perf-update', {
