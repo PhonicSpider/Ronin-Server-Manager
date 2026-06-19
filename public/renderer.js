@@ -2163,20 +2163,22 @@ window.regenerateApiKey = async () => {
 //      \____|___| |_/_/   \_\____/|_____|_____|
 //
 
-let _citadelConfig = { enabled: false, portalUrl: '', agentToken: '' };
+let _citadelConfig = { enabled: false, portalUrl: '', agentToken: '', citadelApiUrl: '' };
 
 async function loadCitadelSettings() {
     try {
         _citadelConfig = await window.api.invoke('get-citadel-config');
     } catch (e) {
-        _citadelConfig = { enabled: false, portalUrl: '', agentToken: '' };
+        _citadelConfig = { enabled: false, portalUrl: '', agentToken: '', citadelApiUrl: '' };
     }
     const enabledChk  = document.getElementById('citadel-enabled-chk');
     const urlInput    = document.getElementById('citadel-url-input');
     const tokenInput  = document.getElementById('citadel-token-input');
+    const apiUrlInput = document.getElementById('citadel-api-url-input');
     if (enabledChk) enabledChk.checked = !!_citadelConfig.enabled;
     if (urlInput)   urlInput.value     = _citadelConfig.portalUrl  || '';
     if (tokenInput) tokenInput.value   = _citadelConfig.agentToken || '';
+    if (apiUrlInput) apiUrlInput.value = _citadelConfig.citadelApiUrl || '';
     _updateCitadelBodyOpacity(_citadelConfig.enabled);
 
     const badge = document.getElementById('citadel-badge');
@@ -2198,8 +2200,10 @@ window.toggleCitadelEnabled = (enabled) => {
     _updateCitadelBodyOpacity(enabled);
     const urlInput   = document.getElementById('citadel-url-input');
     const tokenInput = document.getElementById('citadel-token-input');
-    _citadelConfig.portalUrl  = urlInput?.value.trim()   || _citadelConfig.portalUrl;
-    _citadelConfig.agentToken = tokenInput?.value.trim() || _citadelConfig.agentToken;
+    const apiUrlInput = document.getElementById('citadel-api-url-input');
+    _citadelConfig.portalUrl     = urlInput?.value.trim()   || _citadelConfig.portalUrl;
+    _citadelConfig.agentToken    = tokenInput?.value.trim() || _citadelConfig.agentToken;
+    _citadelConfig.citadelApiUrl = apiUrlInput?.value.trim() ?? _citadelConfig.citadelApiUrl;
     window.api.send('save-citadel-config', _citadelConfig);
     window.updateSystemLog(`Citadel Portal ${enabled ? 'enabled — connecting…' : 'disabled.'}`);
     const badge = document.getElementById('citadel-badge');
@@ -2209,8 +2213,10 @@ window.toggleCitadelEnabled = (enabled) => {
 window.saveCitadelSettings = () => {
     const urlInput   = document.getElementById('citadel-url-input');
     const tokenInput = document.getElementById('citadel-token-input');
-    _citadelConfig.portalUrl  = urlInput?.value.trim()   || '';
-    _citadelConfig.agentToken = tokenInput?.value.trim() || '';
+    const apiUrlInput = document.getElementById('citadel-api-url-input');
+    _citadelConfig.portalUrl     = urlInput?.value.trim()   || '';
+    _citadelConfig.agentToken    = tokenInput?.value.trim() || '';
+    _citadelConfig.citadelApiUrl = apiUrlInput?.value.trim() || '';
     window.api.send('save-citadel-config', _citadelConfig);
     window.updateSystemLog('Citadel Portal settings saved.');
 };

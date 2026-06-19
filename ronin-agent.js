@@ -5,6 +5,7 @@
 // then start() / stop() to connect / disconnect.
 
 const crypto = require('crypto');
+const fs     = require('fs');
 
 // ── Injected dependencies ──────────────────────────────────────────────────
 let _getManagedServers;
@@ -44,10 +45,12 @@ function init(deps) {
     _app                = deps.app;
 }
 
-function start(portalUrl, agentToken) {
+function start(portalUrl, agentToken, citadelApiUrl) {
     _stopping    = false;
     _portalUrl   = (portalUrl  || '').trim();
     _agentToken  = (agentToken || '').trim();
+    // Game-library REST calls use citadelApiUrl when provided, else the portal URL.
+    setApiBase(citadelApiUrl || portalUrl);
 
     if (!_portalUrl || !_agentToken) {
         console.warn('[Citadel] Cannot start: portalUrl or agentToken not set');
@@ -278,4 +281,105 @@ function _makeReplyEvent() {
     };
 }
 
-module.exports = { init, start, stop, isConnected, notifyStatusChange, notifyPerfUpdate };
+// ── Citadel game-library client ──────────────────────────────────────────────
+// Reads the published game-server file repository over HTTPS. citadelApiUrl (or
+// portalUrl as fallback) + the agent token authorise these calls. Designed so a
+// Game/Version/Variant picker UI can call fetchGameLibrary() / fetchGameVersions()
+// and downloadGameVersion() — the latter verifies SHA-256 before returning.
+
+let _apiBase = '';
+
+function setApiBase(url) {
+    _apiBase = (url || '').trim().replace(/\/+$/, '');
+}
+
+function _apiUrl(p) {
+    const base = _apiBase || _portalUrl.replace(/\/+$/, '');
+    return base + p;
+}
+
+async function _apiGet(p) {
+    if (typeof fetch !== 'function') throw new Error('fetch is unavailable in this runtime.');
+    const res = await fetch(_apiUrl(p), { headers: { Authorization: `Bearer ${_agentToken}` } });
+    if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Citadel API error (${res.status})`);
+    }
+    return res.json();
+}
+
+// GET /api/games — published builds grouped by game type.
+async function fetchGameLibrary() {
+    const data = await _apiGet('/api/games');
+    return data.games || [];
+}
+
+// GET /api/games/:game/versions — published versions for one game.
+async function fetchGameVersions(game) {
+    const data = await _apiGet(`/api/games/${encodeURIComponent(game)}/versions`);
+    return data.versions || [];
+}
+
+// POST /api/games/:game/versions/:id/download → presigned URL + sha256, then
+// download to destPath and verify integrity. Deletes the file + throws on mismatch.
+async function downloadGameVersion(game, versionId, destPath, onProgress = () => {}) {
+    if (typeof fetch !== 'function') throw new Error('fetch is unavailable in this runtime.');
+    const res = await fetch(
+        _apiUrl(`/api/games/${encodeURIComponent(game)}/versions/${encodeURIComponent(versionId)}/download`),
+        { method: 'POST', headers: { Authorization: `Bearer ${_agentToken}` } }
+    );
+    if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Citadel download request failed (${res.status})`);
+    }
+    const { url, sha256 } = await res.json();
+    if (!url || !sha256) throw new Error('Citadel download response missing url or sha256.');
+
+    await _downloadToFile(url, destPath, onProgress);
+
+    const actual = await _sha256File(destPath);
+    if (actual.toLowerCase() !== String(sha256).toLowerCase()) {
+        try { fs.unlinkSync(destPath); } catch {}
+        throw new Error(`SHA-256 mismatch — expected ${sha256}, got ${actual}. Download deleted.`);
+    }
+    return { destPath, sha256: actual };
+}
+
+function _downloadToFile(fileUrl, destPath, onProgress) {
+    return new Promise((resolve, reject) => {
+        const proto = fileUrl.startsWith('https') ? require('https') : require('http');
+        const file = fs.createWriteStream(destPath);
+        const req = proto.get(fileUrl, (resp) => {
+            if ((resp.statusCode || 0) >= 300) {
+                file.close();
+                try { fs.unlinkSync(destPath); } catch {}
+                return reject(new Error(`Download failed: HTTP ${resp.statusCode}`));
+            }
+            const total = parseInt(resp.headers['content-length'] || '0', 10);
+            let received = 0;
+            resp.on('data', (chunk) => {
+                received += chunk.length;
+                if (total) { try { onProgress(received / total); } catch {} }
+            });
+            resp.pipe(file);
+            file.on('finish', () => file.close(() => resolve()));
+            file.on('error', (err) => { try { fs.unlinkSync(destPath); } catch {} reject(err); });
+        });
+        req.on('error', (err) => { try { fs.unlinkSync(destPath); } catch {} reject(err); });
+    });
+}
+
+function _sha256File(filePath) {
+    return new Promise((resolve, reject) => {
+        const hash = crypto.createHash('sha256');
+        const stream = fs.createReadStream(filePath);
+        stream.on('data', (d) => hash.update(d));
+        stream.on('end', () => resolve(hash.digest('hex')));
+        stream.on('error', reject);
+    });
+}
+
+module.exports = {
+    init, start, stop, isConnected, notifyStatusChange, notifyPerfUpdate,
+    setApiBase, fetchGameLibrary, fetchGameVersions, downloadGameVersion,
+};

@@ -552,7 +552,7 @@ app.whenReady().then(() => {
     // Boot the Citadel agent if configured
     const citadelCfg = loadCitadelConfig();
     if (citadelCfg.enabled && citadelCfg.portalUrl && citadelCfg.agentToken) {
-        roninAgent.start(citadelCfg.portalUrl, citadelCfg.agentToken);
+        roninAgent.start(citadelCfg.portalUrl, citadelCfg.agentToken, citadelCfg.citadelApiUrl);
         console.log('[RSM] Citadel agent started');
     } else {
         console.log('[RSM] Citadel agent disabled -- skipping startup');
@@ -2459,7 +2459,7 @@ function loadCitadelConfig() {
             console.error('[RSM] Failed to load citadel-agent.json:', e);
         }
     }
-    return { enabled: false, portalUrl: '', agentToken: '' };
+    return { enabled: false, portalUrl: '', agentToken: '', citadelApiUrl: '' };
 }
 
 function saveCitadelConfig(config) {
@@ -2473,8 +2473,48 @@ ipcMain.on('save-citadel-config', (event, config) => {
     console.log(`[RSM] save-citadel-config -- enabled: ${config.enabled}`);
     saveCitadelConfig(config);
     if (config.enabled && config.portalUrl && config.agentToken) {
-        roninAgent.start(config.portalUrl, config.agentToken);
+        roninAgent.start(config.portalUrl, config.agentToken, config.citadelApiUrl);
     } else {
         roninAgent.stop();
+    }
+});
+
+// ── Citadel game-library (file repository) ─────────────────────────────────────
+// These expose the published game-server build catalog to the renderer. If the
+// portal is unreachable they resolve with { ok: false, error } so the UI can fall
+// back to manual mode instead of throwing.
+
+ipcMain.handle('citadel-game-library', async () => {
+    try {
+        const cfg = loadCitadelConfig();
+        roninAgent.setApiBase(cfg.citadelApiUrl || cfg.portalUrl);
+        const games = await roninAgent.fetchGameLibrary();
+        return { ok: true, games };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+});
+
+ipcMain.handle('citadel-game-versions', async (_event, game) => {
+    try {
+        const cfg = loadCitadelConfig();
+        roninAgent.setApiBase(cfg.citadelApiUrl || cfg.portalUrl);
+        const versions = await roninAgent.fetchGameVersions(game);
+        return { ok: true, versions };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+});
+
+ipcMain.handle('citadel-download-version', async (event, { game, versionId, destPath }) => {
+    try {
+        const cfg = loadCitadelConfig();
+        roninAgent.setApiBase(cfg.citadelApiUrl || cfg.portalUrl);
+        const result = await roninAgent.downloadGameVersion(game, versionId, destPath, (pct) => {
+            if (!event.sender.isDestroyed()) event.sender.send('citadel-download-progress', { game, versionId, pct });
+        });
+        return { ok: true, ...result };
+    } catch (err) {
+        return { ok: false, error: err.message };
     }
 });
