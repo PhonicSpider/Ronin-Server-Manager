@@ -73,6 +73,11 @@ roninAgent.init({
         const win = mainWindow;
         if (win && !win.isDestroyed()) win.webContents.send('console-out', { id, msg });
     },
+    fetchServerPlayers: (srv) => {
+        const proc = activeProcesses[srv.id];
+        if (!proc) return Promise.reject(new Error('Server process not attached'));
+        return apiServer.fetchPlayers(srv, proc);
+    },
     getAppVersion: () => app.getVersion(),
     app,
 });

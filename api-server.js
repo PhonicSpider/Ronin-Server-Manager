@@ -765,4 +765,4 @@ async function fetchPlayers(srv, processInfo) {
     return { online: null, max: null, players: [], rawOutput: output.trim() };
 }
 
-module.exports = { init, start, stop, generateApiKey };
+module.exports = { init, start, stop, generateApiKey, fetchPlayers };
