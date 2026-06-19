@@ -56,9 +56,10 @@ apiServer.init({
     writeConfigFile:    _apiWriteConfigFile,
     listBackups:        _apiListBackups,
     // Forge proxy + app info
-    getForgeConfig:     _apiGetForgeConfig,
-    getAppVersion:      () => app.getVersion(),
-    restartApp:         () => { app.relaunch(); app.exit(0); },
+    getForgeConfig:        _apiGetForgeConfig,
+    registerForgeInstall:  _apiRegisterForgeInstall,
+    getAppVersion:         () => app.getVersion(),
+    restartApp:            () => { app.relaunch(); app.exit(0); },
 });
 
 roninAgent.init({
@@ -71,6 +72,11 @@ roninAgent.init({
     logConsoleOut: (id, msg) => {
         const win = mainWindow;
         if (win && !win.isDestroyed()) win.webContents.send('console-out', { id, msg });
+    },
+    fetchServerPlayers: (srv) => {
+        const proc = activeProcesses[srv.id];
+        if (!proc) return Promise.reject(new Error('Server process not attached'));
+        return apiServer.fetchPlayers(srv, proc);
     },
     getAppVersion: () => app.getVersion(),
     app,
@@ -556,6 +562,16 @@ app.whenReady().then(() => {
         console.log('[RSM] Citadel agent started');
     } else {
         console.log('[RSM] Citadel agent disabled -- skipping startup');
+    }
+
+    // Auto-discover the standalone Forge API and write forge-connection.json so
+    // the REST proxy works without manual configuration.  If Forge is not running
+    // yet, retry every 60 s until it appears.
+    if (!discoverForgeConnection()) {
+        console.log('[RSM] Forge not found at startup -- will retry every 60 s');
+        const _forgeDiscoveryTimer = setInterval(() => {
+            if (discoverForgeConnection()) clearInterval(_forgeDiscoveryTimer);
+        }, 60_000);
     }
 });
 
@@ -2433,8 +2449,64 @@ function _apiListBackups({ backupDir, serverType, serverName, fileName }) {
     }
 }
 
+// ── Forge install auto-register ───────────────────────────────────────────────
+// Called by api-server.js the first time it proxies a completed Forge job.
+// Looks up the game config from the registry and creates a server entry so the
+// installed server is immediately visible in RSM without any manual step.
+
+async function _apiRegisterForgeInstall(gameId, installDir, gameName) {
+    console.log(`[RSM] _apiRegisterForgeInstall -- game: ${gameId} | dir: ${installDir}`);
+    try {
+        const registry = await loadRegistry();
+        const game     = registry[gameId];
+        if (!game) {
+            console.warn(`[RSM] _apiRegisterForgeInstall -- unknown game slug: ${gameId}`);
+            return;
+        }
+
+        const resolvedName = gameName || game.meta.displayName;
+
+        // Skip if an entry with the same name + type already exists
+        if (managedServers.find(s => s.name === resolvedName && s.type === gameId)) {
+            console.log(`[RSM] _apiRegisterForgeInstall -- "${resolvedName}" already registered, skipping`);
+            return;
+        }
+
+        const resolvedExe = (game.forge && game.forge.relExe)
+            ? path.join(installDir, game.forge.relExe)
+            : '';
+
+        const entry = {
+            id:                `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            name:              resolvedName,
+            type:              gameId,
+            category:          (game.backend && game.backend.category)         || 'POWERSHELL_BRIDGE',
+            playerListCommand: (game.backend && game.backend.playerListCommand) || null,
+            path:              resolvedExe,
+            workingDir:        installDir,
+            args:              (game.defaults && game.defaults.customArgs)      || '',
+            apiPort:           '',
+            apiPass:           '',
+            logPath:           '',
+            firewallPorts:     game.firewallPorts || [],
+            status:            'Offline',
+            pid:               null,
+            logs:              '',
+        };
+
+        managedServers.push(entry);
+        fs.writeFileSync(DATA_FILE, JSON.stringify(managedServers, null, 2));
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('servers-updated', managedServers);
+        }
+        console.log(`[RSM] _apiRegisterForgeInstall -- registered "${entry.name}" (id: ${entry.id})`);
+    } catch (err) {
+        console.error(`[RSM] _apiRegisterForgeInstall -- error: ${err.message}`);
+    }
+}
+
 // ── Forge proxy config ────────────────────────────────────────────────────────
-// Reads forge-connection.json from RSM's userData directory.
+// forge-connection.json is written automatically by discoverForgeConnection().
 // Schema: { "url": "http://127.0.0.1:3003", "apiKey": "<key>" }
 
 function _apiGetForgeConfig() {
@@ -2443,6 +2515,41 @@ function _apiGetForgeConfig() {
         if (!fs.existsSync(p)) return null;
         return JSON.parse(fs.readFileSync(p, 'utf8'));
     } catch { return null; }
+}
+
+// ── Forge auto-discovery ──────────────────────────────────────────────────────
+// Searches known Forge userData locations for forge-api-config.json and writes
+// forge-connection.json into RSM's own userData so the REST proxy can use it
+// without any manual setup.  Called at startup and retried every 60 s until
+// Forge is found.
+
+const FORGE_CONNECTION_FILE = path.join(app.getPath('userData'), 'forge-connection.json');
+
+const FORGE_CANDIDATE_DIRS = [
+    path.join(app.getPath('appData'), 'Ronin-Forge'),
+    path.join(app.getPath('appData'), 'Ronin Forge'),
+    path.join(app.getPath('appData'), 'ronin-forge'),
+];
+
+function discoverForgeConnection() {
+    for (const dir of FORGE_CANDIDATE_DIRS) {
+        const cfgPath = path.join(dir, 'forge-api-config.json');
+        if (!fs.existsSync(cfgPath)) continue;
+        try {
+            const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+            if (!cfg.enabled || !cfg.apiKey) continue;
+            const connection = {
+                url:    `http://127.0.0.1:${cfg.port || 3003}`,
+                apiKey: cfg.apiKey,
+            };
+            fs.writeFileSync(FORGE_CONNECTION_FILE, JSON.stringify(connection, null, 2));
+            console.log(`[RSM] Forge auto-discovered at ${dir} -- forge-connection.json written (port ${cfg.port || 3003})`);
+            return true;
+        } catch (e) {
+            console.warn(`[RSM] discoverForgeConnection -- failed to parse ${cfgPath}:`, e.message);
+        }
+    }
+    return false;
 }
 
 // ── Citadel agent config ──────────────────────────────────────────────────────

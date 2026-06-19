@@ -16,6 +16,7 @@ let _findServType;
 let _ipcMain;
 let _logConsoleOut;
 let _getAppVersion;
+let _fetchServerPlayers;
 let _app;
 
 // ── Runtime state ──────────────────────────────────────────────────────────
@@ -41,7 +42,8 @@ function init(deps) {
     _findServType       = deps.findServType;
     _ipcMain            = deps.ipcMain;
     _logConsoleOut      = deps.logConsoleOut;
-    _getAppVersion      = deps.getAppVersion || (() => '?');
+    _getAppVersion      = deps.getAppVersion      || (() => '?');
+    _fetchServerPlayers = deps.fetchServerPlayers || null;
     _app                = deps.app;
 }
 
@@ -233,6 +235,27 @@ function _handleMessage(msg) {
             const lines = raw.split('\n');
             respond({ log: lines.slice(-200).join('\n'), totalLines: lines.length });
             break;
+        }
+
+        case 'kill': {
+            const srv = _getManagedServers().find(s => s.id === serverId);
+            if (!srv) { respond(null, 'Server not found'); break; }
+            const proc = _getActiveProcesses()[serverId];
+            if (!proc?.pid) { respond(null, 'Server is not running'); break; }
+            _ipcMain.emit('kill-server', _makeReplyEvent(), proc.pid);
+            respond({ message: `Kill signal sent to ${srv.name} (PID: ${proc.pid})` });
+            break;
+        }
+
+        case 'players': {
+            const srv = _getManagedServers().find(s => s.id === serverId);
+            if (!srv) { respond(null, 'Server not found'); break; }
+            if (srv.status !== 'Online') { respond(null, 'Server is not running'); break; }
+            if (!_fetchServerPlayers) { respond(null, 'Player fetch not available'); break; }
+            _fetchServerPlayers(srv)
+                .then(data => respond(data))
+                .catch(err  => respond(null, err.message));
+            return; // async path -- skip the default warn
         }
 
         default:

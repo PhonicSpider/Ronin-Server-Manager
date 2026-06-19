@@ -65,8 +65,12 @@ let _toggleFirewallRule;
 let _readConfigFile;
 let _writeConfigFile;
 let _listBackups;
-// Forge proxy config
+// Forge proxy config + post-install registration
 let _getForgeConfig;
+let _registerForgeInstall;
+
+// Jobs that have already been auto-registered so we only fire once per completed job
+const _registeredInstalls = new Set();
 // App info / control
 let _getAppVersion;
 let _restartApp;
@@ -97,7 +101,8 @@ function init(deps) {
     _readConfigFile     = deps.readConfigFile       || null;
     _writeConfigFile    = deps.writeConfigFile      || null;
     _listBackups        = deps.listBackups          || null;
-    _getForgeConfig     = deps.getForgeConfig       || null;
+    _getForgeConfig        = deps.getForgeConfig        || null;
+    _registerForgeInstall  = deps.registerForgeInstall  || null;
     _getAppVersion      = deps.getAppVersion        || (() => '?');
     _restartApp         = deps.restartApp           || null;
 }
@@ -318,7 +323,18 @@ function dispatch(req, res, body) {
         if (jobMatch) {
             if (m === 'GET') {
                 _forgeProxy('get', `/api/install/${jobMatch[1]}`)
-                    .then(r => send(res, r.status, r.body))
+                    .then(r => {
+                        // First time we see a completed job, auto-register it in RSM
+                        const jobId = jobMatch[1];
+                        if (r.status === 200 && r.body.status === 'done' && !_registeredInstalls.has(jobId)) {
+                            _registeredInstalls.add(jobId);
+                            if (_registerForgeInstall && r.body.gameId && r.body.installDir) {
+                                _registerForgeInstall(r.body.gameId, r.body.installDir, r.body.gameName)
+                                    .catch(e => console.error('[RSM-API] Auto-register after Forge install failed:', e.message));
+                            }
+                        }
+                        send(res, r.status, r.body);
+                    })
                     .catch(e => send(res, 502, { error: e.message }));
                 return;
             }
@@ -749,4 +765,4 @@ async function fetchPlayers(srv, processInfo) {
     return { online: null, max: null, players: [], rawOutput: output.trim() };
 }
 
-module.exports = { init, start, stop, generateApiKey };
+module.exports = { init, start, stop, generateApiKey, fetchPlayers };
