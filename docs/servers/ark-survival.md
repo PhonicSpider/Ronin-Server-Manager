@@ -1,7 +1,10 @@
 ﻿# material-paw: Ark: Survival {: .rsm-header }
 
 !!! abstract "RCON & PowerShell Integration"
-    Ark: Survival Evolved (and Ascended) runs as a persistent Windows process. Because it does not stream its console output to a standard window, RSM utilizes a **PowerShell Bridge** to tail the latest log files and uses the **RCON Protocol** to send administrative commands like kicks, bans, and broadcasts.
+    Ark: Survival Evolved runs as a persistent Windows process. Because it does not stream its console output to a standard window, RSM utilizes a **PowerShell Bridge** to tail the latest log files and uses the **RCON Protocol** to send administrative commands like kicks, bans, and broadcasts.
+
+!!! note "Running Ark: Survival Ascended instead?"
+    Ascended is a separate Steam app with a different executable (`ArkAscendedServer.exe`) and map naming (`TheIsland_WP`). This page's paths and defaults are specific to the original Evolved server -- see the [Ark: Survival Ascended guide](ark-survival-ascended.md) instead.
 
 ---
 

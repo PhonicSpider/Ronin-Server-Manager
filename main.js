@@ -1,5 +1,6 @@
 const { app, BrowserWindow, shell, ipcMain, dialog, Tray, Menu, Notification } = require('electron');
 const { Rcon } = require('rcon-client');
+const WebSocket = require('ws');
 
 // Prevent transient network errors (ECONNRESET, EPIPE) from crashing the main process.
 // These are expected when a game server closes its RCON socket mid-read (e.g. on shutdown).
@@ -1531,6 +1532,21 @@ ipcMain.on('send-command', async (event, { srvId, command }) => {
             sendConsoleOut(event, srvId, `[RSM-ERROR] SE API Failed: ${errorMsg}\n`);
         }
     }
+    // Rust (WebRCON) -- must be checked before the generic POWERSHELL_BRIDGE
+    // RCON branch below, since Rcon.connect() (Source RCON/TCP) cannot talk
+    // to Rust's WebSocket-based WebRCON server.
+    else if (srv.type === 'rust') {
+        if (!srv.apiPort || !srv.apiPass) {
+            sendConsoleOut(event, srvId, `[RSM-ERROR] WebRCON Port and Password are required to send commands.\n`);
+            return;
+        }
+        try {
+            const response = await sendRustWebRconCommand(parseInt(srv.apiPort), srv.apiPass, cleanCmd);
+            sendConsoleOut(event, srvId, `> ${cleanCmd}\n${response ? response + '\n' : ''}`);
+        } catch (err) {
+            sendConsoleOut(event, srvId, `[RSM-ERROR] WebRCON Failed: ${err.message}\n`);
+        }
+    }
     // RCON Protocol (Ark and other POWERSHELL_BRIDGE servers)
     else if (serverCategory === 'POWERSHELL_BRIDGE') {
         if (!srv.apiPort || !srv.apiPass) {
@@ -1563,6 +1579,44 @@ ipcMain.on('send-command', async (event, { srvId, command }) => {
     }
 });
 
+// Rust WebRCON: a WebSocket-based JSON protocol, distinct from the Source
+// RCON protocol rcon-client speaks. Connection format and message schema
+// confirmed against Facepunch's own reference client
+// (github.com/Facepunch/webrcon, gh-pages branch, js/rconService.js):
+// connect to ws://{host}:{port}/{password} (password is a raw URL path
+// segment, not a query param or post-connect auth message), then send
+// {Identifier, Message, Name: "WebRcon"} and match the response by
+// Identifier (values > 1000 are routed replies; <= 1000 are broadcast
+// console lines this client ignores).
+function sendRustWebRconCommand(port, password, command, timeoutMs = 3000) {
+    return new Promise((resolve, reject) => {
+        let settled = false;
+        const identifier = 1001 + Math.floor(Math.random() * 100000);
+        const ws = new WebSocket(`ws://127.0.0.1:${port}/${password}`);
+
+        const finish = (fn, arg) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            try { ws.terminate(); } catch (_) {}
+            fn(arg);
+        };
+
+        const timer = setTimeout(() => finish(reject, new Error('WebRCON timeout')), timeoutMs);
+
+        ws.on('open', () => {
+            ws.send(JSON.stringify({ Identifier: identifier, Message: command, Name: 'WebRcon' }));
+        });
+        ws.on('message', (data) => {
+            let parsed;
+            try { parsed = JSON.parse(data.toString()); } catch (_) { return; }
+            if (parsed.Identifier === identifier) finish(resolve, parsed.Message);
+        });
+        ws.on('error', (err) => finish(reject, err));
+        ws.on('close', () => finish(reject, new Error('WebRCON connection closed before response')));
+    });
+}
+
 // --- PLAYER COUNT & SESSION INFO ---
 ipcMain.on('get-player-count', async (event, srvId) => {
     const srv = managedServers.find(s => s.id === srvId);
@@ -1573,12 +1627,20 @@ ipcMain.on('get-player-count', async (event, srvId) => {
     }
 
     const type = (srv.type || '').toLowerCase();
-    console.log(`[RSM] get-player-count -- srvId: ${srvId} | type: ${type}`);
+    const serverCategory = findServType(srv);
+    console.log(`[RSM] get-player-count -- srvId: ${srvId} | type: ${type} | category: ${serverCategory}`);
 
-    // Minecraft: write 'list' to stdin; parsed in renderer's console-out handler
-    if (type === 'minecraft') {
+    // Minecraft, 7 Days to Die, Terraria: all DIRECT_CONSOLE games with a
+    // configured playerListCommand accepted via stdin. The response arrives
+    // as a normal console-out event and is parsed there (renderer.js) with a
+    // per-game regex, since each game's stdout format differs. Project
+    // Zomboid is also DIRECT_CONSOLE but is deliberately excluded here -- it
+    // exposes a genuine Source RCON server independent of its stdin console,
+    // and is handled by the generic RCON branch further down instead.
+    if (type === 'minecraft' || type === '7-days-to-die' || type === 'terraria') {
         const shell = processInfo.shell;
-        if (shell?.stdin?.writable) shell.stdin.write('list\n');
+        const cmd = srv.playerListCommand || 'list';
+        if (shell?.stdin?.writable) shell.stdin.write(cmd + '\n');
         return;
     }
 
@@ -1603,13 +1665,108 @@ ipcMain.on('get-player-count', async (event, srvId) => {
         return;
     }
 
-    // Ark: RCON 'ListPlayers' returns a plain-text list, one player per line
-    if (type === 'ark') {
+    // Palworld: REST API, not RCON. Palworld's RCON is officially deprecated
+    // and scheduled for removal (docs.palworldgame.com); the REST API is
+    // Pocketpair's own recommended replacement, so this uses it directly
+    // rather than routing through the generic RCON branch below. apiPort/
+    // apiPass here hold the REST API port (default 8212) and AdminPassword --
+    // see the comments in configs/palworld.js. Auth is HTTP Basic with a
+    // fixed username 'admin'.
+    if (type === 'palworld') {
         try {
-            const rcon = await Rcon.connect({ host: '127.0.0.1', port: parseInt(srv.apiPort) || 27020, password: srv.apiPass || '', timeout: 3000 });
+            const port = srv.apiPort || 8212;
+            const pass = srv.apiPass || '';
+            const headers = { Authorization: `Basic ${Buffer.from(`admin:${pass}`).toString('base64')}` };
+            const res = await axios.get(`http://127.0.0.1:${port}/v1/api/players`, { headers, timeout: 3000 });
+            const players = res.data?.players || [];
+            event.reply('player-count-update', {
+                id: srvId,
+                players: `${players.length} connected`,
+                world: null
+            });
+        } catch (_) {
+            event.reply('player-count-update', { id: srvId, players: null, world: null });
+        }
+        return;
+    }
+
+    // Satisfactory: HTTPS API, self-signed cert. Two calls are required --
+    // first log in (PasswordLogin if apiPass is set, else PasswordlessLogin
+    // for FG.DedicatedServer.AllowInsecureLocalAccess=1 setups) to get a
+    // bearer token, then QueryServerState with that token. Confirmed against
+    // the official Satisfactory wiki HTTPS API page, including the
+    // documented casing inconsistency between the two login functions'
+    // response field names.
+    if (type === 'satisfactory') {
+        try {
+            const port  = srv.apiPort || 7777;
+            const pass  = srv.apiPass || '';
+            const base  = `https://127.0.0.1:${port}/api/v1`;
+            const agent = new https.Agent({ rejectUnauthorized: false });
+
+            const loginBody = pass
+                ? { function: 'PasswordLogin', data: { MinimumPrivilegeLevel: 'Client', Password: pass } }
+                : { function: 'PasswordlessLogin', data: { MinimumPrivilegeLevel: 'Client' } };
+            const loginRes = await axios.post(base, loginBody, { httpsAgent: agent, timeout: 3000 });
+            const token = loginRes.data?.data?.AuthenticationToken || loginRes.data?.data?.authenticationToken;
+            if (!token) throw new Error('No auth token returned');
+
+            const stateRes = await axios.post(
+                base,
+                { function: 'QueryServerState', data: {} },
+                { httpsAgent: agent, timeout: 3000, headers: { Authorization: `Bearer ${token}` } }
+            );
+            const state = stateRes.data?.data?.serverGameState || {};
+            const count = state.numConnectedPlayers;
+            event.reply('player-count-update', {
+                id: srvId,
+                players: count !== undefined ? `${count} / ${state.playerLimit ?? '?'}` : null,
+                world: null
+            });
+        } catch (_) {
+            event.reply('player-count-update', { id: srvId, players: null, world: null });
+        }
+        return;
+    }
+
+    // Rust: WebRCON, not Source RCON -- see sendRustWebRconCommand above.
+    // 'playerlist' returns a JSON array of connected players (confirmed via
+    // community docs of the built-in command); count is just its length,
+    // since Rust's WebRCON has no single call that also reports the
+    // configured max-player limit the way Space Engineers' session info does.
+    if (type === 'rust') {
+        try {
+            if (!srv.apiPort || !srv.apiPass) throw new Error('WebRCON port/password not configured');
+            const raw = await sendRustWebRconCommand(parseInt(srv.apiPort), srv.apiPass, 'playerlist');
+            const players = JSON.parse(raw || '[]');
+            event.reply('player-count-update', {
+                id: srvId,
+                players: `${Array.isArray(players) ? players.length : 0} connected`,
+                world: null
+            });
+        } catch (_) {
+            event.reply('player-count-update', { id: srvId, players: null, world: null });
+        }
+        return;
+    }
+
+    // Generic RCON (Source RCON protocol) -- any game with a configured
+    // playerListCommand and RCON credentials, regardless of category.
+    // Previously hardcoded to type === 'ark' only, then gated to
+    // POWERSHELL_BRIDGE only -- but Project Zomboid disproves that gate: it's
+    // DIRECT_CONSOLE (launched with a real stdin pipe, which its Quick Actions
+    // already use) yet also exposes a genuine Source RCON server on its own
+    // port, independent of the launch mechanism. RCON availability is a
+    // property of the game, not of how RSM tracks the process. 'ListPlayers'
+    // (ARK, ARK Ascended, Conan Exiles) returns a numbered list, one player per
+    // line -- if a future game's playerListCommand returns a different format,
+    // this count will need its own parsing branch rather than reusing this one.
+    if (srv.playerListCommand && srv.apiPort && srv.apiPass) {
+        try {
+            const rcon = await Rcon.connect({ host: '127.0.0.1', port: parseInt(srv.apiPort), password: srv.apiPass, timeout: 3000 });
             let response;
-            try { response = await rcon.send('ListPlayers'); } finally { try { rcon.end(); } catch (_) {} }
-            const lines = response.trim().split('\n').filter(l => l.match(/^\d+\./));
+            try { response = await rcon.send(srv.playerListCommand); } finally { try { rcon.end(); } catch (_) {} }
+            const lines = (response || '').trim().split('\n').filter(l => l.match(/^\d+\./));
             event.reply('player-count-update', {
                 id: srvId,
                 players: `${lines.length} connected`,
@@ -2272,7 +2429,7 @@ ipcMain.handle('forge:parse-config', async (event, { gameSlug, installDir }) => 
 });
 
 // --- REGISTER SERVER (step 4 "Add to RSM") ---
-ipcMain.handle('forge:register', async (event, { gameSlug, installDir, serverName, exePath, launchArgs, userFirewallPorts }) => {
+ipcMain.handle('forge:register', async (event, { gameSlug, installDir, serverName, exePath, launchArgs, apiPort, apiPass, logPath, userFirewallPorts }) => {
     console.log(`[RSM] forge:register -- game: ${gameSlug} | name: "${serverName}" | dir: ${installDir}`);
     try {
         const registry = await loadRegistry();
@@ -2300,9 +2457,12 @@ ipcMain.handle('forge:register', async (event, { gameSlug, installDir, serverNam
             path:              resolvedExe,
             workingDir:        installDir,
             args:              launchArgs !== undefined ? launchArgs : (parsed.args || (game.defaults && game.defaults.customArgs) || ''),
-            apiPort:           parsed.apiPort  || '',
-            apiPass:           parsed.apiPass  || '',
-            logPath:           parsed.logPath  || '',
+            // Step 4's Port/Password/Log Path fields (when the game's config
+            // shows them via blocks.port/portPass/log) take priority over the
+            // auto-parsed values -- the user may have corrected them.
+            apiPort:           apiPort  || parsed.apiPort  || '',
+            apiPass:           apiPass  || parsed.apiPass  || '',
+            logPath:           logPath  || parsed.logPath  || '',
             firewallPorts:     userFirewallPorts || game.firewallPorts || [],
         };
 
@@ -2391,27 +2551,32 @@ setInterval(() => {
 
 // --- SERVER TYPE HELPER ---
 // Determines how RSM interacts with a server process (direct stdin vs. PowerShell bridge).
-// Add new server types here when needed.
 function findServType(srv) {
+    // srv.category is set directly from the game's own config (backend.category)
+    // at save time -- see the Forge-install path and saveNewServer in
+    // renderer.js. Trust it; it's always correct for whatever game the config
+    // actually declares. Only guess from srv.type below for legacy server
+    // entries saved before this field existed. This used to be a hardcoded
+    // switch statement that silently defaulted 10 of 17 games to the wrong
+    // category (anything not explicitly listed fell through to
+    // DIRECT_CONSOLE, even for games whose config says POWERSHELL_BRIDGE) --
+    // that broke log watching, RCON command dispatch, and player-count for
+    // all of them at once.
+    if (srv.category === 'DIRECT_CONSOLE' || srv.category === 'POWERSHELL_BRIDGE') {
+        return srv.category;
+    }
+
     const type = (srv.type || '').toLowerCase();
-    DebugLog(`Determining server category for type: '${type}'`);
+    DebugLog(`findServType -- no category on server, guessing from legacy type: '${type}'`);
 
     switch (type) {
         case 'minecraft':
-        case '7daystodie':
+        case '7-days-to-die':
         case 'terraria':
-            DebugLog(`Category assigned: DIRECT_CONSOLE, for type: '${type}'`);
+        case 'project-zomboid':
             return 'DIRECT_CONSOLE';
-
-        case 'space-engineers':
-        case 'ark':
-        case 'starfield':
-            DebugLog(`Category assigned: POWERSHELL_BRIDGE, for type: '${type}'`);
-            return 'POWERSHELL_BRIDGE';
-
         default:
-            DebugLog(`Category assigned: DIRECT_CONSOLE, for type: '${type}' due to default case`);
-            return 'DIRECT_CONSOLE';
+            return 'POWERSHELL_BRIDGE';
     }
 }
 

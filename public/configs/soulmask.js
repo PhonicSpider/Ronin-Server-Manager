@@ -2,7 +2,7 @@
 export const soulmask = {
     meta: {
         displayName: 'Soulmask',
-        icon: '🎭',
+        icon: 'logos/soulmaskLogo.png',
     },
     forge: {
         appId: '2646460',
@@ -10,7 +10,10 @@ export const soulmask = {
     },
     backend: {
         category: 'POWERSHELL_BRIDGE',
-        playerListCommand: null,
+        // List_OnlinePlayers (alias lp) -- confirmed via multiple hosting
+        // guides. Soulmask's RCON was previously entirely unexposed in this
+        // config despite being fully supported.
+        playerListCommand: 'List_OnlinePlayers',
     },
     label: 'SERVER EXECUTABLE (WSServer-Win64-Shipping.exe)',
     blocks: {
@@ -18,24 +21,33 @@ export const soulmask = {
         workingDir: 'block',
         args: 'block',
         log: 'none',
-        port: 'none',
-        portPass: 'none',
+        port: 'block',
+        portPass: 'block',
     },
     defaults: {
         newName: 'e.g. Soulmask - Primal Lands',
         exePath: '...\\WS\\Binaries\\Win64\\WSServer-Win64-Shipping.exe',
         workingDir: 'C:\\Servers\\Soulmask',
-        customArgs: '/Game/Aki/Maps/RW_Aki?listen -server -ServerName="Soulmask Server" -Port=7777 -QueryPort=27015 -MaxPlayers=40 -log -UTF8Output',
+        // -rconpsw/-rconaddr/-rconport enable RCON -- confirmed launch-flag
+        // syntax (Soulmask uses flags, not a config-file section, for RCON).
+        customArgs: '/Game/Aki/Maps/RW_Aki?listen -server -ServerName="Soulmask Server" -Port=7777 -QueryPort=27015 -MaxPlayers=40 -log -UTF8Output -rconpsw="changeme" -rconaddr=0.0.0.0 -rconport=19000',
+        portId: 'RCON Port',
+        portPass: 'RCON Password',
     },
     varInputs: {
         newName: 'placeholder',
         exePath: 'placeholder',
         workingDir: 'placeholder',
         customArgs: 'value',
+        portId: 'placeholder',
+        portPass: 'placeholder',
     },
     firewallPorts: [
         { id: 'game',  label: 'Game Port',  default: 7777,  tcp: true,  udp: true,  description: 'Player connections' },
         { id: 'query', label: 'Query Port', default: 27015, tcp: false, udp: true,  description: 'Steam server browser' },
+        { id: 'rcon',  label: 'RCON Port',  default: 19000, tcp: true,  udp: false, description: 'Admin console (RCON)' },
     ],
-    quickActions: [],
+    quickActions: [
+        { label: 'List Players', command: 'List_OnlinePlayers' },
+    ],
 };

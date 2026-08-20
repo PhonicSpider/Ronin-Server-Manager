@@ -2,7 +2,7 @@
 export const abioticFactor = {
     meta: {
         displayName: 'Abiotic Factor',
-        icon: '🧪',
+        icon: 'logos/abioticLogo.png',
     },
     forge: {
         appId: '2857200',

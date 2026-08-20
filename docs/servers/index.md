@@ -119,19 +119,26 @@ The dedicated **Firewall Manager** view (*🛡️ Firewall Manager* in the sideb
 
 <div class="grid cards" markdown>
 
--   :material-minecraft: **Minecraft (Java)**
+-   :material-zombie: **7 Days to Die**
 
     ---
-    Launched directly via `java.exe`. Full console I/O, Quick Actions, config editor, and firewall ports (Game 25565, RCON 25575).
+    Direct console (stdin) with player count via `listplayers`, Telnet port recorded for external tools, config editor, and firewall ports (Game 26900, Telnet 8081, Control Panel 8080).
 
-    [:octicons-arrow-right-24: View Guide](minecraft.md)
+    [:octicons-arrow-right-24: View Guide](7-days-to-die.md)
 
--   :material-rocket-launch: **Space Engineers**
+-   :material-flask: **Abiotic Factor**
 
     ---
-    Native Windows binary via PowerShell bridge. Headless background launch, VRage HTTP API for commands and player counts, config editor, and firewall ports (Game 27016 UDP, API 8080).
+    PowerShell bridge. No RCON, no console commands (game limitation), config editor N/A (arguments only), firewall port (Game 7777, max 6 players).
 
-    [:octicons-arrow-right-24: View Guide](space-engineers.md)
+    [:octicons-arrow-right-24: View Guide](abiotic-factor.md)
+
+-   :material-paw: **Ark: Survival Ascended**
+
+    ---
+    Separate Steam app from Evolved, same RCON protocol. PowerShell bridge, config editor, and firewall ports (Game 7777, Query 27015, RCON 27020).
+
+    [:octicons-arrow-right-24: View Guide](ark-survival-ascended.md)
 
 -   :material-axe: **Ark: Survival Evolved**
 
@@ -140,12 +147,96 @@ The dedicated **Firewall Manager** view (*🛡️ Firewall Manager* in the sideb
 
     [:octicons-arrow-right-24: View Guide](ark-survival.md)
 
+-   :material-sword-cross: **Conan Exiles**
+
+    ---
+    SteamCMD binary via PowerShell bridge. RCON (lowercase commands) for player listing, config editor, and firewall ports (Game 7777, Peer 7778, RCON 25575).
+
+    [:octicons-arrow-right-24: View Guide](conan-exiles.md)
+
+-   :material-weather-fog: **Enshrouded**
+
+    ---
+    PowerShell bridge. No RCON, no console (game limitation), JSON config editor, and firewall ports (Game 15636, Query 15637).
+
+    [:octicons-arrow-right-24: View Guide](enshrouded.md)
+
+-   :material-minecraft: **Minecraft (Java)**
+
+    ---
+    Launched directly via `java.exe`. Full console I/O, Quick Actions, config editor, and firewall ports (Game 25565, RCON 25575).
+
+    [:octicons-arrow-right-24: View Guide](minecraft.md)
+
+-   :material-paw-off: **Palworld**
+
+    ---
+    PowerShell bridge. Player count via the REST API (RCON is deprecated), config editor, and firewall ports (Game 8211, REST API 8212). No console output -- see the guide.
+
+    [:octicons-arrow-right-24: View Guide](palworld.md)
+
+-   :material-brain: **Project Zomboid**
+
+    ---
+    Direct console + genuine RCON for player count (rare combination), config editor N/A (settings live in the user profile), and firewall ports (Game 16261, RCON 27015).
+
+    [:octicons-arrow-right-24: View Guide](project-zomboid.md)
+
+-   :material-pickaxe: **Rust**
+
+    ---
+    PowerShell bridge. RCON is WebRCON (WebSocket, natively supported), config editor, and firewall ports (Game 28015, Query 28017, WebRCON 28016). Player count and Quick Actions both work.
+
+    [:octicons-arrow-right-24: View Guide](rust.md)
+
+-   :material-factory: **Satisfactory**
+
+    ---
+    PowerShell bridge. Player count via the HTTPS API on the same port as the game, mostly in-game configuration, and firewall ports (Game/API 7777, Beacon 15000).
+
+    [:octicons-arrow-right-24: View Guide](satisfactory.md)
+
+-   :material-pine-tree: **Sons of the Forest**
+
+    ---
+    PowerShell bridge. No RCON (game limitation), config editor N/A (arguments only), and firewall ports (Game 8766, Query 27016, Blob Sync 9700).
+
+    [:octicons-arrow-right-24: View Guide](sons-of-the-forest.md)
+
+-   :material-drama-masks: **Soulmask**
+
+    ---
+    PowerShell bridge. RCON for player count (previously unexposed in this config), config editor N/A (arguments only), and firewall ports (Game 7777, Query 27015, RCON 19000).
+
+    [:octicons-arrow-right-24: View Guide](soulmask.md)
+
+-   :material-rocket-launch: **Space Engineers**
+
+    ---
+    Native Windows binary via PowerShell bridge. Headless background launch, VRage HTTP API for commands and player counts, config editor, and firewall ports (Game 27016 UDP, API 8080).
+
+    [:octicons-arrow-right-24: View Guide](space-engineers.md)
+
 -   :material-sword: **Terraria**
 
     ---
-    Launched directly via `TerrariaServer.exe`. Full console I/O, config editor, and firewall ports (Game 7777 TCP).
+    Launched directly via `TerrariaServer.exe`. Full console I/O with player count via `playing`, config editor, and firewall ports (Game 7777 TCP).
 
     [:octicons-arrow-right-24: View Guide](terraria.md)
+
+-   :material-bat: **V Rising**
+
+    ---
+    PowerShell bridge. RCON for admin commands (no player-list support), config editor, and firewall ports (Game 9876, Query 9877, RCON 25575).
+
+    [:octicons-arrow-right-24: View Guide](v-rising.md)
+
+-   :material-axe-battle: **Valheim**
+
+    ---
+    PowerShell bridge. No RCON (game limitation), config editor N/A (arguments only), and firewall ports (Game 2456-2458 UDP).
+
+    [:octicons-arrow-right-24: View Guide](valheim.md)
 
 -   :material-wrench: **Custom / Other**
 

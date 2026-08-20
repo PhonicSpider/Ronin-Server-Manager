@@ -3,6 +3,9 @@
 !!! abstract "Direct Console Integration"
     Terraria runs as a native Windows executable. RSM utilizes a "Direct Console" approach, piping the standard input and output streams directly into the dashboard. This allows for real-time interaction with the server's startup prompts and world-management commands without needing external log files or APIs.
 
+!!! abstract "Player count via stdin"
+    RSM sends the `playing` command over the same stdin pipe used for Quick Actions, then parses its response ("No players connected.", "1 player connected.", or "N players connected.") to update the player count badge.
+
 [Get Terraria Server Files :material-download:](https://terraria.org/){ .md-button .md-button--primary }
 
 ---

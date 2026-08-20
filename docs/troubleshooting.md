@@ -59,6 +59,23 @@ The server is running but RSM shows no text in the console panel.
 
 ---
 
+### 📝 Config Editor Shows "Could not read file: ENOENT" {: .rsm-header }
+
+You install a server via the Forge wizard, click **Edit Config**, and every tab shows a "Could not read file" placeholder instead of real content.
+
+??? info "Config files don't exist yet -- this is expected for most Unreal Engine games"
+
+    Most Unreal Engine dedicated servers (Ark, Ark: Survival Ascended, Conan Exiles, and likely any future Unreal-based game type) do **not** ship with their config files pre-created. The engine generates `GameUserSettings.ini`, `Game.ini`, `Engine.ini`, etc. itself the first time the server actually runs -- they simply don't exist on disk right after a fresh SteamCMD install. RSM's ENOENT message is a graceful "not there yet," not a crash or a broken install.
+
+    **The fix is the same for all of them:** start the server once through RSM, let it fully boot, then stop it. After that, the config files will exist and **Edit Config** will show real content.
+
+    !!! warning "Some games only write configs on a graceful stop, not on start"
+        Ark: Survival Ascended specifically writes `GameUserSettings.ini`/`Game.ini` on **shutdown**, not startup -- if you Force Kill it before its first graceful stop, the files still won't exist. Use the **Shutdown** button, not **Force Kill**, for that first run.
+
+    Check the relevant [Server Setup Guide](servers/index.md) for the exact config file names and locations per game -- most Unreal-based guides call this out explicitly in their **Pre-Configuration Steps** section.
+
+---
+
 ### 🔴 Status Dot Not Updating After Shutdown {: .rsm-header }
 
 The green pulse stays green for several seconds after clicking **Shutdown**, or never turns red at all.

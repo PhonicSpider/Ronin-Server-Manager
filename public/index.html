@@ -780,6 +780,30 @@
                 </div>
             </div>
 
+            <!-- Log path -- shown only when the game's config sets blocks.log -->
+            <div id="step4-log-block" class="input-block" style="display:none;">
+                <label class="tiny-label">LOG FILE / FOLDER PATH</label>
+                <div class="path-group">
+                    <input type="text" id="step4-log-path" readonly placeholder="Select log location...">
+                    <button class="btn btn-outline" onclick="window.browseStep4LogFolder()">Browse</button>
+                </div>
+                <p style="font-size: 11px; color: var(--dim); margin-top: 4px;">Point this to the folder (or file) containing your server's log output.</p>
+            </div>
+
+            <!-- RCON/API port + password -- shown only when the game's config sets blocks.port / blocks.portPass -->
+            <div id="step4-port-block" class="input-block" style="display:none;">
+                <label class="tiny-label" id="step4-port-label">PORT</label>
+                <div class="path-group">
+                    <input type="text" id="step4-port-id">
+                </div>
+            </div>
+            <div id="step4-portpass-block" class="input-block" style="display:none;">
+                <label class="tiny-label" id="step4-portpass-label">PASSWORD</label>
+                <div class="path-group">
+                    <input type="text" id="step4-port-pass">
+                </div>
+            </div>
+
             <!-- Firewall ports -->
             <div id="step4-fw-ports-block" class="input-block" style="display:none;">
                 <label class="tiny-label">FIREWALL PORTS</label>

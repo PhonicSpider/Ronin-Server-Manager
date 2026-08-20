@@ -28,12 +28,23 @@ nav:
   - 🚀 Getting Started: getting-started.md
   - 🖥️ Server Setup:
       - 🏗️ Overview: servers/index.md
+      - 🧟 7 Days to Die: servers/7-days-to-die.md
+      - 🧪 Abiotic Factor: servers/abiotic-factor.md
+      - 🦖 Ark Survival Ascended: servers/ark-survival-ascended.md
+      - 🦕 Ark Survival: servers/ark-survival.md
+      - ⚔️ Conan Exiles: servers/conan-exiles.md
+      - 🌫️ Enshrouded: servers/enshrouded.md
       - 🟩 Minecraft: servers/minecraft.md
+      - 👹 PalWorld: servers/palworld.md
+      - 🧠 Project Zomboid: servers/project-zomboid.md
+      - ☢️ Rust: servers/rust.md
+      - 🏭 Satisfactory: servers/satisfactory.md
+      - 🌲 Sons of the Forest: servers/sons-of-the-forest.md
+      - 🎭 Soulmask: servers/soulmask.md
       - 🚀 Space Engineers: servers/space-engineers.md
       - 🌳 Terraria: servers/terraria.md
-      - 🦕 Ark Survival: servers/ark-survival.md
-      - ☢️ Rust: servers/rust.md
-      - 👹 PalWorld: servers/palworld.md
+      - 🧛 V Rising: servers/v-rising.md
+      - 🛡️ Valheim: servers/valheim.md
   - 🎮 Discord Integration: discord-int.md
   - 🛠️ Support: troubleshooting.md
   - 🔥 Contributing:

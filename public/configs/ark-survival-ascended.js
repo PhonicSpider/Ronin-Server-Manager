@@ -9,7 +9,7 @@ export const arkSurvivalAscended = {
     },
     backend: {
         category: 'POWERSHELL_BRIDGE',
-        playerListCommand: null,
+        playerListCommand: 'ListPlayers',
     },
     gameFiles: {
         configPath: 'ShooterGame\\Saved\\Config\\WindowsServer',
@@ -23,7 +23,7 @@ export const arkSurvivalAscended = {
         path: 'block',
         workingDir: 'block',
         args: 'block',
-        log: 'none',
+        log: 'block',
         port: 'block',
         portPass: 'block',
     },
@@ -32,6 +32,10 @@ export const arkSurvivalAscended = {
         exePath: '...\\ShooterGame\\Binaries\\Win64\\ArkAscendedServer.exe',
         workingDir: 'C:\\Servers\\ARK-ASA',
         customArgs: 'TheIsland_WP?listen?RCONEnabled=True?RCONPort=27020?ServerAdminPassword=changeme -server -log',
+        // -log (already in customArgs above) writes here -- required for RSM's
+        // PowerShell-bridge log tailing to show any console output at all.
+        // Same Saved-folder convention as Ark: Survival Evolved.
+        logPath: 'C:\\Path\\To\\ShooterGame\\Saved\\Logs',
         portId: 'RCON Port',
         portPass: 'Admin Password',
     },
@@ -40,6 +44,7 @@ export const arkSurvivalAscended = {
         exePath: 'placeholder',
         workingDir: 'placeholder',
         customArgs: 'value',
+        logPath: 'placeholder',
         portId: 'placeholder',
         portPass: 'placeholder',
     },
@@ -52,7 +57,7 @@ export const arkSurvivalAscended = {
         { label: 'List Players', command: 'ListPlayers' },
         { label: 'Save World',   command: 'SaveWorld' },
     ],
-    parseForRsm(fileContentsMap) {
+    parseForRsm(fileContentsMap, { installDir }) {
         const content = fileContentsMap['GameUserSettings.ini'] || '';
         function parseIni(section, key) {
             const secM = content.match(new RegExp(`\\[${section}\\]([\\s\\S]*?)(?=\\[|$)`));
@@ -66,7 +71,9 @@ export const arkSurvivalAscended = {
             args: `TheIsland_WP?listen?RCONEnabled=True?RCONPort=${apiPort}?ServerAdminPassword=${apiPass} -server -log`,
             apiPort,
             apiPass,
-            logPath: '',
+            // -log writes here. Auto-filled since the path is fixed relative to
+            // the install dir -- won't exist until the server has run once.
+            logPath: installDir ? `${installDir}\\ShooterGame\\Saved\\Logs` : '',
         };
     },
 };

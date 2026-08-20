@@ -2,7 +2,7 @@
 export const sonsOfTheForest = {
     meta: {
         displayName: 'Sons of the Forest',
-        icon: '🌲',
+        icon: 'logos/sotfLogo.png',
     },
     forge: {
         appId: '2465200',

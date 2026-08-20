@@ -1,7 +1,7 @@
 export const rust = {
     meta: {
         displayName: 'Rust',
-        icon: '🔩',
+        icon: 'logos/rustLogo.png',
     },
     forge: {
         appId: '258550',
@@ -9,6 +9,11 @@ export const rust = {
     },
     backend: {
         category: 'POWERSHELL_BRIDGE',
+        // Rust's RCON is WebRCON -- a WebSocket-based JSON protocol, not the
+        // Source RCON protocol rcon-client speaks. Player count and Quick
+        // Actions are handled via dedicated 'rust' branches in main.js
+        // (sendRustWebRconCommand) rather than the generic RCON dispatch this
+        // field would otherwise trigger, so this stays null.
         playerListCommand: null,
     },
     gameFiles: {
@@ -22,7 +27,10 @@ export const rust = {
         path: 'block',
         workingDir: 'block',
         args: 'block',
-        log: 'none',
+        // Rust (Unity) no longer writes a default log file as of a recent
+        // Unity engine update -- -logfile is required. parseForRsm below
+        // already includes it and computes a matching path.
+        log: 'block',
         port: 'block',
         portPass: 'block',
     },
@@ -31,6 +39,7 @@ export const rust = {
         exePath: '...\\RustDedicated.exe',
         workingDir: 'C:\\Servers\\Rust',
         customArgs: '-batchmode -nographics +server.identity "server1" +server.port 28015 +rcon.port 28016 +rcon.password "changeme" +rcon.web 1',
+        logPath: 'C:\\Path\\To\\Rust\\rust-console.log',
         portId: 'RCON Port',
         portPass: 'RCON Password',
     },
@@ -39,6 +48,7 @@ export const rust = {
         exePath: 'placeholder',
         workingDir: 'placeholder',
         customArgs: 'value',
+        logPath: 'placeholder',
         portId: 'placeholder',
         portPass: 'placeholder',
     },

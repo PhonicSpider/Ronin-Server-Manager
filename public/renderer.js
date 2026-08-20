@@ -285,7 +285,7 @@ function renderSidebar() {
 
         const config = ServerTypeRegistry[s.type];
         const icon = config ? config.meta.icon : '🖥️';
-        const iconHtml = icon.includes('/') ? `<img src="${icon}" class="nav-type-icon" style="width:25px; height:25px; margin-right:5px; margin-top:5px;">` : `<span class="type-icon" style="margin-right:3px;">${icon}</span>`;
+        const iconHtml = icon.includes('/') ? `<img src="${icon}" class="nav-type-icon" style="width:25px; height:25px; margin-right:5px; margin-top:5px; object-fit:contain;">` : `<span class="type-icon" style="margin-right:3px;">${icon}</span>`;
 
         const hasFwPorts = (config?.firewallPorts?.length > 0);
         let fwBadgeHtml = '';
@@ -1181,11 +1181,32 @@ window.api.receive('console-out', (data) => {
             }
         }
 
-        // Parse Minecraft 'list' response to update the player count pill
+        // Parse each DIRECT_CONSOLE game's player-list response to update the
+        // player count pill. Each game's stdout format is different, so each
+        // gets its own regex against this console-out chunk.
         const srv = servers.find(s => s.id === data.id);
         if (srv?.type === 'minecraft') {
             const match = data.msg.match(/There are (\d+) of a max of (\d+) players/i);
             if (match) document.getElementById('stat-players').innerText = `${match[1]} / ${match[2]}`;
+        } else if (srv?.type === '7-days-to-die') {
+            // 'listplayers' output ends with a summary line containing
+            // "in the game" preceded by the connected-player count (confirmed
+            // against the zigawatt/sdtd telnet library's response parsing,
+            // which waits for this exact substring to know the command
+            // finished). The exact wording around the number isn't nailed
+            // down, so this matches loosely rather than assuming one phrasing.
+            const match = data.msg.match(/(\d+)\D{0,20}in the game/i);
+            if (match) document.getElementById('stat-players').innerText = `${match[1]} connected`;
+        } else if (srv?.type === 'terraria') {
+            // 'playing' output is either "No players connected.", "1 player
+            // connected.", or "N players connected." -- confirmed against
+            // decompiled vanilla server source (Main.cs).
+            if (/No players connected/i.test(data.msg)) {
+                document.getElementById('stat-players').innerText = '0 connected';
+            } else {
+                const match = data.msg.match(/(\d+)\s+players?\s+connected/i);
+                if (match) document.getElementById('stat-players').innerText = `${match[1]} connected`;
+            }
         }
     }
 });
@@ -1735,7 +1756,7 @@ window.saveNewServer = async () => {
     const type = window.selectedType || "other";
     console.log(`[RSM] saveNewServer--name: "${name}" | type: "${type}" | editingId: ${window.editingServerId || 'new'}`);
     const config = ServerTypeRegistry[type] || {};
-    const category = config.backend?.category ?? "DIRECT_CONSOLE";
+    const category = config.backend?.category ?? "POWERSHELL_BRIDGE";
     const playerListCommand = config.backend?.playerListCommand ?? null;
 
     const apiPort = document.getElementById('portId').value || "8080";
@@ -2747,6 +2768,36 @@ async function loadStep4 (gameSlug, installDir, serverName) {
     const defaultArgs   = (parsed && parsed.defaults && parsed.defaults.args)          || '';
     const defaultPorts  = (parsed && parsed.defaults && parsed.defaults.firewallPorts) || [];
     const parsedArgs    = (parsed && parsed.parsed  && parsed.parsed.args)             || '';
+    const parsedPort    = (parsed && parsed.parsed  && parsed.parsed.apiPort)          || '';
+    const parsedPass    = (parsed && parsed.parsed  && parsed.parsed.apiPass)          || '';
+    const parsedLogPath = (parsed && parsed.parsed  && parsed.parsed.logPath)          || '';
+
+    // Log path / RCON port / RCON password -- shown per-game via the same
+    // config.blocks declaration the legacy Edit Launch Settings modal already
+    // uses (selectServerType), so both modals stay consistent. Pre-filled from
+    // parseForRsm's auto-detection when available, else the game's own
+    // defaults (e.g. a placeholder log path pattern).
+    const gameConfig = ServerTypeRegistry[gameSlug] || {};
+    const blocks     = gameConfig.blocks || {};
+
+    const logBlock  = document.getElementById('step4-log-block');
+    const logInput  = document.getElementById('step4-log-path');
+    if (logBlock) logBlock.style.display = blocks.log || 'none';
+    if (logInput) logInput.value = parsedLogPath || gameConfig.defaults?.logPath || '';
+
+    const portBlock = document.getElementById('step4-port-block');
+    const portLabel = document.getElementById('step4-port-label');
+    const portInput = document.getElementById('step4-port-id');
+    if (portBlock) portBlock.style.display = blocks.port || 'none';
+    if (portLabel) portLabel.textContent = (gameConfig.defaults?.portId || 'PORT').toUpperCase();
+    if (portInput) portInput.value = parsedPort || '';
+
+    const portPassBlock = document.getElementById('step4-portpass-block');
+    const portPassLabel = document.getElementById('step4-portpass-label');
+    const portPassInput = document.getElementById('step4-port-pass');
+    if (portPassBlock) portPassBlock.style.display = blocks.portPass || 'none';
+    if (portPassLabel) portPassLabel.textContent = (gameConfig.defaults?.portPass || 'PASSWORD').toUpperCase();
+    if (portPassInput) portPassInput.value = parsedPass || '';
 
     if (lblEl) lblEl.textContent = gameSlug || '';
 
@@ -2833,6 +2884,11 @@ window.browseStep4Exe = async () => {
     if (selected) document.getElementById('step4-exe-path').value = selected;
 };
 
+window.browseStep4LogFolder = async () => {
+    const selected = await window.api.invoke('select-folder');
+    if (selected) document.getElementById('step4-log-path').value = selected;
+};
+
 // Save edited config files before registering
 async function saveStep4Configs () {
     if (!wizardStep4Data) return;
@@ -2860,6 +2916,9 @@ window.registerWizardServer = async () => {
 
     const launchArgs      = (document.getElementById('step4-launch-args') || {}).value || '';
     const exePath         = (document.getElementById('step4-exe-path')    || {}).value || null;
+    const apiPort         = (document.getElementById('step4-port-id')     || {}).value || '';
+    const apiPass         = (document.getElementById('step4-port-pass')   || {}).value || '';
+    const logPath         = (document.getElementById('step4-log-path')    || {}).value || '';
     const fwRows          = document.querySelectorAll('#step4-fw-ports-rows .wizard-fw-row');
     const userFirewallPorts = [...fwRows].map(row => ({
         id:      row.dataset.portId,
@@ -2876,6 +2935,9 @@ window.registerWizardServer = async () => {
         serverName,
         exePath:         exePath || null,
         launchArgs,
+        apiPort,
+        apiPass,
+        logPath,
         userFirewallPorts: userFirewallPorts.length ? userFirewallPorts : null,
     });
 

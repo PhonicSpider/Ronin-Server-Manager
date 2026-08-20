@@ -1,7 +1,7 @@
 export const sevenDaysToDie = {
     meta: {
         displayName: '7 Days to Die',
-        icon: '🧟',
+        icon: 'logos/sevenDaysLogo.png',
     },
     forge: {
         appId: '294420',

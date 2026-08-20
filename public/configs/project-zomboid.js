@@ -3,7 +3,7 @@
 export const projectZomboid = {
     meta: {
         displayName: 'Project Zomboid',
-        icon: '🧠',
+        icon: 'logos/pzLogo.png',
     },
     forge: {
         appId: '380870',
@@ -11,6 +11,14 @@ export const projectZomboid = {
     },
     backend: {
         category: 'DIRECT_CONSOLE',
+        // Project Zomboid is unusual: it's DIRECT_CONSOLE (launched with a
+        // real stdin pipe, which Quick Actions already use) but ALSO exposes
+        // a genuine Source RCON server on its own port -- RCON availability
+        // here doesn't depend on the launch mechanism. get-player-count's
+        // generic RCON dispatch (main.js) was previously gated to
+        // POWERSHELL_BRIDGE only, which silently excluded this game; that
+        // gate is now just "does this server have RCON creds", so this
+        // works.
         playerListCommand: 'players',
     },
     label: 'SERVER BATCH FILE (ProjectZomboidServer.bat)',
@@ -19,20 +27,24 @@ export const projectZomboid = {
         workingDir: 'block',
         args: 'block',
         log: 'none',
-        port: 'none',
-        portPass: 'none',
+        port: 'block',
+        portPass: 'block',
     },
     defaults: {
         newName: 'e.g. Project Zomboid - Knox County',
         exePath: '...\\ProjectZomboidServer.bat',
         workingDir: 'C:\\Servers\\ProjectZomboid',
         customArgs: '-servername "pzserver" -adminpassword "changeme" -port 16261 -rcon.port 27015 -rcon.password "changeme"',
+        portId: 'RCON Port',
+        portPass: 'RCON Password',
     },
     varInputs: {
         newName: 'placeholder',
         exePath: 'placeholder',
         workingDir: 'placeholder',
         customArgs: 'value',
+        portId: 'placeholder',
+        portPass: 'placeholder',
     },
     firewallPorts: [
         { id: 'game', label: 'Game Port', default: 16261, tcp: true, udp: true,  description: 'Player connections' },

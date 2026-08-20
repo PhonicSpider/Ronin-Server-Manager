@@ -1,7 +1,7 @@
 export const vRising = {
     meta: {
         displayName: 'V Rising',
-        icon: '🧛',
+        icon: 'logos/vRisingLogo.png',
     },
     forge: {
         appId: '1829350',
@@ -9,6 +9,11 @@ export const vRising = {
     },
     backend: {
         category: 'POWERSHELL_BRIDGE',
+        // V Rising's RCON is a deliberately minimal server-management set
+        // (announce, shutdown, name, password, version, time) -- there is no
+        // player-list command. Player listing only works via the in-game
+        // console (`listusers` after `adminauth`), which RSM has no access to.
+        // Confirmed against GameServerKings' RCON command reference.
         playerListCommand: null,
     },
     gameFiles: {
@@ -23,7 +28,7 @@ export const vRising = {
         path: 'block',
         workingDir: 'block',
         args: 'block',
-        log: 'none',
+        log: 'block',
         port: 'block',
         portPass: 'block',
     },
@@ -31,7 +36,10 @@ export const vRising = {
         newName: 'e.g. V Rising - Cursed Lands',
         exePath: '...\\VRisingServer.exe',
         workingDir: 'C:\\Servers\\VRising',
-        customArgs: '-persistentDataPath "." -serverPort 9876 -rconEnabled -rconPort 25575',
+        // -logFile is required -- V Rising does not write a log file at all
+        // unless explicitly told to (unlike Ark/Conan, which log by default).
+        customArgs: '-persistentDataPath "." -serverPort 9876 -rconEnabled -rconPort 25575 -logFile ".\\logs\\VRisingServer.log"',
+        logPath: 'C:\\Path\\To\\VRising\\logs\\VRisingServer.log',
         portId: 'RCON Port',
         portPass: 'RCON Password',
     },
@@ -40,6 +48,7 @@ export const vRising = {
         exePath: 'placeholder',
         workingDir: 'placeholder',
         customArgs: 'value',
+        logPath: 'placeholder',
         portId: 'placeholder',
         portPass: 'placeholder',
     },
@@ -57,11 +66,12 @@ export const vRising = {
         const apiPort = String(rcon.Port     || 25575);
         const apiPass = String(rcon.Password || '');
         const gamePort = String(cfg.Port     || 9876);
+        const logPath = installDir ? `${installDir}\\logs\\VRisingServer.log` : '';
         return {
-            args: `-persistentDataPath "${installDir}" -serverPort ${gamePort} -rconEnabled -rconPort ${apiPort}`,
+            args: `-persistentDataPath "${installDir}" -serverPort ${gamePort} -rconEnabled -rconPort ${apiPort} -logFile "${logPath}"`,
             apiPort,
             apiPass,
-            logPath: '',
+            logPath,
         };
     },
 };
