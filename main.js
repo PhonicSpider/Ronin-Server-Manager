@@ -791,16 +791,49 @@ ipcMain.handle('regenerate-api-key', () => {
 });
 
 // --- ADMIN CHECK ---
+function _isElevated() {
+    return new Promise((resolve) => {
+        exec('net session', (err) => resolve(!err));
+    });
+}
+
 ipcMain.handle('check-admin', async () => {
     console.log('[RSM] check-admin -- checking for Administrator privileges');
+    const isAdmin = await _isElevated();
+    console.log(`[RSM] check-admin -- result: ${isAdmin ? 'Administrator' : 'Standard user'}`);
+    return isAdmin;
+});
+
+// Tests whether this (possibly unelevated) process can actually terminate the
+// target PID, via a direct OpenProcess(PROCESS_TERMINATE) probe -- the same check
+// Windows itself performs. This catches servers running at a higher integrity
+// level (e.g. started elevated) that Stop-Process/taskkill would silently fail
+// against, so the UI can tell the user to restart RSM as Administrator instead
+// of pretending the stop worked.
+function _canTerminateProcess(pid) {
+    const script = `
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public class RsmProcAccess {
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, int dwProcessId);
+    [DllImport("kernel32.dll")]
+    public static extern bool CloseHandle(IntPtr hObject);
+}
+'@
+$h = [RsmProcAccess]::OpenProcess(0x0001, $false, ${pid})
+if ($h -ne [IntPtr]::Zero) { [RsmProcAccess]::CloseHandle($h) | Out-Null; Write-Output 'YES' } else { Write-Output 'NO' }`.trim();
+    const encoded = Buffer.from(script, 'utf16le').toString('base64');
     return new Promise((resolve) => {
-        exec('net session', (err) => {
-            const isAdmin = !err;
-            console.log(`[RSM] check-admin -- result: ${isAdmin ? 'Administrator' : 'Standard user'}`);
-            resolve(isAdmin);
+        exec(`powershell.exe -NonInteractive -NoProfile -WindowStyle Hidden -EncodedCommand ${encoded}`, (err, stdout) => {
+            // Fail-open on diagnostic errors -- never block a stop attempt that might
+            // otherwise have worked just because this probe itself couldn't run.
+            if (err || !stdout) { resolve(true); return; }
+            resolve(stdout.trim().includes('YES'));
         });
     });
-});
+}
 
 
 //      _        _   _   _ _   _  ____ _   _   ____  _____ ______     _______ ____
@@ -1108,7 +1141,7 @@ ipcMain.on('start-server', (event, srv) => {
 //
 
 // --- SERVER STOP LOGIC ---
-ipcMain.on('stop-server', (event, srvId) => {
+ipcMain.on('stop-server', async (event, srvId) => {
     console.log(`[RSM] stop-server -- srvId: ${srvId}`);
     DebugLog(`Received stop-server request for ID: ${srvId}`);
     event.reply('system-info', `[RSM] Stop signal received for: ${srvId}`);
@@ -1131,6 +1164,18 @@ ipcMain.on('stop-server', (event, srvId) => {
     }
 
     const { pid, shell, cleanup, serviceName } = processInfo;
+
+    // Some servers end up running at a higher integrity level than RSM (e.g.
+    // launched elevated by something else). Stop-Process/taskkill silently fail
+    // against those, so probe first and tell the user why instead of pretending.
+    if (!(await _canTerminateProcess(pid)) && !(await _isElevated())) {
+        const srvName = managedServers.find(s => s.id === srvId)?.name || srvId;
+        console.log(`[RSM] stop-server -- PID ${pid} requires elevation, RSM is not elevated. Aborting.`);
+        event.reply('elevation-required', { srvId, srvName, pid });
+        event.reply('system-info', `[RSM-WARN] "${srvName}" is running with elevated permissions RSM does not have. Restart RSM as Administrator to manage it.`);
+        return;
+    }
+
     event.reply('system-info', `[RSM] Identifying PID ${pid}. Sending graceful shutdown sequence...`);
     DebugLog(`Preparing to stop PID ${pid} -- shell: ${!!shell}, service: ${serviceName || 'none'}`);
 
@@ -1146,6 +1191,24 @@ ipcMain.on('stop-server', (event, srvId) => {
         console.log("[RSM] Stdin write skipped.");
     }
 
+    // Confirms the process has actually exited before declaring it Offline. A stop
+    // command succeeding only means the signal was accepted -- SCM stop is async,
+    // and a stale/wrong PID (e.g. from a Pass 3 order-based relink match) silently
+    // no-ops under -ErrorAction SilentlyContinue. Calling cleanup() unconditionally
+    // let the UI show "Offline" while the real process kept running. If it's still
+    // alive here, leave cleanup to the existing tasklist heartbeat instead of lying
+    // about the state.
+    const confirmAndCleanup = () => {
+        exec(`powershell -Command "if (Get-Process -Id ${pid} -ErrorAction SilentlyContinue) { Write-Output 'STILL_RUNNING' } else { Write-Output 'STOPPED' }"`, (chkErr, chkOut) => {
+            if (!chkErr && chkOut && chkOut.includes('STOPPED')) {
+                event.reply('system-info', `[RSM] PID ${pid} confirmed stopped.`);
+                if (typeof cleanup === 'function') cleanup();
+            } else {
+                event.reply('system-info', `[RSM-WARN] PID ${pid} is still running after the stop request -- it may still be shutting down, or Force Kill may be needed.`);
+            }
+        });
+    };
+
     // Track B: Service stop (servers re-linked from a Windows service) or
     //          PowerShell signal (servers started directly by RSM via POWERSHELL_BRIDGE)
     if (serviceName) {
@@ -1155,11 +1218,11 @@ ipcMain.on('stop-server', (event, srvId) => {
             if (err) {
                 event.reply('system-info', `[RSM-WARN] sc stop failed, falling back to Stop-Process: ${stderr || err.message}`);
                 exec(`powershell -Command "Stop-Process -Id ${pid} -Force -ErrorAction SilentlyContinue"`, () => {
-                    if (typeof cleanup === 'function') cleanup();
+                    confirmAndCleanup();
                 });
             } else {
                 event.reply('system-info', `[RSM] Service "${serviceName}" stop signal sent.`);
-                if (typeof cleanup === 'function') cleanup();
+                confirmAndCleanup();
             }
         });
     } else {
@@ -1170,7 +1233,7 @@ ipcMain.on('stop-server', (event, srvId) => {
             } else {
                 event.reply('system-info', `[RSM] Windows OS has acknowledged the stop request for PID ${pid}.`);
             }
-            if (typeof cleanup === 'function') cleanup();
+            confirmAndCleanup();
         });
     }
 
@@ -1178,14 +1241,26 @@ ipcMain.on('stop-server', (event, srvId) => {
 });
 
 // --- FORCE KILL LOGIC ---
-ipcMain.on('kill-server', (event, pid) => {
+ipcMain.on('kill-server', async (event, pid) => {
     console.log(`[RSM] kill-server -- PID: ${pid}`);
     if (!pid) return;
 
     // Look up service name in case this process is a Windows service --
     // sc stop prevents SCM from auto-restarting it after taskkill
-    const procEntry = Object.values(activeProcesses).find(p => p.pid === pid || p.pid === parseInt(pid));
-    const serviceName = procEntry?.serviceName || null;
+    const procEntryPair = Object.entries(activeProcesses).find(([, v]) => v.pid === pid || v.pid === parseInt(pid));
+    const serviceName = procEntryPair?.[1]?.serviceName || null;
+
+    // Same elevation boundary as stop-server -- taskkill fails silently (non-zero
+    // exit, already surfaced above) against a higher-integrity process, so tell
+    // the user why up front instead of leaving them with a generic error.
+    if (!(await _canTerminateProcess(pid)) && !(await _isElevated())) {
+        const srvId   = procEntryPair?.[0];
+        const srvName = managedServers.find(s => s.id === srvId)?.name || `PID ${pid}`;
+        console.log(`[RSM] kill-server -- PID ${pid} requires elevation, RSM is not elevated. Aborting.`);
+        event.reply('elevation-required', { srvId, srvName, pid });
+        event.reply('system-info', `[RSM-WARN] "${srvName}" is running with elevated permissions RSM does not have. Restart RSM as Administrator to manage it.`);
+        return;
+    }
 
     const doKill = () => {
         exec(`taskkill /F /T /PID ${pid}`, (err) => {

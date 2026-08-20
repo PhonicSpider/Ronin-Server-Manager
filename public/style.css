@@ -11,6 +11,7 @@
     --text-color: 255, 255, 255;  /* RGB for text color */
     --text: rgb(var(--text-color));
     --dim: rgba(var(--text-color), 0.6);
+    --input-bg: rgb(75, 73, 73);  /* Background for readonly path inputs */
     /* Keep these as they are */
     --accent: #007bff;
     --success: #10b981;
@@ -997,7 +998,10 @@ input[type="checkbox"] {
     gap: 10px;
 }
 
-.path-group input { flex: 1; }
+.path-group input {
+    flex: 1;
+    background-color: var(--input-bg);
+}
 
 .input-block { margin-bottom: 15px; }
 

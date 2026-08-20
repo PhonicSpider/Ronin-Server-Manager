@@ -1250,6 +1250,20 @@ window.api.receive('total-performance-update', (data) => {
 window.api.receive('system-error', (errorMsg) => window.updateSystemLog(`ERROR: ${errorMsg}`));
 window.api.receive('system-info', (infoMsg) => window.updateSystemLog(`INFO: ${infoMsg}`));
 
+window.api.receive('elevation-required', ({ srvName }) => {
+    const msgEl = document.getElementById('elevation-modal-msg');
+    if (msgEl) {
+        msgEl.textContent = `"${srvName}" is running with elevated permissions that Ronin Server Manager does not have. Restart RSM as Administrator to start, stop, or manage this server.`;
+    }
+    const modal = document.getElementById('elevation-modal');
+    if (modal) modal.style.display = 'flex';
+});
+
+window.closeElevationModal = () => {
+    const modal = document.getElementById('elevation-modal');
+    if (modal) modal.style.display = 'none';
+};
+
 window.api.receive('startup-scan-complete', ({ linked, total }) => {
     const msg = total === 0
         ? 'No servers configured.'

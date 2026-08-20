@@ -849,6 +849,20 @@
 </div>
 
 <!-- ================================================================
+      ELEVATION REQUIRED MODAL -- shown when a server can't be stopped
+      because it's running at a higher privilege level than RSM
+     ================================================================ -->
+<div id="elevation-modal" class="modal">
+    <div class="modal-content" style="width: 420px;">
+        <h3 style="color: var(--danger);">Administrator Required</h3>
+        <p id="elevation-modal-msg" style="font-size: 13px; color: var(--dim); line-height: 1.6;"></p>
+        <div class="modal-footer" style="margin-top: 10px;">
+            <button class="btn btn-outline full-width" onclick="closeElevationModal()">Got it</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================
       GEAR MENU DROPDOWN -- Per-server context menu (edit/folder/delete)
      ================================================================ -->
 <div id="options-dropdown" class="dropdown-content">
