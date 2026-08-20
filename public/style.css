@@ -83,6 +83,16 @@ body {
     margin-bottom: 30px;
 }
 
+/* Frameless window (main.js: frame:false) has no native titlebar to drag by --
+   the top branding bar doubles as the drag handle. Interactive children inside
+   it (badges) must opt back out or they stop being clickable. */
+.titlebar-drag {
+    -webkit-app-region: drag;
+}
+.titlebar-no-drag {
+    -webkit-app-region: no-drag;
+}
+
 .sidebar-logo {
     width: 24px;
     height: 24px;
@@ -104,7 +114,7 @@ body {
     50%       { opacity: 0.55; }
 }
 
-sidebar-footer {
+.sidebar-footer {
     margin-top: auto;
     padding-top: 20px;
     border-top: 1px solid var(--border);
@@ -292,6 +302,20 @@ sidebar-footer {
     padding: 40px;
     overflow: hidden;
     height: 100vh;
+}
+
+/* Extends the frameless window's drag region (see .titlebar-drag on
+   .logo-container) across the top of main-content too. Sized to exactly
+   main-content's own top padding, which is constant across every view, so it
+   can never sit on top of real content -- no per-element no-drag needed here. */
+.main-content-drag {
+    position: fixed;
+    top: 0;
+    left: 280px; /* .sidebar width */
+    right: 0;
+    height: 40px; /* .main-content padding-top */
+    -webkit-app-region: drag;
+    z-index: 1;
 }
 
 .placeholder-view {
@@ -810,6 +834,12 @@ input[type="checkbox"] {
     font-weight: 600;
 }
 
+.btn[disabled] {
+    opacity: 0.45;
+    cursor: not-allowed !important;
+    pointer-events: none;
+}
+
 .btn-primary {
     background: var(--accent);
     color: #fff;
@@ -883,6 +913,40 @@ input[type="checkbox"] {
     background: rgba(0, 123, 255, 0.15);
     border-width: 1px;
     border-color: var(--accent);
+}
+
+/* Custom titlebar controls -- relocated here since frame:false removes the
+   native minimize/maximize/close buttons entirely (main.js createWindow). */
+.window-controls {
+    display: flex;
+    gap: 6px;
+    margin-top: 14px;
+    -webkit-app-region: no-drag;
+}
+
+.window-ctrl-btn {
+    flex: 1;
+    padding: 8px 0;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--dim);
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.window-ctrl-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #fff;
+}
+
+.window-ctrl-close:hover {
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(239, 68, 68, 0.6);
+    color: #ef4444;
 }
 
 .full-width { width: 100%; }

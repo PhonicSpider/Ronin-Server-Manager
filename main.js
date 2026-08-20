@@ -18,8 +18,22 @@ const { spawn, exec, execSync } = require('child_process');
 const si = require('systeminformation');
 const os = require('os');
 const axios = require('axios');
+const { autoUpdater } = require('electron-updater');
 const apiServer  = require('./api-server');
 const roninAgent = require('./ronin-agent');
+
+// Never download/install without an explicit user action -- checking is safe
+// to do silently on startup, but replacing the running exe is not.
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = false;
+
+// electron-updater silently no-ops checkForUpdates() -- fires zero events,
+// no error -- when running unpackaged (electron . from source) unless told
+// to use the real feed anyway. Safe here since autoDownload stays off either
+// way; this only affects whether the *check* itself actually runs in dev.
+if (!app.isPackaged) {
+    autoUpdater.forceDevUpdateConfig = true;
+}
 
 // Wire up api-server dependencies at module load time so they are always set
 // before any HTTP request or IPC handler can reach the server.
@@ -116,6 +130,7 @@ function createWindow() {
         icon: path.join(__dirname, 'icon.png'),
         backgroundColor: '#0f111a',
         hasShadow: true,
+        frame: false,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
@@ -133,6 +148,16 @@ function createWindow() {
             mainWindow.hide();
         }
     });
+
+    // Frameless window -- the renderer's custom titlebar controls need to know
+    // the real maximize state to swap the maximize/restore icon.
+    const sendWindowState = () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('window-state-changed', { maximized: mainWindow.isMaximized() });
+        }
+    };
+    mainWindow.on('maximize', sendWindowState);
+    mainWindow.on('unmaximize', sendWindowState);
 }
 
 // --- SYSTEM TRAY CREATION & LOGIC ---
@@ -198,11 +223,17 @@ function relinkServer(srv, pid, serviceName = null) {
         delete pendingRestarts[srv.id];
         delete activeProcesses[srv.id];
         delete serverStats[srv.id];
+        const offlineIdx = managedServers.findIndex(s => s.id === srv.id);
+        if (offlineIdx !== -1) {
+            managedServers[offlineIdx].status = 'Offline';
+            managedServers[offlineIdx].pid = null;
+        }
 
         if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('status-change', { id: srv.id, status: 'Offline' });
             mainWindow.webContents.send('system-info', `[RSM] ${srv.name} has stopped and is now Offline.`);
         }
+        roninAgent.notifyStatusChange(srv.id, 'Offline', null);
 
         if (restartSrv) {
             console.log(`[RSM] relinkServer cleanup -- restarting "${restartSrv.name}"`);
@@ -227,6 +258,13 @@ function relinkServer(srv, pid, serviceName = null) {
         mainWindow.webContents.send('status-change', { id: srv.id, status: 'Online', pid });
         mainWindow.webContents.send('system-info', `[RSM] Re-linked "${srv.name}" to existing process (PID ${pid}).`);
     }
+    // The Citadel agent connects immediately on app startup, but the relink
+    // pass that runs this function is deliberately delayed 3s (see
+    // app.whenReady()) to let the UI load first. The agent's very first
+    // announce can easily fire before this relink completes, going out with
+    // this server still marked Offline -- push the real state so Citadel
+    // doesn't stay stuck on that stale snapshot.
+    roninAgent.notifyStatusChange(srv.id, 'Online', pid);
 
     // Start log file watcher for POWERSHELL_BRIDGE servers (DIRECT_CONSOLE uses shell pipe, unavailable here)
     const serverCategory = findServType(srv);
@@ -543,6 +581,14 @@ app.whenReady().then(() => {
 
     // Give the UI 3 seconds to load before reporting re-linked processes
     setTimeout(syncActiveServers, 3000);
+
+    // Startup update check -- runs concurrently with the relink scan above so
+    // it doesn't add extra wait on top in the common case. The renderer's init
+    // overlay waits on both this and startup-scan-complete before dismissing.
+    autoUpdater.checkForUpdates().catch(err => {
+        console.error('[RSM] Startup update check failed:', err.message);
+        _sendUpdateStatus('error', { message: err.message });
+    });
 
     // Boot the REST API if the user has it enabled
     const apiCfg = loadApiConfig();
@@ -1173,6 +1219,15 @@ ipcMain.on('stop-server', async (event, srvId) => {
         console.log(`[RSM] stop-server -- PID ${pid} requires elevation, RSM is not elevated. Aborting.`);
         event.reply('elevation-required', { srvId, srvName, pid });
         event.reply('system-info', `[RSM-WARN] "${srvName}" is running with elevated permissions RSM does not have. Restart RSM as Administrator to manage it.`);
+        // restart-server sets pendingRestarts before calling stop-server, expecting
+        // cleanup() to consume it once the process actually exits. Since cleanup()
+        // never runs on this early-return path, clear it here too -- otherwise a
+        // blocked restart silently fires later, whenever this server is next
+        // stopped through some other path (e.g. after RSM is relaunched elevated).
+        if (pendingRestarts[srvId]) {
+            delete pendingRestarts[srvId];
+            event.reply('system-info', `[RSM] Restart for "${srvName}" cancelled -- elevation required.`);
+        }
         return;
     }
 
@@ -1843,6 +1898,83 @@ ipcMain.on('open-docs', () => {
 ipcMain.on('update-window-opacity', (event, value) => {
     console.log(`[RSM] update-window-opacity -- setting to ${parseFloat(value).toFixed(2)}`);
     mainWindow.setOpacity(parseFloat(value));
+});
+
+// --- CUSTOM TITLEBAR CONTROLS (frameless window) ---
+ipcMain.on('window-minimize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.minimize();
+});
+
+ipcMain.on('window-maximize-toggle', () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (mainWindow.isMaximized()) mainWindow.unmaximize();
+    else mainWindow.maximize();
+});
+
+// Actually quits -- distinct from window-hide-to-tray, which keeps RSM running.
+ipcMain.on('window-close', () => {
+    app.isQuiting = true;
+    app.quit();
+});
+
+// Keeps RSM running in the background, same as the pre-existing default close
+// behavior. A separate action from window-close now that Close actually quits.
+ipcMain.on('window-hide-to-tray', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
+});
+
+// --- APP UPDATER ---
+function _sendUpdateStatus(status, extra = {}) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update-status', { status, ...extra });
+    }
+}
+
+autoUpdater.on('checking-for-update', () => {
+    console.log('[RSM] Checking for updates...');
+    _sendUpdateStatus('checking');
+});
+autoUpdater.on('update-available', (info) => {
+    console.log(`[RSM] Update available: v${info.version}`);
+    _sendUpdateStatus('available', { version: info.version });
+});
+autoUpdater.on('update-not-available', () => {
+    console.log('[RSM] No update available -- running the latest version.');
+    _sendUpdateStatus('not-available');
+});
+autoUpdater.on('error', (err) => {
+    console.error('[RSM] Update check failed:', err.message);
+    _sendUpdateStatus('error', { message: err.message });
+});
+autoUpdater.on('download-progress', (progress) => {
+    _sendUpdateStatus('downloading', { percent: Math.round(progress.percent) });
+});
+autoUpdater.on('update-downloaded', (info) => {
+    console.log(`[RSM] Update downloaded: v${info.version}`);
+    _sendUpdateStatus('downloaded', { version: info.version });
+});
+
+ipcMain.handle('get-app-version', () => app.getVersion());
+
+ipcMain.handle('check-for-updates', async () => {
+    try {
+        const result = await autoUpdater.checkForUpdates();
+        return { success: true, version: result?.updateInfo?.version || null };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+});
+
+ipcMain.on('download-update', () => {
+    autoUpdater.downloadUpdate().catch(e => {
+        console.error('[RSM] Update download failed:', e.message);
+        _sendUpdateStatus('error', { message: e.message });
+    });
+});
+
+ipcMain.on('install-update', () => {
+    app.isQuiting = true;
+    autoUpdater.quitAndInstall();
 });
 
 // --- OPEN FOLDER IN EXPLORER ---

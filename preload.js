@@ -3,21 +3,21 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('api', {
     // For sending data TO main (One-way)
     send: (channel, data) => {
-        let validChannels = ['save-servers', 'log-to-system', 'start-server', 'stop-server', 'restart-server', 'open-folder', 'kill-server', 'send-command', 'show-server-gui', 'get-player-count', 'open-docs', 'update-window-opacity', 'save-api-config', 'resync-servers', 'save-citadel-config', 'update-startup-settings'];
+        let validChannels = ['save-servers', 'log-to-system', 'start-server', 'stop-server', 'restart-server', 'open-folder', 'kill-server', 'send-command', 'show-server-gui', 'get-player-count', 'open-docs', 'update-window-opacity', 'save-api-config', 'resync-servers', 'save-citadel-config', 'update-startup-settings', 'window-minimize', 'window-maximize-toggle', 'window-close', 'window-hide-to-tray', 'download-update', 'install-update'];
         if (validChannels.includes(channel)) {
             ipcRenderer.send(channel, data);
         }
     },
     // For receiving data FROM main (Listening)
     receive: (channel, func) => {
-        let validChannels = ['console-out', 'server-status-updated', 'load-servers', 'status-change', 'server-perf-update', 'total-performance-update', 'system-error', 'system-info', 'player-count-update', 'network-stats-update', 'server-connections-update', 'servers-updated', 'startup-scan-complete', 'forge:log', 'forge:phase', 'forge:progress', 'forge:done', 'citadel-status', 'citadel-download-progress', 'elevation-required'];
+        let validChannels = ['console-out', 'server-status-updated', 'load-servers', 'status-change', 'server-perf-update', 'total-performance-update', 'system-error', 'system-info', 'player-count-update', 'network-stats-update', 'server-connections-update', 'servers-updated', 'startup-scan-complete', 'forge:log', 'forge:phase', 'forge:progress', 'forge:done', 'citadel-status', 'citadel-download-progress', 'elevation-required', 'window-state-changed', 'update-status'];
         if (validChannels.includes(channel)) {
             ipcRenderer.on(channel, (event, ...args) => func(...args));
         }
     },
     // For asking main for data and getting a result (Two-way)
     invoke: (channel, data) => {
-        let validChannels = ['get-servers', 'get-settings', 'check-admin', 'open-dialog', 'select-folder', 'read-config-file', 'write-config-file', 'list-backups', 'get-desktop-path', 'apply-firewall-rules', 'remove-firewall-rules', 'check-firewall-rules', 'get-firewall-rules', 'add-firewall-rule', 'remove-firewall-rule', 'toggle-firewall-rule', 'check-port-conflicts', 'get-api-config', 'regenerate-api-key', 'forge:get-games', 'forge:get-install-root', 'forge:install', 'forge:parse-config', 'forge:register', 'get-citadel-config', 'citadel-game-library', 'citadel-game-versions', 'citadel-download-version'];
+        let validChannels = ['get-servers', 'get-settings', 'check-admin', 'open-dialog', 'select-folder', 'read-config-file', 'write-config-file', 'list-backups', 'get-desktop-path', 'apply-firewall-rules', 'remove-firewall-rules', 'check-firewall-rules', 'get-firewall-rules', 'add-firewall-rule', 'remove-firewall-rule', 'toggle-firewall-rule', 'check-port-conflicts', 'get-api-config', 'regenerate-api-key', 'forge:get-games', 'forge:get-install-root', 'forge:install', 'forge:parse-config', 'forge:register', 'get-citadel-config', 'citadel-game-library', 'citadel-game-versions', 'citadel-download-version', 'get-app-version', 'check-for-updates'];
         if (validChannels.includes(channel)) {
             return ipcRenderer.invoke(channel, data);
         }

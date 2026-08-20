@@ -111,6 +111,7 @@ async function init() {
     setInitStatus('Loading API settings...');
     await loadApiSettings();
     await loadCitadelSettings();
+    await loadVersionInfo();
 
     setInitStatus('Waiting for startup scan...');
     console.log('[RSM] init--renderer ready, awaiting startup scan');
@@ -1264,6 +1265,37 @@ window.closeElevationModal = () => {
     if (modal) modal.style.display = 'none';
 };
 
+// Frameless window -- swap the custom maximize/restore icon to match real state.
+window.api.receive('window-state-changed', ({ maximized }) => {
+    const btn = document.getElementById('window-maximize-btn');
+    if (!btn) return;
+    btn.textContent = maximized ? '❐' : '▢';
+    btn.title = maximized ? 'Restore' : 'Maximize';
+});
+
+// Init overlay waits on both the relink scan AND the startup update check
+// before dismissing, so a slow/unreachable update server doesn't just get
+// silently skipped -- but a safety timeout keeps a hung check from blocking
+// startup forever.
+let _scanDone = false;
+let _updateCheckDone = false;
+
+function _hideInitOverlayIfReady() {
+    if (!_scanDone || !_updateCheckDone) return;
+    const overlay = document.getElementById('init-overlay');
+    if (overlay) {
+        overlay.classList.add('fade-out');
+        setTimeout(() => { overlay.style.display = 'none'; }, 450);
+    }
+}
+
+setTimeout(() => {
+    if (_updateCheckDone) return;
+    console.warn('[RSM] Startup update check timed out -- continuing without it.');
+    _updateCheckDone = true;
+    _hideInitOverlayIfReady();
+}, 8000);
+
 window.api.receive('startup-scan-complete', ({ linked, total }) => {
     const msg = total === 0
         ? 'No servers configured.'
@@ -1272,11 +1304,113 @@ window.api.receive('startup-scan-complete', ({ linked, total }) => {
             : `Scan complete--${linked} of ${total} server(s) running.`;
     setInitStatus(msg);
     console.log(`[RSM] startup-scan-complete--${msg}`);
-    const overlay = document.getElementById('init-overlay');
-    if (overlay) {
-        overlay.classList.add('fade-out');
-        setTimeout(() => { overlay.style.display = 'none'; }, 450);
+    _scanDone = true;
+    _hideInitOverlayIfReady();
+});
+
+//      _   _ ____  ____    _  _____ _____ ____
+//     | | | |  _ \|  _ \  / \|_   _| ____|  _ \
+//     | | | | |_) | | | |/ _ \ | | |  _| | |_) |
+//     | |_| |  __/| |_| / ___ \| | | |___|  _ <
+//      \___/|_|   |____/_/   \_\_| |_____|_| \_\
+//
+
+let _appVersion = null;
+
+async function loadVersionInfo() {
+    try {
+        _appVersion = await window.api.invoke('get-app-version');
+    } catch { _appVersion = null; }
+    _renderUpdateStatus('idle');
+}
+
+// One button that changes behavior depending on the current update state --
+// dispatches to check/download/install rather than always just checking.
+window.checkForUpdates = async () => {
+    const state = document.getElementById('check-updates-btn')?.dataset.state;
+    if (state === 'available') { window.api.send('download-update'); return; }
+    if (state === 'downloaded') { window.api.send('install-update'); return; }
+
+    _renderUpdateStatus('checking');
+    const result = await window.api.invoke('check-for-updates');
+    if (!result?.success) {
+        _renderUpdateStatus('error', { message: result?.error || 'Update check failed.' });
     }
+    // Success path resolves via the update-status IPC events below --
+    // autoUpdater fires checking-for-update/update-available/etc. asynchronously.
+};
+
+function _renderUpdateStatus(status, extra = {}) {
+    const textEl = document.getElementById('update-status-text');
+    const btn    = document.getElementById('check-updates-btn');
+    if (!textEl || !btn) return;
+
+    const versionLabel = _appVersion ? `v${_appVersion}` : '';
+    btn.dataset.state = status;
+    btn.disabled = false;
+
+    switch (status) {
+        case 'idle':
+            textEl.textContent = versionLabel ? `Current version: ${versionLabel}` : 'Checking version…';
+            btn.textContent = 'Check for Updates';
+            break;
+        case 'checking':
+            textEl.textContent = 'Checking for updates…';
+            btn.textContent = 'Checking…';
+            btn.disabled = true;
+            break;
+        case 'not-available':
+            textEl.textContent = `You're up to date${versionLabel ? ` (${versionLabel})` : ''}.`;
+            btn.textContent = 'Check for Updates';
+            break;
+        case 'available':
+            textEl.textContent = `Update available: v${extra.version}`;
+            btn.textContent = `Download v${extra.version}`;
+            break;
+        case 'downloading':
+            textEl.textContent = `Downloading update… ${extra.percent ?? 0}%`;
+            btn.textContent = 'Downloading…';
+            btn.disabled = true;
+            break;
+        case 'downloaded':
+            textEl.textContent = `Update v${extra.version} ready to install.`;
+            btn.textContent = 'Restart && Install';
+            break;
+        case 'error':
+            textEl.textContent = `Update check failed: ${extra.message || 'Unknown error'}`;
+            btn.textContent = 'Check for Updates';
+            break;
+    }
+}
+
+window.api.receive('update-status', ({ status, ...extra }) => {
+    console.log(`[RSM] update-status--${status}`, extra);
+
+    if (status === 'checking') {
+        setInitStatus('Checking for updates…');
+        window.updateSystemLog('[RSM] Checking for updates…');
+    } else if (status === 'available') {
+        setInitStatus(`Update available: v${extra.version}`);
+        window.updateSystemLog(`[RSM] Update available: v${extra.version}`);
+    } else if (status === 'not-available') {
+        setInitStatus('Ronin Server Manager is up to date.');
+        window.updateSystemLog('[RSM] Ronin Server Manager is up to date.');
+    } else if (status === 'error') {
+        window.updateSystemLog(`[RSM-WARN] Update check failed: ${extra.message || 'Unknown error'}`);
+    } else if (status === 'downloading') {
+        window.updateSystemLog(`[RSM] Downloading update… ${extra.percent ?? 0}%`);
+    } else if (status === 'downloaded') {
+        window.updateSystemLog(`[RSM] Update v${extra.version} downloaded and ready to install.`);
+    }
+
+    // The very first checking-for-update fires at startup; everything after
+    // it (available/not-available/error) resolves that same check.
+    if (['available', 'not-available', 'error'].includes(status) && !_updateCheckDone) {
+        _updateCheckDone = true;
+        _hideInitOverlayIfReady();
+    }
+
+    _renderUpdateStatus(status, extra);
 });
 
 window.api.receive('server-connections-update', ({ id, connections }) => {

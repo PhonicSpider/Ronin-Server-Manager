@@ -21,11 +21,11 @@
       SIDEBAR -- Logo, server list, global controls, settings link
      ================================================================ -->
 <aside class="sidebar">
-    <div class="logo-container">
+    <div class="logo-container titlebar-drag">
         <img src="../icon.png" alt="Logo" class="sidebar-logo">
         <span>SERVER_MANAGER</span>
-        <span id="admin-badge" style="display:none; font-size: 10px; background: var(--success); color: white; padding: 2px 5px; border-radius: 4px; margin-left: 5px;">ADMIN</span>
-        <span id="citadel-badge" style="display:none; font-size: 10px; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 5px; cursor:pointer;" title="Ronin Citadel Portal — click to configure">⬡ CITADEL</span>
+        <span id="admin-badge" class="titlebar-no-drag" style="display:none; font-size: 10px; background: var(--success); color: white; padding: 2px 5px; border-radius: 4px; margin-left: 5px;">ADMIN</span>
+        <span id="citadel-badge" class="titlebar-no-drag" style="display:none; font-size: 10px; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 5px; cursor:pointer;" title="Ronin Citadel Portal — click to configure">⬡ CITADEL</span>
     </div>
 
     <div class="nav-item" onclick="showView('home')" style="margin-bottom: 20px; border-left: 3px solid var(--accent);">
@@ -61,10 +61,23 @@
         <button class="btn btn-settings btn-outline full-width" style="margin-top: 6px;" onclick="window.api.send('open-docs')">
             📖 Help &amp; Docs
         </button>
+        <button class="btn btn-settings btn-outline full-width" style="margin-top: 6px;" onclick="window.api.send('window-hide-to-tray')" title="Keep RSM running in the background">
+            🗕 Minimize to Tray
+        </button>
+        <button class="btn btn-settings btn-outline full-width" style="margin-top: 6px;" disabled title="Coming soon">
+            🧩 Widget Mode <span class="tiny-label" style="margin-left: 4px;">SOON</span>
+        </button>
+
+        <div class="window-controls">
+            <button class="window-ctrl-btn" onclick="window.api.send('window-minimize')" title="Minimize">─</button>
+            <button id="window-maximize-btn" class="window-ctrl-btn" onclick="window.api.send('window-maximize-toggle')" title="Maximize">▢</button>
+            <button class="window-ctrl-btn window-ctrl-close" onclick="window.api.send('window-close')" title="Close">✕</button>
+        </div>
     </div>
 </aside>
 
 <main class="main-content">
+    <div class="main-content-drag"></div>
 
     <!-- ================================================================
           HOME VIEW -- Total resource gauges and system boot log
@@ -402,6 +415,13 @@
             <div class="setting-row">
                 <span>Launch Manager on Windows Startup</span>
                 <input type="checkbox" id="launch-startup-chk" onchange="toggleStartup(this.checked)">
+            </div>
+
+            <div class="setting-row" style="margin-top: 14px;">
+                <span>Software Updates<br>
+                    <small id="update-status-text" style="color: var(--dim); font-weight: normal;">Checking version…</small>
+                </span>
+                <button class="btn btn-outline" id="check-updates-btn" onclick="window.checkForUpdates()">Check for Updates</button>
             </div>
         </div>
 

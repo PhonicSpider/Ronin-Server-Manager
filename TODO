@@ -120,4 +120,19 @@ Need to test adding server and all saves/configurations done
 - Add auto updaters (links will be added to configuration most likely or user default ones)
 - Add more games to support
 
-Needs to fix shutting down servers that are already started and synced too
+Needs to fix shutting down servers that are already started and synced too X (08-19-26)
+- Root cause was two-fold: stop-server called cleanup() unconditionally once the
+  exec callback returned, regardless of whether the process actually exited, so
+  the UI could show "Offline" while the real process kept running. Fixed to
+  verify the PID is actually gone before cleanup.
+- Underlying trigger for the Test/Test 2 SE servers specifically: they were
+  running elevated while RSM was not, so Stop-Process/taskkill were silently
+  failing (Windows won't let a lower-integrity process kill a higher one).
+  Added an OpenProcess(PROCESS_TERMINATE) probe -- stop-server/kill-server now
+  detect this up front and show an "Administrator Required" modal instead of
+  attempting a doomed stop.
+
+// (08-19-26) \\
+- Fixed Storage Paths input fields having no background styling -- a prior
+  manual CSS edit had targeted the text-color variable instead of background,
+  and applied it globally to every input in the app instead of just those two.
