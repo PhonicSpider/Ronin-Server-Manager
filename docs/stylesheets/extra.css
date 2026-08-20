@@ -316,3 +316,14 @@ box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
     background-color: rgba(255, 69, 0, 0.05);
     padding-left: 12px !important; /* Slight "nudge" effect on hover */
 }
+
+/* Real per-game logos inline in grid card headers (Supported Games list),
+   sized to match the Material icon glyphs they replace */
+.rsm-card-logo {
+    height: 22px;
+    width: 22px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin-right: 0.3em;
+    margin-top: -3px;
+}
