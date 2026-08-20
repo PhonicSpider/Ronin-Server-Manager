@@ -72,6 +72,11 @@ roninAgent.init({
         const win = mainWindow;
         if (win && !win.isDestroyed()) win.webContents.send('console-out', { id, msg });
     },
+    // Firewall helpers (shared with api-server.js) for the portal firewall relay.
+    getFirewallRules:   _apiGetFirewallRules,
+    addFirewallRule:    _apiAddFirewallRule,
+    removeFirewallRule: _apiRemoveFirewallRule,
+    toggleFirewallRule: _apiToggleFirewallRule,
     getAppVersion: () => app.getVersion(),
     app,
 });
@@ -543,16 +548,16 @@ app.whenReady().then(() => {
     const apiCfg = loadApiConfig();
     if (apiCfg.enabled && apiCfg.apiKey) {
         const tls = ensureTlsCert();
-        apiServer.start(apiCfg.port || 3002, apiCfg.apiKey, { key: tls.key, cert: tls.cert });
-        console.log(`[RSM] REST API started on port ${apiCfg.port || 3002}`);
+        apiServer.start(apiCfg.port || 3002, apiCfg.apiKey, { key: tls.key, cert: tls.cert }, apiBindHost(apiCfg));
+        console.log(`[RSM] REST API started on port ${apiCfg.port || 3002} (${apiBindHost(apiCfg)})`);
     } else {
         console.log('[RSM] REST API is disabled -- skipping startup');
     }
 
     // Boot the Citadel agent if configured
     const citadelCfg = loadCitadelConfig();
-    if (citadelCfg.enabled && citadelCfg.portalUrl && citadelCfg.agentToken) {
-        roninAgent.start(citadelCfg.portalUrl, citadelCfg.agentToken, citadelCfg.citadelApiUrl);
+    if (citadelCfg.enabled && citadelCfg.portalUrl && citadelCfg.agentToken && citadelCfg.orgSlug && citadelCfg.machSlug) {
+        roninAgent.start(citadelCfg.portalUrl, citadelCfg.agentToken, citadelCfg.citadelApiUrl, citadelCfg.orgSlug, citadelCfg.machSlug);
         console.log('[RSM] Citadel agent started');
     } else {
         console.log('[RSM] Citadel agent disabled -- skipping startup');
@@ -655,7 +660,13 @@ function loadApiConfig() {
             console.error('[RSM] Failed to load api-config.json:', e);
         }
     }
-    return { enabled: false, port: 3002, apiKey: '' };
+    return { enabled: false, port: 3002, apiKey: '', lanAccess: false };
+}
+
+// Resolve the interface the REST API binds to. Loopback by default; only expose
+// to the LAN (0.0.0.0) when the operator has explicitly enabled lanAccess.
+function apiBindHost(cfg) {
+    return cfg && cfg.lanAccess ? '0.0.0.0' : '127.0.0.1';
 }
 
 function saveApiConfig(config) {
@@ -731,6 +742,8 @@ ipcMain.on('save-servers', (event, updatedList) => {
 const MAX_LOG_LINES = 500;
 function sendConsoleOut(event, id, msg) {
     event.reply('console-out', { id, msg });
+    // Forward to the Citadel portal SSE stream (no-op if the agent is offline).
+    roninAgent.notifyConsoleOutput(id, msg);
     const idx = managedServers.findIndex(s => s.id === id);
     if (idx === -1) return;
     const current = managedServers[idx].logs || '';
@@ -756,7 +769,7 @@ ipcMain.on('save-api-config', (event, config) => {
     saveApiConfig(config);
     if (config.enabled && config.apiKey) {
         const tls = ensureTlsCert();
-        apiServer.start(config.port || 3002, config.apiKey, { key: tls.key, cert: tls.cert });
+        apiServer.start(config.port || 3002, config.apiKey, { key: tls.key, cert: tls.cert }, apiBindHost(config));
     } else {
         apiServer.stop();
     }
@@ -771,7 +784,7 @@ ipcMain.handle('regenerate-api-key', () => {
     saveApiConfig(config);
     if (config.enabled) {
         const tls = ensureTlsCert();
-        apiServer.start(config.port, config.apiKey, { key: tls.key, cert: tls.cert });
+        apiServer.start(config.port, config.apiKey, { key: tls.key, cert: tls.cert }, apiBindHost(config));
     }
     console.log('[RSM] API key regenerated.');
     return config;
@@ -2459,7 +2472,7 @@ function loadCitadelConfig() {
             console.error('[RSM] Failed to load citadel-agent.json:', e);
         }
     }
-    return { enabled: false, portalUrl: '', agentToken: '', citadelApiUrl: '' };
+    return { enabled: false, portalUrl: '', agentToken: '', citadelApiUrl: '', orgSlug: '', machSlug: '' };
 }
 
 function saveCitadelConfig(config) {
@@ -2472,8 +2485,8 @@ ipcMain.handle('get-citadel-config', () => loadCitadelConfig());
 ipcMain.on('save-citadel-config', (event, config) => {
     console.log(`[RSM] save-citadel-config -- enabled: ${config.enabled}`);
     saveCitadelConfig(config);
-    if (config.enabled && config.portalUrl && config.agentToken) {
-        roninAgent.start(config.portalUrl, config.agentToken, config.citadelApiUrl);
+    if (config.enabled && config.portalUrl && config.agentToken && config.orgSlug && config.machSlug) {
+        roninAgent.start(config.portalUrl, config.agentToken, config.citadelApiUrl, config.orgSlug, config.machSlug);
     } else {
         roninAgent.stop();
     }

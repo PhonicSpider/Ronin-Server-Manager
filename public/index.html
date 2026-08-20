@@ -427,6 +427,15 @@
                     </div>
                 </div>
 
+                <div class="setting-row" style="margin-bottom: 14px;">
+                    <span>Allow LAN access<br>
+                        <small style="color: var(--dim); font-weight: normal;">
+                            Off = this machine only (127.0.0.1). On = reachable from the LAN (0.0.0.0) for tools like ArkenBot.
+                        </small>
+                    </span>
+                    <input type="checkbox" id="api-lan-chk" onchange="toggleApiLanAccess(this.checked)">
+                </div>
+
                 <div>
                     <label class="tiny-label">API KEY</label>
                     <div class="path-group" style="gap: 8px;">
@@ -474,6 +483,28 @@
                     <p style="font-size: 11px; color: var(--dim); margin-top: 8px; line-height: 1.5;">
                         Generate an agent token from <strong>Portal → Servers → Tokens</strong>, then paste it here.
                         The token is stored locally and never sent anywhere except your portal.
+                    </p>
+                </div>
+
+                <div style="margin-top: 14px;">
+                    <label class="tiny-label">ORG SLUG</label>
+                    <div class="path-group" style="gap: 8px;">
+                        <input type="text" id="citadel-org-input" placeholder="e.g. ronin-empire"
+                               style="font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 6px 10px;">
+                    </div>
+                </div>
+
+                <div style="margin-top: 14px;">
+                    <label class="tiny-label">MACHINE SLUG</label>
+                    <div class="path-group" style="gap: 8px;">
+                        <input type="text" id="citadel-mach-input" placeholder="e.g. main-dedi"
+                               style="font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 6px 10px;">
+                        <button class="btn btn-outline" onclick="saveCitadelSettings()">Save</button>
+                    </div>
+                    <p style="font-size: 11px; color: var(--dim); margin-top: 8px; line-height: 1.5;">
+                        Org &amp; machine slugs come from the portal machine's URL
+                        (<code>/{orgSlug}/machines/{machSlug}</code>). Both are required — the agent
+                        connects to <code>wss://&lt;portal&gt;/{orgSlug}/machines/{machSlug}</code>.
                     </p>
                 </div>
 

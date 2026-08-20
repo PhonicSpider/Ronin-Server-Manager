@@ -2091,7 +2091,7 @@ window.closeRestoreBackup = () => {
 //    /_/   \_\_|   |___| |____/|_____| |_|   |_| |___|_| \_|\____|____/
 //
 
-let _apiConfig = { enabled: false, port: 3002, apiKey: '' };
+let _apiConfig = { enabled: false, port: 3002, apiKey: '', lanAccess: false };
 
 async function loadApiSettings() {
     console.log('[RSM] loadApiSettings--loading...');
@@ -2099,14 +2099,16 @@ async function loadApiSettings() {
         _apiConfig = await window.api.invoke('get-api-config');
         console.log('[RSM] loadApiSettings--loaded:', { enabled: _apiConfig.enabled, port: _apiConfig.port });
     } catch (e) {
-        _apiConfig = { enabled: false, port: 3002, apiKey: '' };
+        _apiConfig = { enabled: false, port: 3002, apiKey: '', lanAccess: false };
     }
     const enabledChk = document.getElementById('api-enabled-chk');
     const portInput  = document.getElementById('api-port-input');
     const keyDisplay = document.getElementById('api-key-display');
+    const lanChk     = document.getElementById('api-lan-chk');
     if (enabledChk) enabledChk.checked   = !!_apiConfig.enabled;
     if (portInput)  portInput.value       = String(_apiConfig.port || 3002);
     if (keyDisplay) keyDisplay.value      = _apiConfig.apiKey || '(none--click Regenerate)';
+    if (lanChk)     lanChk.checked        = !!_apiConfig.lanAccess;
     _updateApiBodyOpacity(_apiConfig.enabled);
 }
 
@@ -2133,6 +2135,17 @@ window.saveApiPort = () => {
     _apiConfig.port = port;
     window.api.send('save-api-config', _apiConfig);
     window.updateSystemLog(`API port set to ${port}.`);
+};
+
+// LAN access opt-in. Off = loopback only (127.0.0.1); on = bind 0.0.0.0 so other
+// machines on the network (e.g. ArkenBot) can reach the API. Restarts the server.
+window.toggleApiLanAccess = (lan) => {
+    _apiConfig.lanAccess = !!lan;
+    window.api.send('save-api-config', _apiConfig);
+    window.updateSystemLog(
+        lan ? 'Remote API exposed to the LAN (0.0.0.0). Ensure your firewall is configured.'
+            : 'Remote API restricted to this machine (127.0.0.1).'
+    );
 };
 
 window.copyApiKey = () => {
@@ -2163,22 +2176,26 @@ window.regenerateApiKey = async () => {
 //      \____|___| |_/_/   \_\____/|_____|_____|
 //
 
-let _citadelConfig = { enabled: false, portalUrl: '', agentToken: '', citadelApiUrl: '' };
+let _citadelConfig = { enabled: false, portalUrl: '', agentToken: '', citadelApiUrl: '', orgSlug: '', machSlug: '' };
 
 async function loadCitadelSettings() {
     try {
         _citadelConfig = await window.api.invoke('get-citadel-config');
     } catch (e) {
-        _citadelConfig = { enabled: false, portalUrl: '', agentToken: '', citadelApiUrl: '' };
+        _citadelConfig = { enabled: false, portalUrl: '', agentToken: '', citadelApiUrl: '', orgSlug: '', machSlug: '' };
     }
     const enabledChk  = document.getElementById('citadel-enabled-chk');
     const urlInput    = document.getElementById('citadel-url-input');
     const tokenInput  = document.getElementById('citadel-token-input');
     const apiUrlInput = document.getElementById('citadel-api-url-input');
+    const orgInput    = document.getElementById('citadel-org-input');
+    const machInput   = document.getElementById('citadel-mach-input');
     if (enabledChk) enabledChk.checked = !!_citadelConfig.enabled;
     if (urlInput)   urlInput.value     = _citadelConfig.portalUrl  || '';
     if (tokenInput) tokenInput.value   = _citadelConfig.agentToken || '';
     if (apiUrlInput) apiUrlInput.value = _citadelConfig.citadelApiUrl || '';
+    if (orgInput)   orgInput.value     = _citadelConfig.orgSlug  || '';
+    if (machInput)  machInput.value    = _citadelConfig.machSlug || '';
     _updateCitadelBodyOpacity(_citadelConfig.enabled);
 
     const badge = document.getElementById('citadel-badge');
@@ -2195,15 +2212,27 @@ function _updateCitadelBodyOpacity(enabled) {
     }
 }
 
+// Pull the current values of every Citadel field into _citadelConfig. When
+// `keepExisting` is true, blank inputs fall back to the stored value (used by the
+// enable toggle so flipping the switch never wipes saved settings).
+function _readCitadelInputs(keepExisting) {
+    const urlInput    = document.getElementById('citadel-url-input');
+    const tokenInput  = document.getElementById('citadel-token-input');
+    const apiUrlInput = document.getElementById('citadel-api-url-input');
+    const orgInput    = document.getElementById('citadel-org-input');
+    const machInput   = document.getElementById('citadel-mach-input');
+    const pick = (el, prev) => keepExisting ? (el?.value.trim() || prev) : (el?.value.trim() || '');
+    _citadelConfig.portalUrl     = pick(urlInput,    _citadelConfig.portalUrl);
+    _citadelConfig.agentToken    = pick(tokenInput,  _citadelConfig.agentToken);
+    _citadelConfig.citadelApiUrl = pick(apiUrlInput, _citadelConfig.citadelApiUrl);
+    _citadelConfig.orgSlug       = pick(orgInput,    _citadelConfig.orgSlug);
+    _citadelConfig.machSlug      = pick(machInput,   _citadelConfig.machSlug);
+}
+
 window.toggleCitadelEnabled = (enabled) => {
     _citadelConfig.enabled = enabled;
     _updateCitadelBodyOpacity(enabled);
-    const urlInput   = document.getElementById('citadel-url-input');
-    const tokenInput = document.getElementById('citadel-token-input');
-    const apiUrlInput = document.getElementById('citadel-api-url-input');
-    _citadelConfig.portalUrl     = urlInput?.value.trim()   || _citadelConfig.portalUrl;
-    _citadelConfig.agentToken    = tokenInput?.value.trim() || _citadelConfig.agentToken;
-    _citadelConfig.citadelApiUrl = apiUrlInput?.value.trim() ?? _citadelConfig.citadelApiUrl;
+    _readCitadelInputs(true);
     window.api.send('save-citadel-config', _citadelConfig);
     window.updateSystemLog(`Citadel Portal ${enabled ? 'enabled — connecting…' : 'disabled.'}`);
     const badge = document.getElementById('citadel-badge');
@@ -2211,12 +2240,7 @@ window.toggleCitadelEnabled = (enabled) => {
 };
 
 window.saveCitadelSettings = () => {
-    const urlInput   = document.getElementById('citadel-url-input');
-    const tokenInput = document.getElementById('citadel-token-input');
-    const apiUrlInput = document.getElementById('citadel-api-url-input');
-    _citadelConfig.portalUrl     = urlInput?.value.trim()   || '';
-    _citadelConfig.agentToken    = tokenInput?.value.trim() || '';
-    _citadelConfig.citadelApiUrl = apiUrlInput?.value.trim() || '';
+    _readCitadelInputs(false);
     window.api.send('save-citadel-config', _citadelConfig);
     window.updateSystemLog('Citadel Portal settings saved.');
 };

@@ -72,9 +72,14 @@ let _getAppVersion;
 let _restartApp;
 
 // ── Runtime state ─────────────────────────────────────────────────────────
-let _server = null;
-let _apiKey  = '';
-let _port    = 3002;
+let _server   = null;
+let _apiKey   = '';
+let _port     = 3002;
+// Default to loopback — the in-process Citadel agent reaches this over localhost.
+// Binding 0.0.0.0 exposes the API to the whole LAN and must be an explicit opt-in.
+let _bindHost = '127.0.0.1';
+// CORS allow-origin. When null, send() derives a safe default from the bind host.
+let _corsOrigin = null;
 
 // ── Public interface ───────────────────────────────────────────────────────
 
@@ -100,18 +105,25 @@ function init(deps) {
     _getForgeConfig     = deps.getForgeConfig       || null;
     _getAppVersion      = deps.getAppVersion        || (() => '?');
     _restartApp         = deps.restartApp           || null;
+    // Optional: explicit CORS allow-origin (e.g. a portal/LAN-tool origin). When
+    // unset, send() falls back to a host-appropriate default.
+    _corsOrigin         = deps.corsOrigin            || null;
 }
 
 // tlsOpts: { key, cert } for HTTPS, omit for plain HTTP (dev/fallback only).
-function start(port, apiKey, tlsOpts) {
-    const newPort = port   || 3002;
-    const newKey  = apiKey || '';
+// bindHost: interface to listen on. Defaults to 127.0.0.1 (loopback). Pass
+// '0.0.0.0' to deliberately expose the API to the LAN (e.g. for ArkenBot).
+function start(port, apiKey, tlsOpts, bindHost) {
+    const newPort = port     || 3002;
+    const newKey  = apiKey   || '';
+    const newHost = bindHost || '127.0.0.1';
 
-    // No-op if already listening on the same port with the same key
-    if (_server && _port === newPort && _apiKey === newKey) return;
+    // No-op if already listening on the same host/port with the same key
+    if (_server && _port === newPort && _apiKey === newKey && _bindHost === newHost) return;
 
-    _port   = newPort;
-    _apiKey = newKey;
+    _port     = newPort;
+    _apiKey   = newKey;
+    _bindHost = newHost;
 
     if (_server) {
         _server.close();
@@ -122,8 +134,9 @@ function start(port, apiKey, tlsOpts) {
         ? https.createServer(tlsOpts, onRequest)
         : http.createServer(onRequest);
 
-    _server.listen(_port, '0.0.0.0', () => {
-        console.log(`[RSM-API] Listening on 0.0.0.0:${_port} (${tlsOpts ? 'HTTPS' : 'HTTP'})`);
+    _server.listen(_port, _bindHost, () => {
+        const scope = _bindHost === '0.0.0.0' ? 'LAN-exposed' : 'loopback';
+        console.log(`[RSM-API] Listening on ${_bindHost}:${_port} (${tlsOpts ? 'HTTPS' : 'HTTP'}, ${scope})`);
     });
 
     _server.on('error', err => {
@@ -609,13 +622,15 @@ async function _forgeProxy(method, forgePath, data) {
 function send(res, statusCode, body) {
     const payload = body === null ? '' : JSON.stringify(body);
     const buf     = Buffer.from(payload, 'utf8');
+    // CORS origin: explicit deps.corsOrigin wins. Otherwise default to
+    // 'http://localhost' on loopback, and only fall back to wildcard when the
+    // operator has deliberately exposed the API to the LAN (bindHost 0.0.0.0).
+    const allowOrigin = _corsOrigin || (_bindHost === '0.0.0.0' ? '*' : 'http://localhost');
     res.writeHead(statusCode, {
         'Content-Type':   'application/json',
         'Content-Length': buf.length,
         'Connection':     'close',
-        // Wildcard is intentional--RSM binds to 0.0.0.0 for LAN tools (e.g. ArkenBot).
-        // Tighten this if you expose the API beyond the local network.
-        'Access-Control-Allow-Origin':  '*',
+        'Access-Control-Allow-Origin':  allowOrigin,
         'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, x-api-key',
     });

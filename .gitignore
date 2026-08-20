@@ -38,3 +38,4 @@ node_modules/
 dist/
 build/
 SECURITY-AUDIT.md
+CLAUDE.md

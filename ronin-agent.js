@@ -17,12 +17,19 @@ let _ipcMain;
 let _logConsoleOut;
 let _getAppVersion;
 let _app;
+// Firewall helpers (shared with api-server.js) — used by the portal firewall relay.
+let _getFirewallRules;
+let _addFirewallRule;
+let _removeFirewallRule;
+let _toggleFirewallRule;
 
 // ── Runtime state ──────────────────────────────────────────────────────────
 let _ws          = null;
 let _enabled     = false;
 let _portalUrl   = '';
 let _agentToken  = '';
+let _orgSlug     = '';
+let _machSlug    = '';
 let _retryDelay  = 1000;
 let _retryTimer  = null;
 let _pingTimer   = null;
@@ -43,17 +50,24 @@ function init(deps) {
     _logConsoleOut      = deps.logConsoleOut;
     _getAppVersion      = deps.getAppVersion || (() => '?');
     _app                = deps.app;
+    // Optional firewall helpers — when absent, the firewall relay returns a clear error.
+    _getFirewallRules   = deps.getFirewallRules    || null;
+    _addFirewallRule    = deps.addFirewallRule      || null;
+    _removeFirewallRule = deps.removeFirewallRule   || null;
+    _toggleFirewallRule = deps.toggleFirewallRule   || null;
 }
 
-function start(portalUrl, agentToken, citadelApiUrl) {
+function start(portalUrl, agentToken, citadelApiUrl, orgSlug, machSlug) {
     _stopping    = false;
     _portalUrl   = (portalUrl  || '').trim();
     _agentToken  = (agentToken || '').trim();
+    _orgSlug     = (orgSlug    || '').trim();
+    _machSlug    = (machSlug   || '').trim();
     // Game-library REST calls use citadelApiUrl when provided, else the portal URL.
     setApiBase(citadelApiUrl || portalUrl);
 
-    if (!_portalUrl || !_agentToken) {
-        console.warn('[Citadel] Cannot start: portalUrl or agentToken not set');
+    if (!_portalUrl || !_agentToken || !_orgSlug || !_machSlug) {
+        console.warn('[Citadel] Cannot start: portalUrl, agentToken, orgSlug, or machSlug not set');
         return;
     }
 
@@ -85,15 +99,23 @@ function notifyPerfUpdate(serverId, cpu, ramMB) {
     _send({ type: 'perf_update', serverId, cpu, ramMB });
 }
 
+// Called by main.js for each line of server console output so the portal's SSE
+// console panel can stream it live. No-op when disconnected.
+function notifyConsoleOutput(serverId, line) {
+    if (!_ws || _ws.readyState !== _ws.OPEN) return;
+    _send({ type: 'console_output', serverId, line });
+}
+
 // ── Connection logic ───────────────────────────────────────────────────────
 
 function _connect() {
     if (_stopping) return;
 
     // Resolve the WSS URL: normalise http(s):// → ws(s)://
-    let url = _portalUrl.replace(/^http/, 'ws');
-    if (!url.endsWith('/')) url += '';
-    const wsUrl = url.replace(/\/+$/, '') + '/api/agent/connect';
+    // The gateway only accepts /{orgSlug}/machines/{machSlug} — any other path is
+    // rejected with 4004 Invalid connection path.
+    const base  = _portalUrl.replace(/^http/, 'ws').replace(/\/+$/, '');
+    const wsUrl = `${base}/${encodeURIComponent(_orgSlug)}/machines/${encodeURIComponent(_machSlug)}`;
 
     _setStatus('connecting');
     console.log(`[Citadel] Connecting to ${wsUrl}…`);
@@ -235,8 +257,87 @@ function _handleMessage(msg) {
             break;
         }
 
+        case 'firewall': {
+            // Async — respond is called from inside the handler.
+            _handleFirewall(msg.firewall || {}, respond);
+            break;
+        }
+
+        case 'system': {
+            _handleSystem(msg.system || {}, respond);
+            break;
+        }
+
         default:
             console.warn(`[Citadel] Unknown command type: ${type}`);
+    }
+}
+
+// Relay firewall operations to the shared Windows Firewall helpers.
+async function _handleFirewall({ op, rule }, respond) {
+    if (!_getFirewallRules) { respond(null, 'Firewall control is not available on this machine'); return; }
+    try {
+        switch (op) {
+            case 'list': {
+                const rules = await _getFirewallRules();
+                respond({ rules });
+                break;
+            }
+            case 'add': {
+                const result = await _addFirewallRule({
+                    displayName: rule.displayName,
+                    port:        rule.port,
+                    tcp:         !!rule.tcp,
+                    udp:         !!rule.udp,
+                });
+                if (result && result.success) respond({ message: 'Rule added', rule: rule.displayName });
+                else respond(null, (result && result.error) || 'Failed to add rule');
+                break;
+            }
+            case 'remove': {
+                const name   = rule.displayName || rule.name;
+                const result = await _removeFirewallRule(name);
+                if (result && result.success) respond({ message: 'Rule removed', rule: name });
+                else respond(null, (result && result.error) || 'Failed to remove rule');
+                break;
+            }
+            case 'toggle': {
+                const name   = rule.displayName || rule.name;
+                const result = await _toggleFirewallRule(name, !!rule.enabled);
+                if (result && result.success) respond({ message: 'Rule updated', rule: name, enabled: !!rule.enabled });
+                else respond(null, (result && result.error) || 'Failed to update rule');
+                break;
+            }
+            default:
+                respond(null, `Unknown firewall op: ${op}`);
+        }
+    } catch (err) {
+        respond(null, err.message || 'Firewall operation failed');
+    }
+}
+
+// Relay system-level operations (RSM process status / restart).
+function _handleSystem({ op }, respond) {
+    switch (op) {
+        case 'status': {
+            const servers = _getManagedServers();
+            respond({
+                version:  _getAppVersion(),
+                platform: process.platform,
+                servers:  servers.length,
+                online:   servers.filter(s => s.status === 'Online').length,
+            });
+            break;
+        }
+        case 'restart': {
+            if (!_app) { respond(null, 'Restart is not available'); return; }
+            // Acknowledge before relaunching — the WSS connection drops on exit.
+            respond({ message: 'RSM is restarting…' });
+            setTimeout(() => { try { _app.relaunch(); _app.exit(0); } catch (e) { console.error('[Citadel] Restart failed:', e.message); } }, 500);
+            break;
+        }
+        default:
+            respond(null, `Unknown system op: ${op}`);
     }
 }
 
@@ -381,5 +482,6 @@ function _sha256File(filePath) {
 
 module.exports = {
     init, start, stop, isConnected, notifyStatusChange, notifyPerfUpdate,
+    notifyConsoleOutput,
     setApiBase, fetchGameLibrary, fetchGameVersions, downloadGameVersion,
 };
