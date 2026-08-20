@@ -1,6 +1,6 @@
 {
   "name": "ronin-server-manager",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "High-performance dedicated server manager for game servers.",
   "main": "main.js",
   "scripts": {
@@ -11,6 +11,7 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^1.14.0",
+    "electron-updater": "^6.8.9",
     "extract-zip": "^2.0.1",
     "rcon-client": "^4.2.5",
     "selfsigned": "^2.4.1",

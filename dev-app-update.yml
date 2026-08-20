@@ -1,0 +1,8 @@
+# Used only by electron-updater when running unpackaged (electron . from
+# source) with autoUpdater.forceDevUpdateConfig = true (see main.js). Mirrors
+# the "publish" block in package.json's "build" config -- packaged builds
+# don't need this file, electron-builder generates the equivalent
+# app-update.yml automatically at build time.
+provider: github
+owner: PhonicSpider
+repo: ronin-server-manager
