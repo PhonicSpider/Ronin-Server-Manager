@@ -8,7 +8,7 @@
     "dist": "electron-builder --windows"
   },
   "author": "PhonicSpider",
-  "license": "MIT",
+  "license": "AGPL-3.0",
   "dependencies": {
     "axios": "^1.14.0",
     "electron-updater": "^6.8.9",

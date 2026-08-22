@@ -50,10 +50,23 @@
 
 | Game | Launch Mode | Config Editor | Quick Actions | Firewall Ports |
 |---|---|---|---|---|
-| **Minecraft (Java)** | Direct console | `server.properties`, `ops.json` | ✅ | Game (25565), RCON (25575) |
-| **Space Engineers** | PowerShell bridge | `SpaceEngineers-Dedicated.cfg` | ✅ | Game (27016 UDP), API (8080) |
-| **Ark: Survival Evolved** | PowerShell bridge | `GameUserSettings.ini`, `Game.ini` | ✅ | Game (7777), Query (27015), RCON (27020) |
-| **Terraria** | Direct console | `serverconfig.txt` |--| Game (7777 TCP) |
+| **Minecraft (Java)** | Direct console | `server.properties`, `ops.json` | ✅ | Game (25565 TCP), RCON (25575 TCP) |
+| **Space Engineers** | PowerShell bridge | `SpaceEngineers-Dedicated.cfg` | ✅ | Game (27016 UDP), Steam (8766 UDP), API (8080 TCP) |
+| **ARK: Survival Evolved** | PowerShell bridge | `GameUserSettings.ini`, `Game.ini` | ✅ | Game (7777 UDP), Query (27015 UDP), RCON (27020 TCP) |
+| **ARK: Survival Ascended** | PowerShell bridge | `GameUserSettings.ini`, `Game.ini` | ✅ | Game (7777 TCP/UDP), Query (27015 UDP), RCON (27020 TCP) |
+| **Rust** | PowerShell bridge | `server.cfg` | ✅ | Game (28015 UDP), Query (28017 UDP), WebRCON (28016 TCP) |
+| **Valheim** | PowerShell bridge |--|--| Game (2456 UDP), +1 (2457 UDP), +2 (2458 UDP) |
+| **Palworld** | PowerShell bridge | `PalWorldSettings.ini` |--| Game (8211 UDP), REST API (8212 TCP), RCON (25575 TCP, deprecated) |
+| **Conan Exiles** | PowerShell bridge | `Engine.ini`, `Game.ini`, `ServerSettings.ini` | ✅ | Game (7777 TCP/UDP), Peer (7778 TCP/UDP), RCON (25575 TCP) |
+| **V Rising** | PowerShell bridge | `ServerHostSettings.json`, `ServerGameSettings.json` |--| Game (9876 UDP), Query (9877 UDP), RCON (25575 TCP) |
+| **Satisfactory** | PowerShell bridge |--|--| Game/API (7777 TCP+UDP), Beacon (15000 UDP) |
+| **Enshrouded** | PowerShell bridge | `enshrouded_server.json` |--| Game (15636 UDP), Query (15637 UDP) |
+| **7 Days to Die** | Direct console | `serverconfig.xml` | ✅ | Game (26900 TCP/UDP), Telnet (8081 TCP), Control Panel (8080 TCP) |
+| **Project Zomboid** | Direct console |--| ✅ | Game (16261 TCP/UDP), RCON (27015 TCP) |
+| **Sons of the Forest** | PowerShell bridge |--|--| Game (8766 TCP/UDP), Query (27016 UDP), Blob Sync (9700 TCP) |
+| **Soulmask** | PowerShell bridge |--| ✅ | Game (7777 TCP/UDP), Query (27015 UDP), RCON (19000 TCP) |
+| **Abiotic Factor** | PowerShell bridge |--|--| Game (7777 TCP/UDP, max 6 players) |
+| **Terraria** | Direct console | `serverconfig.txt` | ✅ | Game (7777 TCP) |
 | **Custom / Other** | Direct console |--|--|--|
 
 > Need a game that isn't listed? Use the **Custom / Other** card in the Add Server wizard and fill in the paths manually.
