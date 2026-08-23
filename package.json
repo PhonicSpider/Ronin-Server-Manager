@@ -1,6 +1,6 @@
 {
   "name": "ronin-server-manager",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "description": "High-performance dedicated server manager for game servers.",
   "main": "main.js",
   "scripts": {
