@@ -11,6 +11,9 @@ export const sonsOfTheForest = {
     backend: {
         category: 'POWERSHELL_BRIDGE',
         playerListCommand: null,
+        // Not yet verified against a real log file -- add patterns here once
+        // someone's actually run this server and seen what's noisy.
+        logNoisePatterns: [],
     },
     label: 'SERVER EXECUTABLE (SonsOfTheForestDS.exe)',
     blocks: {

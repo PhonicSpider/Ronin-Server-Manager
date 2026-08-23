@@ -1113,7 +1113,14 @@ ipcMain.on('start-server', (event, srv) => {
             }
         }, 2000);
         // Stop polling if the server never comes up
-        setTimeout(() => clearInterval(startupPoller), 300000);
+        setTimeout(() => {
+            clearInterval(startupPoller);
+            if (!logWatcher) {
+                const msg = `[RSM-WARN] "${srv.name}" -- console readout never started (no .log file appeared within 5 minutes). Console output will stay empty for this run.`;
+                console.log(msg);
+                event.reply('system-info', msg);
+            }
+        }, 300000);
     }
 
     child.stdout.on('data', (data) => {
@@ -1141,10 +1148,25 @@ ipcMain.on('start-server', (event, srv) => {
         }
     });
 
+    let inCliXml = false;
     child.stderr.on('data', (data) => {
         let msg = data.toString();
         if (DebugActive) console.log(`[STDERR][${srv.name}]: ${msg.trim()}`);
-        if (msg.trim().startsWith('#< CLIXML')) return;
+
+        // PowerShell serializes its Error/Warning/Progress/Verbose streams as
+        // CliXml whenever stderr is redirected to a pipe rather than a real
+        // console -- which is always true for this bridge, not an edge case.
+        // The old check only matched the opening '#< CLIXML' line; a payload
+        // spanning multiple stream 'data' events (e.g. "preparing modules"
+        // progress records) leaked its remaining raw <Objs>...</Objs> XML
+        // straight into the user-facing console. Track state across chunks
+        // so the whole block is suppressed, not just its first line.
+        if (!inCliXml && msg.trim().startsWith('#< CLIXML')) inCliXml = true;
+        if (inCliXml) {
+            if (msg.includes('</Objs>')) inCliXml = false;
+            return;
+        }
+
         sendConsoleOut(event, srv.id, `[WARN] ${msg}`);
     });
 
@@ -1381,13 +1403,51 @@ ipcMain.on('restart-server', (event, srvId) => {
 
 // --- LOG TAILING FUNCTION ---
 const startLogging = (logFolderPath, event, srv) => {
+    // Was keyed 'spaceengineers' (no hyphen), which never matched the real
+    // type string 'space-engineers' and silently fell through to 'utf8' on
+    // every server -- masking the fact that the entry itself was also wrong.
+    // Verified against a real SpaceEngineersDedicated_*.log via hex dump
+    // (plain single-byte ASCII, e.g. "2026-08-22..." with no interleaved
+    // NUL bytes and no BOM): SE's dedicated-server logs are plain UTF-8, not
+    // UTF-16LE. There is currently no game in this app whose log needs
+    // anything other than 'utf8' -- keep this map only as a documented
+    // extension point if that ever changes.
     const encodingMap = {
-        'spaceengineers': 'utf16le',
-        'minecraft': 'utf8',
         'default': 'utf8'
     };
 
     const selectedEncoding = encodingMap[srv.type?.toLowerCase()] || encodingMap['default'];
+
+    // Per-game noise patterns, declared in that game's own config
+    // (backend.logNoisePatterns) and copied onto srv at registration --
+    // same mechanism as playerListCommand. Each is a lowercase substring
+    // checked against the line's real content -- NOT against the '| '
+    // prefix the transform below adds, since that only exists on lines that
+    // already survived this filter (raw lines are always
+    // "TIMESTAMP - Thread: N -> MESSAGE", never "| MESSAGE"). Empty/absent
+    // for games nobody has verified real noise patterns for yet.
+    const noisePatterns = srv.logNoisePatterns || [];
+
+    // Shared by the backfill read (existing file content, on watcher attach)
+    // and the live poll below, so both paths clean/format identically.
+    const cleanAndFormat = (incomingText) => {
+        const rawLines = incomingText.split(/\r?\n/);
+        const cleanLines = rawLines.filter(line => {
+            const low = line.toLowerCase();
+            const isSpam = noisePatterns.some(pattern => low.includes(pattern));
+            return line.trim() !== '' && !isSpam;
+        });
+        DebugConsoleLogs(`[RSM-DEBUG] Lines processed: ${rawLines.length} | Lines kept: ${cleanLines.length}`);
+        return cleanLines.map(line => line.replace(/Thread:\s+\d+\s+->\s+/, '| ')).join('\n');
+    };
+
+    const readChunk = (filePath, start, length) => {
+        const buffer = Buffer.alloc(length);
+        const fd = fs.openSync(filePath, 'r');
+        fs.readSync(fd, buffer, 0, length, start);
+        fs.closeSync(fd);
+        return buffer.toString(selectedEncoding).replace(/\0/g, '');
+    };
 
     DebugConsoleLogs(`[RSM-DEBUG] Initializing Log Watcher`);
     DebugConsoleLogs(`[RSM-DEBUG] Target: ${srv.name} | Type: ${srv.type} | Encoding: ${selectedEncoding}`);
@@ -1407,12 +1467,49 @@ const startLogging = (logFolderPath, event, srv) => {
 
         const newestLog = getNewestLog();
         if (!newestLog) {
+            // Not reported to the system console here -- this function is
+            // called repeatedly by the startup poller below while waiting for
+            // the server to write its first log file, so "not found yet" is
+            // the expected, common case rather than a failure. The poller
+            // reports once if it gives up entirely.
             DebugConsoleLogs(`Cancelled: No .log files found in ${logFolderPath}`);
             return null;
         }
 
         DebugLog(`Tailing: ${path.basename(newestLog)}`);
-        let lastSize = fs.statSync(newestLog).size;
+        srv._loggedWatcherError = false;
+        const startedMsg = `[RSM] "${srv.name}" -- console readout started, tailing ${path.basename(newestLog)}`;
+        console.log(startedMsg);
+        if (event) event.reply('system-info', startedMsg);
+
+        const totalSize = fs.statSync(newestLog).size;
+        let lastSize = totalSize;
+
+        // Backfill whatever's already in the file before switching to live
+        // tailing -- otherwise the console looks blank any time the watcher
+        // attaches after the server has already logged its startup sequence
+        // (Space Engineers writes its whole boot burst in the first couple
+        // seconds, well before RSM finishes launching and attaching here).
+        // Capped to BACKFILL_CAP trailing bytes -- the renderer only retains
+        // the last 50,000 chars of srv.logs anyway, so reading further back
+        // would just get trimmed immediately.
+        if (totalSize > 0) {
+            try {
+                const BACKFILL_CAP = 50000;
+                let backfillStart = Math.max(0, totalSize - BACKFILL_CAP);
+                // UTF-16LE is 2 bytes/char -- an odd start offset would split
+                // a character pair and garble the first decoded character.
+                if (selectedEncoding === 'utf16le' && backfillStart % 2 !== 0) backfillStart -= 1;
+
+                const formatted = cleanAndFormat(readChunk(newestLog, backfillStart, totalSize - backfillStart));
+                if (formatted.trim()) {
+                    const header = backfillStart > 0 ? '--- Existing log content (tail) ---' : '--- Existing log content ---';
+                    sendConsoleOut(event, srv.id, `[RSM] ${header}\n${formatted}\n[RSM] --- Live output ---\n`);
+                }
+            } catch (e) {
+                DebugLog(`Backfill read failed for ${srv.name}: ${e.message}`);
+            }
+        }
 
         return setInterval(() => {
             try {
@@ -1421,39 +1518,15 @@ const startLogging = (logFolderPath, event, srv) => {
                 if (stats.size < lastSize) lastSize = 0;
                 if (stats.size > lastSize) {
                     const bufferSize = stats.size - lastSize;
-                    const buffer = Buffer.alloc(bufferSize);
-
-                    const fd = fs.openSync(newestLog, 'r');
-                    fs.readSync(fd, buffer, 0, bufferSize, lastSize);
-                    fs.closeSync(fd);
-
+                    const incomingText = readChunk(newestLog, lastSize, bufferSize);
                     lastSize = stats.size;
-
-                    const incomingText = buffer.toString(selectedEncoding).replace(/\0/g, '');
 
                     if (DebugLogging) {
                         console.log(`[RSM-DEBUG] Captured ${bufferSize} bytes from ${srv.name}`);
                         console.log(`[RSM-DEBUG] Raw Preview: ${incomingText.substring(0, 50).replace(/\n/g, '\\n')}...`);
                     }
 
-                    const rawLines = incomingText.split(/\r?\n/);
-                    const cleanLines = rawLines.filter(line => {
-                        const low = line.toLowerCase();
-                        const isSpam = low.includes('elasticsearch') ||
-                            low.includes('collision shapes') ||
-                            low.includes('analytics') ||
-                            low.includes('| ') ||
-                            low.includes('| memory') ||
-                            low.includes('| statistics');
-                        return line.trim() !== '' && !isSpam;
-                    });
-
-                    DebugConsoleLogs(`[RSM-DEBUG] Lines processed: ${rawLines.length} | Lines kept: ${cleanLines.length}`);
-
-                    const formattedOutput = cleanLines.map(line => {
-                        return line.replace(/Thread:\s+\d+\s+->\s+/, '| ');
-                    }).join('\n');
-
+                    const formattedOutput = cleanAndFormat(incomingText);
                     if (formattedOutput.trim()) {
                         sendConsoleOut(event, srv.id, formattedOutput + '\n');
                     }
@@ -1465,7 +1538,14 @@ const startLogging = (logFolderPath, event, srv) => {
             }
         }, 1000);
     } catch (err) {
-        console.error(`[RSM-DEBUG] Critical Watcher Failure: ${err.message}`);
+        // The startup poller below calls this every 2s while waiting for a
+        // log file -- report a persistent error once, not on every retry.
+        if (!srv._loggedWatcherError) {
+            srv._loggedWatcherError = true;
+            const msg = `[RSM-ERROR] "${srv.name}" -- console readout failed to start: ${err.message}`;
+            console.error(msg);
+            if (event) event.reply('system-info', msg);
+        }
     }
 };
 
@@ -2454,6 +2534,7 @@ ipcMain.handle('forge:register', async (event, { gameSlug, installDir, serverNam
             type:              gameSlug,
             category:          (game.backend && game.backend.category) || 'POWERSHELL_BRIDGE',
             playerListCommand: (game.backend && game.backend.playerListCommand) || null,
+            logNoisePatterns:  (game.backend && game.backend.logNoisePatterns) || [],
             path:              resolvedExe,
             workingDir:        installDir,
             args:              launchArgs !== undefined ? launchArgs : (parsed.args || (game.defaults && game.defaults.customArgs) || ''),
@@ -2853,6 +2934,13 @@ function saveCitadelConfig(config) {
 }
 
 ipcMain.handle('get-citadel-config', () => loadCitadelConfig());
+
+// Lets the renderer sync its badge/status-text to the agent's real current
+// state on load, rather than relying solely on the 'citadel-status' push --
+// the agent connects synchronously during app.whenReady(), which can (and
+// often does) complete before the renderer's script has attached that
+// listener, leaving the UI stuck showing its default disconnected state.
+ipcMain.handle('get-citadel-status', () => roninAgent.getStatus());
 
 ipcMain.on('save-citadel-config', (event, config) => {
     console.log(`[RSM] save-citadel-config -- enabled: ${config.enabled}`);

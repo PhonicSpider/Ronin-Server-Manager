@@ -28,6 +28,18 @@ export const gameName = {
         // Console command RSM sends to list players for the REST API.
         // Set null if the game has no player-list command.
         playerListCommand: 'list',
+
+        // Lines to drop from this game's log-file console readout (POWERSHELL_BRIDGE
+        // only -- DIRECT_CONSOLE games stream stdin/stdout directly, no file to filter).
+        // Every dedicated-server engine has its own noisy boilerplate (asset-loading
+        // spam, periodic stat dumps, telemetry, etc.) that clutters the Live Console
+        // for no benefit. Each string is a lowercase substring checked against every
+        // log line (line.toLowerCase().includes(pattern)) -- match on the line's real
+        // content, not on the '| ' prefix RSM adds for display (that gets added AFTER
+        // this filter runs, so it will never appear in the raw line here). Leave this
+        // an empty array until you've actually run the game and seen what's noisy --
+        // don't guess at patterns, verify them against a real log file first.
+        logNoisePatterns: [],
     },
 
     // ── CONFIG FILES (OPTIONAL) ─────────────────────────────────────────────────

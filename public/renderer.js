@@ -1758,6 +1758,7 @@ window.saveNewServer = async () => {
     const config = ServerTypeRegistry[type] || {};
     const category = config.backend?.category ?? "POWERSHELL_BRIDGE";
     const playerListCommand = config.backend?.playerListCommand ?? null;
+    const logNoisePatterns = config.backend?.logNoisePatterns ?? [];
 
     const apiPort = document.getElementById('portId').value || "8080";
     const apiPass = document.getElementById('portPass').value || "";
@@ -1817,7 +1818,7 @@ window.saveNewServer = async () => {
             const existing = servers[index];
             servers[index] = {
                 ...existing,
-                name, path, apiPort, apiPass, args, logPath, workingDir, mcRam, seInstance, type, category, playerListCommand,
+                name, path, apiPort, apiPass, args, logPath, workingDir, mcRam, seInstance, type, category, playerListCommand, logNoisePatterns,
                 ...(firewallPorts && { firewallPorts })
             };
             if (DebugActive) {
@@ -1828,7 +1829,7 @@ window.saveNewServer = async () => {
     } else {
         servers.push({
             id: Date.now().toString(),
-            type, category, playerListCommand, name, path, apiPort, apiPass, mcRam, seInstance,
+            type, category, playerListCommand, logNoisePatterns, name, path, apiPort, apiPass, mcRam, seInstance,
             args, logPath, workingDir,
             status: 'Offline', logs: '', pid: null,
             ...(firewallPorts && { firewallPorts })
@@ -2371,6 +2372,17 @@ async function loadCitadelSettings() {
     if (badge && (_citadelConfig.enabled || _citadelConfig.portalUrl)) {
         badge.style.display = 'inline-block';
     }
+
+    // Pull the agent's actual current status rather than waiting on the next
+    // 'citadel-status' push. The agent connects synchronously during
+    // app.whenReady(), which routinely finishes (or even fully connects)
+    // before this script attaches its listener -- without this pull, an
+    // early push is simply missed and the badge is stuck showing its default
+    // disconnected state even while the agent is genuinely connected.
+    try {
+        const status = await window.api.invoke('get-citadel-status');
+        if (status) _applyCitadelStatus(status);
+    } catch (e) { /* main process not ready yet -- next status push will catch up */ }
 }
 
 function _updateCitadelBodyOpacity(enabled) {
@@ -2414,8 +2426,9 @@ window.saveCitadelSettings = () => {
     window.updateSystemLog('Citadel Portal settings saved.');
 };
 
-// IPC listener: main.js → renderer whenever connection state changes
-window.api.receive('citadel-status', (status) => {
+// Shared by the initial pull (get-citadel-status, in loadCitadelSettings)
+// and the live push listener below, so both paths render identically.
+function _applyCitadelStatus(status) {
     const badge      = document.getElementById('citadel-badge');
     const statusText = document.getElementById('citadel-status-text');
 
@@ -2438,7 +2451,10 @@ window.api.receive('citadel-status', (status) => {
         statusText.textContent = labels[status] || status;
         statusText.style.color = status === 'connected' ? 'var(--success)' : status === 'connecting' ? '#e6a817' : 'var(--dim)';
     }
-});
+}
+
+// IPC listener: main.js → renderer whenever connection state changes
+window.api.receive('citadel-status', (status) => _applyCitadelStatus(status));
 
 // Badge click → open settings view
 document.addEventListener('DOMContentLoaded', () => {

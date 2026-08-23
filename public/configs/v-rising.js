@@ -15,6 +15,9 @@ export const vRising = {
         // console (`listusers` after `adminauth`), which RSM has no access to.
         // Confirmed against GameServerKings' RCON command reference.
         playerListCommand: null,
+        // Not yet verified against a real log file -- add patterns here once
+        // someone's actually run this server and seen what's noisy.
+        logNoisePatterns: [],
     },
     gameFiles: {
         configPath: 'VRisingServer_Data\\StreamingAssets\\Settings',

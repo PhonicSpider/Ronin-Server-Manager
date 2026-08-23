@@ -14,6 +14,9 @@ export const valheim = {
         // (ValheimRcon) adds one. Vanilla player listing is only visible
         // in-game (F2 overlay), which RSM has no access to.
         playerListCommand: null,
+        // Not yet verified against a real log file -- add patterns here once
+        // someone's actually run this server and seen what's noisy.
+        logNoisePatterns: [],
     },
     label: 'SERVER EXECUTABLE (valheim_server.exe)',
     blocks: {

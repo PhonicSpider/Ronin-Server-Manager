@@ -14,6 +14,9 @@ export const soulmask = {
         // guides. Soulmask's RCON was previously entirely unexposed in this
         // config despite being fully supported.
         playerListCommand: 'List_OnlinePlayers',
+        // Not yet verified against a real log file -- add patterns here once
+        // someone's actually run this server and seen what's noisy.
+        logNoisePatterns: [],
     },
     label: 'SERVER EXECUTABLE (WSServer-Win64-Shipping.exe)',
     blocks: {

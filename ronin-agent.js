@@ -88,6 +88,15 @@ function isConnected() {
     return _status === 'connected';
 }
 
+// Lets the renderer pull the current status on demand -- covers the case
+// where it registers its 'citadel-status' listener after _connect() has
+// already pushed one or more status changes (the agent starts synchronously
+// in app.whenReady(), well before the renderer's script has finished loading
+// and attached its IPC listener, so early pushes are simply missed).
+function getStatus() {
+    return _status;
+}
+
 // Called by main.js whenever a server's status changes (Online / Offline).
 // Pushes the update to the portal immediately if connected.
 function notifyStatusChange(serverId, status, pid) {
@@ -481,7 +490,7 @@ function _sha256File(filePath) {
 }
 
 module.exports = {
-    init, start, stop, isConnected, notifyStatusChange, notifyPerfUpdate,
+    init, start, stop, isConnected, getStatus, notifyStatusChange, notifyPerfUpdate,
     notifyConsoleOutput,
     setApiBase, fetchGameLibrary, fetchGameVersions, downloadGameVersion,
 };

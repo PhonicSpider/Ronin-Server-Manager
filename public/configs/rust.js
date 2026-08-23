@@ -15,6 +15,9 @@ export const rust = {
         // (sendRustWebRconCommand) rather than the generic RCON dispatch this
         // field would otherwise trigger, so this stays null.
         playerListCommand: null,
+        // Not yet verified against a real log file -- add patterns here once
+        // someone's actually run this server and seen what's noisy.
+        logNoisePatterns: [],
     },
     gameFiles: {
         configPath: 'server\\server1\\cfg',

@@ -11,6 +11,9 @@ export const minecraft = {
     backend: {
         category: 'DIRECT_CONSOLE',
         playerListCommand: 'list',
+        // Not consumed today -- Minecraft is DIRECT_CONSOLE (stdin/stdout
+        // piped directly), not file-tailed. Kept for config-schema consistency.
+        logNoisePatterns: [],
     },
     gameFiles: {
         configs: [

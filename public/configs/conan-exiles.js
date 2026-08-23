@@ -13,6 +13,9 @@ export const conanExiles = {
         // PascalCase (ListPlayers) despite the similar engine lineage. Verified
         // against the official wiki and multiple hosting-provider docs.
         playerListCommand: 'listplayers',
+        // Not yet verified against a real log file -- add patterns here once
+        // someone's actually run this server and seen what's noisy.
+        logNoisePatterns: [],
     },
     gameFiles: {
         configPath: 'ConanSandbox\\Saved\\Config\\WindowsServer',

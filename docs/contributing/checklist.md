@@ -11,7 +11,7 @@ Before opening a pull request, run through this list. Every item below has cause
 -   :material-file-plus: **Config file created**
 
     ---
-    `public/configs/your-game.js`--all required fields present, no leftover template placeholders. `meta.displayName`, `meta.icon`, `backend.category`, `blocks`, `defaults`, and `varInputs` are all set.
+    `public/configs/your-game.js`--all required fields present, no leftover template placeholders. `meta.displayName`, `meta.icon`, `backend.category`, `blocks`, `defaults`, and `varInputs` are all set. `backend.logNoisePatterns` is fine left as `[]` for now--don't guess at noise patterns before you've seen a real log.
 
 -   :material-image: **Icon added**
 
@@ -128,7 +128,7 @@ Before opening a pull request, run through this list. Every item below has cause
 -   :material-console: **Console output flows**
 
     ---
-    For `DIRECT_CONSOLE` servers: stdout appears in the RSM console panel in real time. For `POWERSHELL_BRIDGE` servers: log file is tailed and lines appear with no excessive lag.
+    For `DIRECT_CONSOLE` servers: stdout appears in the RSM console panel in real time. For `POWERSHELL_BRIDGE` servers: log file is tailed (including a backfill of existing content on attach) and new lines appear with no excessive lag. If the log is full of engine boilerplate (asset loading, periodic stat dumps, telemetry), add real patterns to `backend.logNoisePatterns` in the config--verify each one against actual log output first, never guess.
 
 -   :material-lightning-bolt: **Quick actions work** *(if added)*
 

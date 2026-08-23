@@ -10,6 +10,9 @@ export const terraria = {
     backend: {
         category: 'DIRECT_CONSOLE',
         playerListCommand: 'playing',
+        // Not consumed today -- Terraria is DIRECT_CONSOLE (stdin/stdout
+        // piped directly), not file-tailed. Kept for config-schema consistency.
+        logNoisePatterns: [],
     },
     gameFiles: {
         configs: [

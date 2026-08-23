@@ -20,6 +20,10 @@ export const projectZomboid = {
         // gate is now just "does this server have RCON creds", so this
         // works.
         playerListCommand: 'players',
+        // Not consumed today -- Project Zomboid is DIRECT_CONSOLE
+        // (stdin/stdout piped directly), not file-tailed. Kept for
+        // config-schema consistency.
+        logNoisePatterns: [],
     },
     label: 'SERVER BATCH FILE (ProjectZomboidServer.bat)',
     blocks: {

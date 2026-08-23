@@ -10,6 +10,10 @@ export const sevenDaysToDie = {
     backend: {
         category: 'DIRECT_CONSOLE',
         playerListCommand: 'listplayers',
+        // Not verified against a real log yet -- 7 Days to Die is
+        // DIRECT_CONSOLE (stdin/stdout piped directly), so this isn't
+        // consumed today, but keep it for consistency / a future switch.
+        logNoisePatterns: [],
     },
     gameFiles: {
         configs: [

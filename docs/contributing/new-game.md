@@ -56,7 +56,20 @@ export const yourGame = {
         //                     finds the real game PID through a deep search.
         //                     Use for native Windows EXEs that open their own
         //                     window (Space Engineers, Ark, Terraria, etc.)
-        category: "POWERSHELL_BRIDGE"
+        category: "POWERSHELL_BRIDGE",
+
+        // Console command RSM sends to list players. null if none.
+        playerListCommand: "list",
+
+        // POWERSHELL_BRIDGE only -- lines to drop from the Live Console when
+        // tailing this game's log file. Every engine has its own boilerplate
+        // (asset loading, periodic stat dumps, telemetry) that's just noise.
+        // Each entry is a lowercase substring checked against the line's
+        // real message text -- not against the "| " prefix RSM adds for
+        // display, since that's added AFTER this filter runs. Leave this an
+        // empty array until you've actually run the server and seen real
+        // log output -- don't guess at what's noisy.
+        logNoisePatterns: []
     },
 
     // ── SETUP MODAL ──────────────────────────────────────────────────────────

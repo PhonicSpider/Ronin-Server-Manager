@@ -17,7 +17,7 @@ contextBridge.exposeInMainWorld('api', {
     },
     // For asking main for data and getting a result (Two-way)
     invoke: (channel, data) => {
-        let validChannels = ['get-servers', 'get-settings', 'check-admin', 'open-dialog', 'select-folder', 'read-config-file', 'write-config-file', 'list-backups', 'get-desktop-path', 'apply-firewall-rules', 'remove-firewall-rules', 'check-firewall-rules', 'get-firewall-rules', 'add-firewall-rule', 'remove-firewall-rule', 'toggle-firewall-rule', 'check-port-conflicts', 'get-api-config', 'regenerate-api-key', 'forge:get-games', 'forge:get-install-root', 'forge:install', 'forge:parse-config', 'forge:register', 'get-citadel-config', 'citadel-game-library', 'citadel-game-versions', 'citadel-download-version', 'get-app-version', 'check-for-updates'];
+        let validChannels = ['get-servers', 'get-settings', 'check-admin', 'open-dialog', 'select-folder', 'read-config-file', 'write-config-file', 'list-backups', 'get-desktop-path', 'apply-firewall-rules', 'remove-firewall-rules', 'check-firewall-rules', 'get-firewall-rules', 'add-firewall-rule', 'remove-firewall-rule', 'toggle-firewall-rule', 'check-port-conflicts', 'get-api-config', 'regenerate-api-key', 'forge:get-games', 'forge:get-install-root', 'forge:install', 'forge:parse-config', 'forge:register', 'get-citadel-config', 'get-citadel-status', 'citadel-game-library', 'citadel-game-versions', 'citadel-download-version', 'get-app-version', 'check-for-updates'];
         if (validChannels.includes(channel)) {
             return ipcRenderer.invoke(channel, data);
         }

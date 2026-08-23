@@ -15,6 +15,9 @@ export const palworld = {
         // dedicated 'palworld' branch in get-player-count in main.js) rather
         // than the generic RCON dispatch this field would otherwise drive.
         playerListCommand: null,
+        // Not yet verified against a real log file -- add patterns here once
+        // someone's actually run this server and seen what's noisy.
+        logNoisePatterns: [],
     },
     gameFiles: {
         configPath: 'Pal\\Saved\\Config\\WindowsServer',

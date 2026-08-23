@@ -16,6 +16,9 @@ export const satisfactory = {
         // RCON, so this stays null rather than driving the generic RCON
         // dispatch this field would otherwise trigger.
         playerListCommand: null,
+        // Not yet verified against a real log file -- add patterns here once
+        // someone's actually run this server and seen what's noisy.
+        logNoisePatterns: [],
     },
     label: 'SERVER EXECUTABLE (UnrealServer-Win64-Shipping.exe)',
     blocks: {

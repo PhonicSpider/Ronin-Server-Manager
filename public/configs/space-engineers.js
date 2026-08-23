@@ -10,6 +10,21 @@ export const spaceEngineers = {
     backend: {
         category: 'POWERSHELL_BRIDGE',
         playerListCommand: null,
+        // Verified against real SpaceEngineersDedicated_*.log files (grep,
+        // not guessed): every raw line is "TIMESTAMP - Thread: N -> MESSAGE",
+        // so these match on the MESSAGE text, never on a '|' prefix (RSM adds
+        // that itself for display, after this filter already ran).
+        logNoisePatterns: [
+            'elasticsearch',
+            'collision shapes',
+            'analytics',
+            'memory legend',
+            'memory values',
+            'statistics legend',
+            'statistics values',
+            // 'loading cube blocks' intentionally not filtered -- kept visible.
+            'created block definitions',
+        ],
     },
     gameFiles: {
         configs: [
