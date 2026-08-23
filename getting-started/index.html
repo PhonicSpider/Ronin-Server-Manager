@@ -1,0 +1,1966 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://phonicspider.github.io/Ronin-Server-Manager/getting-started/">
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../servers/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>🚀 Getting Started - Ronin Server Manager</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CFira+Code:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"Fira Code"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  <link href="../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="deep-orange" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#getting-started" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Ronin Server Manager" class="md-header__button md-logo" aria-label="Ronin Server Manager" data-md-component="logo">
+      
+  <img src="../assets/images/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Ronin Server Manager
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              🚀 Getting Started
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/PhonicSpider/Ronin-Server-Manager" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Ronin Server Manager" class="md-nav__button md-logo" aria-label="Ronin Server Manager" data-md-component="logo">
+      
+  <img src="../assets/images/logo.png" alt="logo">
+
+    </a>
+    Ronin Server Manager
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/PhonicSpider/Ronin-Server-Manager" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🏠 Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🚀 Getting Started
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🚀 Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#step-1-download-install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📥 Step 1--Download &amp; Install
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-first-launch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🏠 Step 2--First Launch
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-configure-your-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚙️ Step 3--Configure Your Settings
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="⚙️ Step 3--Configure Your Settings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#config-backup-folder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🗂️ Config Backup Folder
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#theme" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🎨 Theme
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#system-behaviour" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🖥️ System Behaviour
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-add-your-first-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ➕ Step 4--Add Your First Server
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-5-the-config-editor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ✏️ Step 5--The Config Editor
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="✏️ Step 5--The Config Editor">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#keyboard-shortcuts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keyboard Shortcuts
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚡ Quick Actions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-6-firewall-manager-portier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🛡️ Step 6--Firewall Manager (Portier)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🛡️ Step 6--Firewall Manager (Portier)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#per-server-firewall-ports-card" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-Server Firewall Ports Card
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#firewall-manager-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Firewall Manager View
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🗺️ Roadmap
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../servers/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🖥️ Server Setup
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    🖥️ Server Setup
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/7-days-to-die/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🧟 7 Days to Die
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/abiotic-factor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🧪 Abiotic Factor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/ark-survival-ascended/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🦖 Ark Survival Ascended
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/ark-survival/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🦕 Ark Survival
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/conan-exiles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ⚔️ Conan Exiles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/enshrouded/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🌫️ Enshrouded
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/minecraft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🟩 Minecraft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/palworld/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    👹 PalWorld
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/project-zomboid/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🧠 Project Zomboid
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/rust/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ☢️ Rust
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/satisfactory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🏭 Satisfactory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/sons-of-the-forest/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🌲 Sons of the Forest
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/soulmask/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🎭 Soulmask
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/space-engineers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🚀 Space Engineers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/terraria/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🌳 Terraria
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/v-rising/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🧛 V Rising
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../servers/valheim/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🛡️ Valheim
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../discord-int/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🎮 Discord Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🛠️ Support
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../contributing/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🔥 Contributing
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    🔥 Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/dev-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ⚙️ Dev Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/new-game/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🎮 Adding a Game
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/ipc-channels/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    📡 IPC Channels
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/ui-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🧩 UI Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/rest-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🌐 REST API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ✅ Checklist
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#step-1-download-install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📥 Step 1--Download &amp; Install
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-first-launch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🏠 Step 2--First Launch
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-configure-your-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚙️ Step 3--Configure Your Settings
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="⚙️ Step 3--Configure Your Settings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#config-backup-folder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🗂️ Config Backup Folder
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#theme" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🎨 Theme
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#system-behaviour" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🖥️ System Behaviour
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-add-your-first-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ➕ Step 4--Add Your First Server
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-5-the-config-editor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ✏️ Step 5--The Config Editor
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="✏️ Step 5--The Config Editor">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#keyboard-shortcuts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keyboard Shortcuts
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚡ Quick Actions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-6-firewall-manager-portier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🛡️ Step 6--Firewall Manager (Portier)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🛡️ Step 6--Firewall Manager (Portier)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#per-server-firewall-ports-card" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-Server Firewall Ports Card
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#firewall-manager-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Firewall Manager View
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🗺️ Roadmap
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="getting-started"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🚀 Getting Started</p></h1>
+<p>This guide walks you through everything from downloading RSM to editing your first config file. Follow it top to bottom on a fresh install and you'll have a server running in under ten minutes.</p>
+<hr>
+<h2 id="step-1-download-install"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">📥 Step 1--Download &amp; Install</p></h2>
+<ol>
+<li>Head to the <a href="https://github.com/PhonicSpider/Ronin-Server-Manager/releases">Releases</a> page and download the latest <code>.exe</code> installer.</li>
+<li>Run the installer. If Windows SmartScreen warns you, click <strong>More info → Run anyway</strong>--this is expected for unsigned community software.</li>
+<li>RSM will launch automatically once the install finishes.</li>
+</ol>
+<div class="admonition tip">
+<p class="admonition-title">When do you need Administrator?</p>
+<p>Two features require RSM to be launched as Administrator:</p>
+<ul>
+<li><strong>Firewall Manager (Portier)</strong>--creating and removing Windows Firewall rules always requires elevation.</li>
+<li><strong>Some game servers</strong>--games that bind to privileged network ports (Space Engineers uses the VRage HTTP API on port 80 by default) need an elevated host process.</li>
+</ul>
+<p>A green <strong>Admin</strong> badge appears in the top-left corner of the app when it has elevated privileges. Everything else works fine without it.</p>
+<p>It's usually best <em>(and recommended)</em> to always run RSM in Aadministrator for these reason though.</p>
+</div>
+<hr>
+<h2 id="step-2-first-launch"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🏠 Step 2--First Launch</p></h2>
+<p>When RSM opens you'll land on the <strong>Home</strong> view. This is the nerve centre of the app--it shows the combined CPU and RAM used by all your managed servers, a live system bandwidth graph, a scrolling system log, and quick global controls at the top.</p>
+<div class="grid cards">
+<ul>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 3v6h8V3m-8 18h8V11h-8M3 21h8v-6H3m0-2h8V3H3z"></path></svg></span> <strong>Home</strong></p>
+<hr>
+<p>Aggregate CPU/RAM gauges, a live system bandwidth graph (receive and transmit), your full server status list, and the system log. This is the first place to look when something seems off.</p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../assets/images/server-dets/networkHome.png" data-desc-position="bottom"><img alt="ServerManager Home - glow" src="../assets/images/server-dets/networkHome.png"></a></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 1h16a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1m0 8h16a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1m0 8h16a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1M9 5h1V3H9zm0 8h1v-2H9zm0 8h1v-2H9zM5 3v2h2V3zm0 8v2h2v-2zm0 8v2h2v-2z"></path></svg></span> <strong>Manager</strong></p>
+<hr>
+<p>Individual server controls--console, resource gauges, connections graph, Quick Actions, Firewall Ports, and the Edit Config button. Switch to this view by clicking any server in the sidebar.</p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../assets/images/server-dets/managerScreen.png" data-desc-position="bottom"><img alt="ServerManager Manager - glow" src="../assets/images/server-dets/managerScreen.png"></a></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m10 17-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9m-6-8L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5z"></path></svg></span> <strong>Firewall Manager</strong></p>
+<hr>
+<p>Full overview of all RSM-managed Windows Firewall rules, plus a form to add custom rules. Reachable via the <strong>🛡️ Firewall Manager</strong> item in the sidebar. Requires Administrator.</p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../assets/images/server-dets/firewallMngr.png" data-desc-position="bottom"><img alt="ServerManager Firewall - glow" src="../assets/images/server-dets/firewallMngr.png"></a></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97s-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1s.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64z"></path></svg></span> <strong>Settings</strong></p>
+<hr>
+<p>Theme customisation and app behaviour options. Reachable via the <strong>⚙️ App Settings</strong> button at the bottom of the sidebar.</p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../assets/images/server-dets/appSettings.png" data-desc-position="bottom"><img alt="ServerManager Settings - glow" src="../assets/images/server-dets/appSettings.png"></a></p>
+</li>
+</ul>
+</div>
+<p>The sidebar on the left lists every server you've added. It starts empty--that's fine, you'll add one in Step 4.</p>
+<hr>
+<h2 id="step-3-configure-your-settings"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">⚙️ Step 3--Configure Your Settings</p></h2>
+<p>Open <strong>⚙️ App Settings</strong> in the sidebar before you do anything else. Two things are worth setting up now.</p>
+<h3 id="config-backup-folder">🗂️ Config Backup Folder</h3>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../assets/images/server-dets/bkupLocation.png" data-desc-position="bottom"><img alt="ServerManager Backups - glow" src="../assets/images/server-dets/bkupLocation.png"></a></p>
+<p>Every time you save a file in the in-app config editor, RSM writes a timestamped backup before overwriting anything. This is where those backups land.</p>
+<ul>
+<li>The default is <code>Desktop\RSM-Files\RSM-Backups</code> and is set automatically on first launch.</li>
+<li>Click <strong>Browse</strong> to point it somewhere else--an external drive, a cloud-synced folder, or a dedicated backup location.</li>
+<li>Backups are organised by server name automatically:</li>
+</ul>
+<div class="highlight"><pre><span></span><code>RSM-Backups\
+  MyMinecraftServer\
+    server.properties-2026-05-04T15-30-00.bak
+  ArkServer\
+    GameUserSettings.ini-2026-05-04T18-00-00.bak
+</code></pre></div>
+<div class="admonition info">
+<p class="admonition-title">Automatic setup</p>
+<p>RSM sets <code>Desktop\RSM-Files\RSM-Backups</code> as the default on first launch and creates the folder automatically, and will create a folder for the specific server once a file is saved. You only need to change it if you'd prefer backups stored somewhere else. The only time backups can fail is if you've changed the path to a drive or network share that isn't available.</p>
+</div>
+<h3 id="theme">🎨 Theme</h3>
+<p>RSM ships with two theme presets and full custom controls below them.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio"><input id="__tabbed_1_2" name="__tabbed_1" type="radio"><div class="tabbed-labels"><label for="__tabbed_1_1">Presets</label><label for="__tabbed_1_2">Custom</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<table>
+<thead>
+<tr>
+<th>Preset</th>
+<th>Accent</th>
+<th>Background</th>
+<th>Best for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Internal Fire</strong></td>
+<td><code>#ff4500</code> deep orange</td>
+<td>Near-black <code>#0a0a0a</code></td>
+<td>The "Dark Mode" look</td>
+</tr>
+<tr>
+<td><strong>Ronin Classic</strong></td>
+<td><code>#007bff</code> blue</td>
+<td>Dark navy <code>#0f111a</code></td>
+<td>A cooler, more neutral feel</td>
+</tr>
+</tbody>
+</table>
+<p>Click either button in the <strong>Theme Presets</strong> card to apply instantly.</p>
+</div>
+<div class="tabbed-block">
+<p>Three independent controls sit below the presets:</p>
+<ul>
+<li><strong>Accent</strong>--buttons, gauges, active highlights, and the modified-file dot in the config editor</li>
+<li><strong>Background Base</strong>--the main window colour; choose from the preset swatches or use the colour picker</li>
+<li><strong>Text Color</strong>--primary label and description colour</li>
+<li><strong>Window Glass Strength</strong>--opacity slider; lower values give the UI a translucent feel if you're running a wallpaper behind it</li>
+</ul>
+<p>All choices are saved to local storage and persist across restarts.</p>
+</div>
+</div>
+</div>
+<h3 id="system-behaviour">🖥️ System Behaviour</h3>
+<ul>
+<li><strong>Launch Manager on Windows Startup</strong>--toggle this on if you want RSM to open automatically when your machine boots. Useful for always-on server hosts.</li>
+</ul>
+<hr>
+<h2 id="step-4-add-your-first-server"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">➕ Step 4--Add Your First Server</p></h2>
+<p>Before adding a server to RSM, make sure it has been launched manually at least once and starts without errors. RSM manages servers--it does not install or configure them... <em>yet</em>.</p>
+<ol>
+<li>Click <strong>+ Add New Server</strong> in the sidebar.</li>
+<li>Pick your game from the card grid. 
+<em>(If your game is not there, don't worry, just choose "other")</em>.</li>
+<li>Fill in the wizard fields--what each one means is covered in the <a href="../servers/">Server Setup Overview</a>, plus, The default infor should be filled in or put in as a placeholder. You can usually find what you jneed in those locations.</li>
+<li>Click <strong>Save Configuration</strong>. The server appears in the sidebar immediately.</li>
+</ol>
+<div class="admonition info">
+<p class="admonition-title">Not sure which fields to fill in?</p>
+<p>Every game type has its own setup guide under <strong>Server Setup</strong> in the left navigation. Each guide explains the exact paths to look for and any game-specific quirks. If your server is not listed in the guide, don't worry. RSM will still be able to manage it!</p>
+<p>First, send us a message in discord or in the discussions and we can see about adding the game as one that can be selected. <em>(if you know coding or how the server is set up, you can do it too through github! notes on how to are in the "<a href="../contributing/">Contributing</a>" page)</em></p>
+<p>Second, just select <strong>"Other"</strong> when choosing your game type. It will show all fields that RSM is able to save to run a server. Fill out as best you can based on the info provided here and RSM will handle the rest for you!</p>
+</div>
+<hr>
+<h2 id="step-5-the-config-editor"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">✏️ Step 5--The Config Editor</p></h2>
+<p>Once a server is added, click it in the sidebar to open the <strong>Manager</strong> view, then click <strong>Edit Config</strong> in the control bar. This opens the in-app config editor without touching a file manager.</p>
+<div class="grid cards">
+<ul>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6 2c-1.11 0-2 .89-2 2v16a2 2 0 0 0 2 2h4v-1.91L12.09 18H6v-2h8.09l2-2H6v-2h12.09L20 10.09V8l-6-6zm7 1.5L18.5 9H13zm7.15 9.5a.55.55 0 0 0-.4.16l-1.02 1.02 2.09 2.08 1.02-1.01c.21-.22.21-.58 0-.79l-1.3-1.3a.54.54 0 0 0-.39-.16m-2.01 1.77L12 20.92V23h2.08l6.15-6.15z"></path></svg></span> <strong>Tabs</strong></p>
+<hr>
+<p>Games with more than one config file (Ark, Minecraft) show a tab bar at the top. Switching tabs with unsaved changes will prompt you to confirm before discarding.</p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../assets/images/server-dets/tabs.png" data-desc-position="bottom"><img alt="ServerManager Tabs - glow" src="../assets/images/server-dets/tabs.png"></a></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 17V9H2V7h4v10zm18-2a2 2 0 0 1-2 2h-4v-2h4v-2h-2v-2h2V9h-4V7h4a2 2 0 0 1 2 2v1.5a1.5 1.5 0 0 1-1.5 1.5 1.5 1.5 0 0 1 1.5 1.5zm-8 0v2H8v-4a2 2 0 0 1 2-2h2V9H8V7h4a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2v2z"></path></svg></span> <strong>Line Numbers</strong></p>
+<hr>
+<p>Line numbers are shown on the left gutter and a <strong>Ln / Col</strong> counter sits in the bottom-right corner, updating as you move the cursor.</p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../assets/images/server-dets/lineNums.png" data-desc-position="bottom"><img alt="ServerManager Lines - glow" src="../assets/images/server-dets/lineNums.png"></a></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15 9H5V5h10m-3 14a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3m5-16H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7z"></path></svg></span> <strong>Saving</strong></p>
+<hr>
+<p>Click <strong>Save Changes</strong> or press <strong>Ctrl+S</strong>. A backup is written first, then the file is overwritten. The status bar confirms both: <code>✓ Saved · backup created</code>.</p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../assets/images/server-dets/saveChngs.png" data-desc-position="bottom"><img alt="ServerManager Save - glow" src="../assets/images/server-dets/saveChngs.png"></a></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05 1-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8"></path></svg></span> <strong>Discarding</strong></p>
+<hr>
+<p><strong>Discard Changes</strong> reverts to the last loaded state. The button is greyed out when there's nothing to discard.</p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../assets/images/server-dets/discardCh.png" data-desc-position="bottom"><img alt="ServerManager discard - glow" src="../assets/images/server-dets/discardCh.png"></a></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 20H4a2 2 0 0 1-2-2V6c0-1.11.89-2 2-2h6l2 2h7a2 2 0 0 1 2 2H4v10l2.14-8h17.07l-2.28 8.5c-.23.87-1.01 1.5-1.93 1.5"></path></svg></span> <strong>Open Folder</strong></p>
+<hr>
+<p>Click the grey file path at the bottom of the editor to open the containing folder in Explorer--useful for dropping in extra files or checking a backup.</p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../assets/images/server-dets/openFold.png" data-desc-position="bottom"><img alt="ServerManager Folder - glow" src="../assets/images/server-dets/openFold.png"></a></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 14h-2V9h2m0 9h-2v-2h2M1 21h22L12 2z"></path></svg></span> <strong>Running Server Warning</strong></p>
+<hr>
+<p>A yellow banner appears at the top if the server is currently online. You can still edit and save, but changes won't take effect until the server restarts.</p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../assets/images/server-dets/bannerWarn.png" data-desc-position="bottom"><img alt="ServerManager Banner - glow" src="../assets/images/server-dets/bannerWarn.png"></a></p>
+</li>
+</ul>
+</div>
+<h3 id="keyboard-shortcuts">Keyboard Shortcuts</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Ctrl+S</code></td>
+<td>Save the current file</td>
+</tr>
+<tr>
+<td><code>Esc</code></td>
+<td>Close the editor (prompts if unsaved changes exist)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="quick-actions"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">⚡ Quick Actions</p></h2>
+<p>Minecraft, Space Engineers, and Ark each have a set of <strong>Quick Action</strong> buttons that appear below the server controls when a server is online. These fire common commands (save world, list players, kick, etc.) without typing anything in the console. Future games that get added as default choices will have these as well.</p>
+<p>Quick Actions are only active while the server is running. They appear automatically for supported game types--no configuration needed.</p>
+<p>If you know of any common commands for a server type that may be useful to add to this bar, let us know in discussions or in the discord and we can look into adding them!</p>
+<hr>
+<h2 id="step-6-firewall-manager-portier"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🛡️ Step 6--Firewall Manager (Portier)</p></h2>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../assets/images/server-dets/firewallMngr.png" data-desc-position="bottom"><img alt="ServerManager Firewall - glow" src="../assets/images/server-dets/firewallMngr.png"></a></p>
+<p>RSM includes a built-in Windows Firewall manager so you never have to touch the Windows Firewall GUI to open ports for your servers.</p>
+<div class="admonition warning">
+<p class="admonition-title">Requires Administrator</p>
+<p>All firewall operations need RSM to be running with Administrator privileges. Re-launch RSM as Administrator if you see a permission error. The green <strong>Admin</strong> badge in the top-left corner confirms you're elevated.</p>
+</div>
+<h3 id="per-server-firewall-ports-card">Per-Server Firewall Ports Card</h3>
+<p>Every server panel has a <strong>Firewall Ports</strong> card showing the ports that server needs by default. These can be changed at anytime and RSM will automatically close the previous ports, and open the new ones without you having to search for them!</p>
+<p>For each port you can:</p>
+<ul>
+<li><strong>Edit the port number</strong>--override the default if you've changed it in the game's config</li>
+<li><strong>Toggle TCP / UDP</strong>--enable only the protocols the game actually uses</li>
+<li>Click <strong>Save Changes</strong> to store your overrides for that server</li>
+</ul>
+<p>Once your ports are configured, two buttons control the firewall rules:</p>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Apply Rules</strong></td>
+<td>Creates inbound Windows Firewall allow rules for every port listed</td>
+</tr>
+<tr>
+<td><strong>Remove Rules</strong></td>
+<td>Removes all RSM-managed rules for this server</td>
+</tr>
+</tbody>
+</table>
+<p>A status indicator in the card header shows <strong>● Rules Active</strong> or <strong>○ No Rules</strong> so you always know the current state.</p>
+<h3 id="firewall-manager-view">Firewall Manager View</h3>
+<p>Click <strong>🛡️ Firewall Manager</strong> in the sidebar for a full overview of every rule RSM has created across all servers. From here you can:</p>
+<ul>
+<li>See every rule at a glance--name, protocol, port, and enabled status</li>
+<li>Remove any rule individually</li>
+<li><strong>Add a custom rule</strong> with a display name, port, and protocol--useful for ports that aren't tied to a specific managed server</li>
+</ul>
+<p>The <strong>Activity Log</strong> at the bottom of the Firewall Manager view records every add, remove, and error with a timestamp.</p>
+<hr>
+<h2 id="roadmap"><p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🗺️ Roadmap</p></h2>
+<p>RSM is actively being developed. It may take a while, but here's what's planned for the future of RSM:</p>
+<div class="grid cards">
+<ul>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.97 16 5 19c-.33.3-.77.5-1.25.5A1.75 1.75 0 0 1 2 17.75v-.25l1-7.38A4.524 4.524 0 0 1 7.5 6h9c2.36 0 4.29 1.81 4.5 4.12l1 7.38v.25a1.75 1.75 0 0 1-1.75 1.75c-.48 0-.92-.2-1.25-.5l-2.97-3zM7 8v2H5v1h2v2h1v-2h2v-1H8V8zm9.5 0a.75.75 0 0 0-.75.75.75.75 0 0 0 .75.75.75.75 0 0 0 .75-.75.75.75 0 0 0-.75-.75m-1.75 1.75a.75.75 0 0 0-.75.75.75.75 0 0 0 .75.75.75.75 0 0 0 .75-.75.75.75 0 0 0-.75-.75m3.5 0a.75.75 0 0 0-.75.75.75.75 0 0 0 .75.75.75.75 0 0 0 .75-.75.75.75 0 0 0-.75-.75M16.5 11.5a.75.75 0 0 0-.75.75.75.75 0 0 0 .75.75.75.75 0 0 0 .75-.75.75.75 0 0 0-.75-.75"></path></svg></span> <strong>Expanded Game Support</strong></p>
+<hr>
+<p>More game types added continuously as the community requests them. Each addition brings a dedicated setup guide, config editor support, Quick Actions, and default firewall port definitions.</p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2c5.5 0 10 4.5 10 10s-4.5 10-10 10S2 17.5 2 12 6.5 2 12 2M8 17h8v-2H8zm8-7h-2.5V6h-3v4H8l4 4z"></path></svg></span> <strong>One-Click Server Provisioning</strong></p>
+<hr>
+<p>Select a game type and RSM downloads the server files automatically, saves them alongside your backups, opens the config editor, and walks you through the setup wizard--all in one flow.</p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2M7.5 13A2.5 2.5 0 0 0 5 15.5 2.5 2.5 0 0 0 7.5 18a2.5 2.5 0 0 0 2.5-2.5A2.5 2.5 0 0 0 7.5 13m9 0a2.5 2.5 0 0 0-2.5 2.5 2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0 2.5-2.5 2.5 2.5 0 0 0-2.5-2.5"></path></svg></span> <strong>Discord Bot API</strong></p>
+<hr>
+<p>Integration with a custom community Discord bot so server admins can monitor server status and receive alerts directly in their Discord server.</p>
+<p>The bot is already usable on its own for many features for free. Check it out here: <a href="https://arkenbot.app">Arken Bot</a></p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 3c5.5 0 10 3.58 10 8s-4.5 8-10 8c-1.24 0-2.43-.18-3.53-.5C5.55 21 2 21 2 21c2.33-2.33 2.7-3.9 2.75-4.5C3.05 15.07 2 13.13 2 11c0-4.42 4.5-8 10-8"></path></svg></span> <strong>Discord Command Integration</strong></p>
+<hr>
+<p>Send commands to managed servers directly from Discord via the bot integration--restart a server, check player counts, or run console commands without opening RSM.</p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 14H4v-4h16"></path></svg></span> <strong>Mini Server Status Card</strong></p>
+<hr>
+<p>A compact overlay showing server names, status, and player counts--visible when RSM is minimised so you can keep an eye on things without bringing the full app into focus.</p>
+</li>
+<li>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m10 17-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9m-6-8L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5z"></path></svg></span> <strong>Security Audit</strong></p>
+<hr>
+<p>A comprehensive review of every attack surface--file downloads, console command injection, config file path traversal, and API endpoints--to make sure running RSM doesn't open up your machine.</p>
+</li>
+</ul>
+</div>
+<hr>
+<p align="center"><i>Have a suggestion or found a bug? Open an issue on <a href="https://github.com/PhonicSpider/Ronin-Server-Manager/issues">GitHub</a>.</i></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.indexes", "navigation.expand", "navigation.tracking", "toc.follow", "content.code.copy", "content.tabs.link"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>
