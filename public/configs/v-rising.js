@@ -18,6 +18,9 @@ export const vRising = {
         // Not yet verified against a real log file -- add patterns here once
         // someone's actually run this server and seen what's noisy.
         logNoisePatterns: [],
+        // No verified graceful-stop route for this game yet, so RSM closes the
+        // process directly. See ServerTemplate.js for the supported transports.
+        gracefulStop: null,
     },
     gameFiles: {
         configPath: 'VRisingServer_Data\\StreamingAssets\\Settings',
@@ -56,9 +59,9 @@ export const vRising = {
         portPass: 'placeholder',
     },
     firewallPorts: [
-        { id: 'game',  label: 'Game Port',  default: 9876,  tcp: false, udp: true,  description: 'Player connections' },
-        { id: 'query', label: 'Query Port', default: 9877,  tcp: false, udp: true,  description: 'Steam server browser' },
-        { id: 'rcon',  label: 'RCON',       default: 25575, tcp: true,  udp: false, description: 'Admin console (RCON)' },
+        { id: 'game', label: 'Game Port', default: 9876, tcp: false, udp: true, description: 'Player connections' },
+        { id: 'query', label: 'Query Port', default: 9877, tcp: false, udp: true, description: 'Steam server browser' },
+        { id: 'rcon', label: 'RCON', default: 25575, tcp: false, udp: false, description: 'Admin console (RCON) -- closed by default -- RSM reaches it over localhost' },
     ],
     quickActions: [],
     parseForRsm(fileContentsMap, { installDir }) {

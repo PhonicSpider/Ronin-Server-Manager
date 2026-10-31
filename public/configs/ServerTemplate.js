@@ -40,6 +40,20 @@ export const gameName = {
         // an empty array until you've actually run the game and seen what's noisy --
         // don't guess at patterns, verify them against a real log file first.
         logNoisePatterns: [],
+
+        // How RSM asks the game to SAVE and QUIT itself before it closes the
+        // process (Stop button / restart). Without a plan RSM can only close the
+        // process, which risks losing progress since the last autosave. Only declare
+        // a plan you have verified against the game's documentation or a real
+        // server -- a wrong command does nothing useful. Use null if unsure.
+        //   transport: 'stdin'          write each command to the console (DIRECT_CONSOLE games)
+        //              'rcon'           Source RCON (needs the server's RCON port + password)
+        //              'webrcon'        Rust WebRCON (WebSocket)
+        //              'palworld-rest'  Palworld REST API: save, then shutdown with a short countdown
+        //              'vrage-remote'   Space Engineers VRage Remote API: DELETE /v1/server
+        //   commands:  sent in order (ignored by the REST/VRage transports)
+        //   timeoutSeconds: how long to wait for the process to exit before RSM closes it anyway
+        gracefulStop: { transport: 'stdin', commands: ['save', 'stop'], timeoutSeconds: 60 },
     },
 
     // ── CONFIG FILES (OPTIONAL) ─────────────────────────────────────────────────

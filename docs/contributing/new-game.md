@@ -1,6 +1,6 @@
 # <p style="text-align: center; text-shadow: 0 0 15px rgba(255,69,0,0.5);">🎮 Adding a New Game Server</p>
 
-Adding a game type involves **four required steps** and one optional one. Each step is described in full below.
+Adding a game type involves **three required steps** and two optional ones. Each step is described in full below.
 
 <div class="grid cards" markdown>
 
@@ -19,15 +19,15 @@ Adding a game type involves **four required steps** and one optional one. Each s
     ---
     `public/configs/index.js`
 
--   :material-numeric-4-circle: **Register the Category**
+-   :material-numeric-4-circle: **Choose the Category**
 
     ---
-    `main.js → findServType()`
+    `backend.category` in your config file (no code change)
 
--   :material-numeric-5-circle: **Add Quick Actions** *(optional)*
+-   :material-numeric-5-circle: **Add Quick Actions and a Graceful Stop** *(optional)*
 
     ---
-    `quickActions` array in your config file
+    `quickActions` and `backend.gracefulStop` in your config file
 
 </div>
 
@@ -69,7 +69,14 @@ export const yourGame = {
         // display, since that's added AFTER this filter runs. Leave this an
         // empty array until you've actually run the server and seen real
         // log output -- don't guess at what's noisy.
-        logNoisePatterns: []
+        logNoisePatterns: [],
+
+        // How RSM asks the game to SAVE and QUIT before it closes the process
+        // (Stop / restart). transport is 'stdin', 'rcon', 'webrcon',
+        // 'palworld-rest' or 'vrage-remote'; commands are sent in order. Declare
+        // one only if you have verified the commands against the game's docs or a
+        // real server -- otherwise use null and RSM simply closes the process.
+        gracefulStop: { transport: "stdin", commands: ["save", "stop"], timeoutSeconds: 60 }
     },
 
     // ── SETUP MODAL ──────────────────────────────────────────────────────────
@@ -165,31 +172,9 @@ export const ServerTypeRegistry = {
 
 ---
 
-### Step 4--Register the Category in `main.js` {: .rsm-header }
+### Step 4--Choose the Category {: .rsm-header }
 
-Open `main.js` and find the `findServType()` function near the bottom. Add your game's registry key to the correct `case` group:
-
-```js
-function findServType(srv) {
-    const type = (srv.type || '').toLowerCase();
-
-    switch (type) {
-        case 'minecraft':
-        case '7daystodie':
-        case 'terraria':
-        case 'your-game':            // ← DIRECT_CONSOLE games go here
-            return 'DIRECT_CONSOLE';
-
-        case 'space-engineers':
-        case 'ark':
-        case 'your-other-game':      // ← POWERSHELL_BRIDGE games go here
-            return 'POWERSHELL_BRIDGE';
-
-        default:
-            return 'DIRECT_CONSOLE';
-    }
-}
-```
+Set `backend.category` in your config file. That is the only place it is declared: RSM copies the category onto each saved server when it is added and trusts it from then on, so **there is nothing to register in `main.js`**. (Older versions of this guide asked contributors to add the game to a `switch` in `findServType()`. That function now only guesses from the game type for server entries saved before the category was recorded, and it defaults to `POWERSHELL_BRIDGE`.)
 
 #### Which category do I use? {: .rsm-header }
 
@@ -217,7 +202,7 @@ function findServType(srv) {
 
 ---
 
-### Step 5--Add Quick Actions *(optional)* {: .rsm-header }
+### Step 5--Add Quick Actions and a Graceful Stop *(optional)* {: .rsm-header }
 
 Quick actions are one-click buttons that appear in the RSM dashboard when a server is selected. Each entry sends a command through whichever command path the server supports (stdin for `DIRECT_CONSOLE`, RCON/HTTP API for `POWERSHELL_BRIDGE`).
 
@@ -236,6 +221,21 @@ quickActions: [
 
 !!! tip "No Quick Actions?"
     If the game has no interactive console, simply omit the `quickActions` array. The Quick Actions card will not appear for that server type.
+
+#### Graceful stop {: .rsm-header }
+
+When you press **Stop** (or restart a server), RSM first asks the game to save and quit using `backend.gracefulStop`, waits up to `timeoutSeconds` for the process to exit, and only then closes it. Without a plan RSM can only close the process, which loses everything since the last autosave.
+
+| Transport | How the commands are delivered |
+| :--- | :--- |
+| `stdin` | Written to the server's console (DIRECT_CONSOLE games) |
+| `rcon` | Source RCON, using the server's RCON port and password |
+| `webrcon` | Rust's WebSocket RCON |
+| `palworld-rest` | Palworld REST API: `/v1/api/save`, then `/v1/api/shutdown` with a short countdown |
+| `vrage-remote` | Space Engineers Remote API: `DELETE /v1/server` |
+
+!!! warning "Verify before you declare"
+    A guessed command does nothing and only delays the stop. Confirm each command against the game's documentation or on a test server, and use `gracefulStop: null` when unsure.
 
 ---
 

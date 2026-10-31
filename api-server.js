@@ -5,12 +5,12 @@
 // servers remotely.  Auth: x-api-key header, constant-time comparison.
 // All requests/responses are application/json.
 
-const { Rcon } = require('rcon-client');
 const axios  = require('axios');
 const http   = require('http');
 const https  = require('https');
 const crypto = require('crypto');
 const os     = require('os');
+const { parsePlayerListOutput } = require('./player-list-parser');
 
 const MAX_BODY = 1 * 1024 * 1024; // 1 MB request body cap
 
@@ -70,6 +70,9 @@ let _getForgeConfig;
 // App info / control
 let _getAppVersion;
 let _restartApp;
+// Network game protocols (RCON, WebRCON, REST/HTTPS, VRage) shared with the desktop UI
+let _queryPlayerCount;
+let _sendNetworkCommand;
 
 // ── Runtime state ─────────────────────────────────────────────────────────
 let _server   = null;
@@ -105,6 +108,8 @@ function init(deps) {
     _getForgeConfig     = deps.getForgeConfig       || null;
     _getAppVersion      = deps.getAppVersion        || (() => '?');
     _restartApp         = deps.restartApp           || null;
+    _queryPlayerCount   = deps.queryPlayerCount     || null;
+    _sendNetworkCommand = deps.sendNetworkCommand   || null;
     // Optional: explicit CORS allow-origin (e.g. a portal/LAN-tool origin). When
     // unset, send() falls back to a host-appropriate default.
     _corsOrigin         = deps.corsOrigin            || null;
@@ -162,17 +167,34 @@ function onRequest(req, res) {
     // Collect body for any method that may carry one
     const hasBody = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
     if (hasBody) {
-        let raw = '';
+        const bodyChunks = [];
+        let receivedBytes = 0;
+        let isTooLarge = false;
         req.on('data', chunk => {
-            if (raw.length + chunk.length > MAX_BODY) {
-                req.destroy();
+            if (isTooLarge) return;
+            receivedBytes += chunk.length;
+            if (receivedBytes > MAX_BODY) {
+                // Answer 413 and stop buffering; the old code destroyed the socket
+                // and left the caller hanging with no response.
+                isTooLarge = true;
+                bodyChunks.length = 0;
+                send(res, 413, { error: 'Request body too large' });
                 return;
             }
-            raw += chunk.toString();
+            bodyChunks.push(chunk);
         });
         req.on('end', () => {
+            if (isTooLarge) return;
+            const rawBody = Buffer.concat(bodyChunks).toString('utf8');
             let body = {};
-            try { body = JSON.parse(raw); } catch {}
+            if (rawBody.trim() !== '') {
+                // A malformed body used to become {} silently, so e.g. a typo in a
+                // firewall request surfaced as a confusing "field is required".
+                try { body = JSON.parse(rawBody); } catch { send(res, 400, { error: 'Request body is not valid JSON' }); return; }
+                if (body === null || typeof body !== 'object' || Array.isArray(body)) {
+                    send(res, 400, { error: 'Request body must be a JSON object' }); return;
+                }
+            }
             dispatch(req, res, body);
         });
         req.on('error', () => send(res, 400, { error: 'Bad request' }));
@@ -188,23 +210,23 @@ function dispatch(req, res, body) {
     const qIdx     = rawUrl.indexOf('?');
     const url      = (qIdx === -1 ? rawUrl : rawUrl.slice(0, qIdx)).replace(/\/+$/, '') || '/';
     const qs       = new URLSearchParams(qIdx === -1 ? '' : rawUrl.slice(qIdx + 1));
-    const m        = req.method;
+    const requestMethod        = req.method;
 
     // ── CORS pre-flight ──────────────────────────────────────────────────
-    if (m === 'OPTIONS') {
+    if (requestMethod === 'OPTIONS') {
         send(res, 204, null);
         return;
     }
 
     // ── Health check (unauthenticated--lets monitors confirm the API is up) ─
-    if (m === 'GET' && url === '/api/health') {
+    if (requestMethod === 'GET' && url === '/api/health') {
         send(res, 200, { status: 'ok', version: _getAppVersion() });
         return;
     }
 
     // ── Rate limit check ─────────────────────────────────────────────────
     if (_isRateLimited(clientIp)) {
-        console.warn(`[RSM-API] ${m} ${url}--429 blocked (${clientIp})`);
+        console.warn(`[RSM-API] ${requestMethod} ${url}--429 blocked (${clientIp})`);
         send(res, 429, { error: 'Too many failed attempts. Try again later.' });
         return;
     }
@@ -224,11 +246,11 @@ function dispatch(req, res, body) {
     _clearFailure(clientIp);
 
     // ── Access log ───────────────────────────────────────────────────────
-    console.log(`[RSM-API] ${m} ${url}--from ${clientIp}`);
+    console.log(`[RSM-API] ${requestMethod} ${url}--from ${clientIp}`);
 
     // ── System ───────────────────────────────────────────────────────────
 
-    if (m === 'GET' && url === '/api/system/status') {
+    if (requestMethod === 'GET' && url === '/api/system/status') {
         const servers = _getManagedServers();
         send(res, 200, {
             platform:    os.platform(),
@@ -240,12 +262,12 @@ function dispatch(req, res, body) {
             cpuCount:    os.cpus().length,
             rsmVersion:  _getAppVersion(),
             serverCount: servers.length,
-            onlineCount: servers.filter(s => s.status === 'Online').length,
+            onlineCount: servers.filter(server => server.status === 'Online').length,
         });
         return;
     }
 
-    if (m === 'POST' && url === '/api/system/restart') {
+    if (requestMethod === 'POST' && url === '/api/system/restart') {
         if (!_restartApp) { send(res, 501, { error: 'Not implemented' }); return; }
         send(res, 200, { message: 'RSM is restarting...' });
         setTimeout(() => _restartApp(), 500);
@@ -255,14 +277,14 @@ function dispatch(req, res, body) {
     // ── Firewall ──────────────────────────────────────────────────────────
 
     if (url === '/api/firewall/rules') {
-        if (m === 'GET') {
+        if (requestMethod === 'GET') {
             if (!_getFirewallRules) { send(res, 501, { error: 'Not implemented' }); return; }
             _getFirewallRules()
                 .then(rules => send(res, 200, { rules }))
                 .catch(err  => send(res, 500, { error: err.message }));
             return;
         }
-        if (m === 'POST') {
+        if (requestMethod === 'POST') {
             if (!_addFirewallRule) { send(res, 501, { error: 'Not implemented' }); return; }
             const { displayName, port, tcp, udp } = body;
             if (!displayName || !port) {
@@ -272,8 +294,8 @@ function dispatch(req, res, body) {
                 send(res, 400, { error: 'At least one of tcp or udp must be true' }); return;
             }
             _addFirewallRule({ displayName, port, tcp: !!tcp, udp: !!udp })
-                .then(r  => send(res, r.success ? 201 : 500, r))
-                .catch(e => send(res, 500, { error: e.message }));
+                .then(result  => send(res, result.success ? 201 : 500, result))
+                .catch(error => send(res, 500, { error: error.message }));
             return;
         }
         send(res, 405, { error: 'Method not allowed' }); return;
@@ -282,22 +304,25 @@ function dispatch(req, res, body) {
     // DELETE /api/firewall/rules/:name  •  PATCH /api/firewall/rules/:name
     const fwMatch = url.match(/^\/api\/firewall\/rules\/(.+)$/);
     if (fwMatch) {
-        const ruleName = decodeURIComponent(fwMatch[1]);
-        if (m === 'DELETE') {
+        // decodeURIComponent throws URIError on a stray '%'; uncaught here it would
+        // surface as an error dialog in the desktop app instead of a 400.
+        let ruleName;
+        try { ruleName = decodeURIComponent(fwMatch[1]); } catch { send(res, 400, { error: 'Invalid rule name encoding' }); return; }
+        if (requestMethod === 'DELETE') {
             if (!_removeFirewallRule) { send(res, 501, { error: 'Not implemented' }); return; }
             _removeFirewallRule(ruleName)
-                .then(r  => send(res, r.success ? 200 : 500, r))
-                .catch(e => send(res, 500, { error: e.message }));
+                .then(result  => send(res, result.success ? 200 : 500, result))
+                .catch(error => send(res, 500, { error: error.message }));
             return;
         }
-        if (m === 'PATCH') {
+        if (requestMethod === 'PATCH') {
             if (!_toggleFirewallRule) { send(res, 501, { error: 'Not implemented' }); return; }
             if (typeof body.enabled !== 'boolean') {
                 send(res, 400, { error: 'enabled (boolean) is required' }); return;
             }
             _toggleFirewallRule(ruleName, body.enabled)
-                .then(r  => send(res, r.success ? 200 : 500, r))
-                .catch(e => send(res, 500, { error: e.message }));
+                .then(result  => send(res, result.success ? 200 : 500, result))
+                .catch(error => send(res, 500, { error: error.message }));
             return;
         }
         send(res, 405, { error: 'Method not allowed' }); return;
@@ -309,36 +334,36 @@ function dispatch(req, res, body) {
     // URL + key via forge-connection.json in RSM's userData directory.
 
     if (url.startsWith('/api/install')) {
-        if (m === 'GET' && url === '/api/install/games') {
+        if (requestMethod === 'GET' && url === '/api/install/games') {
             _forgeProxy('get', '/api/games')
-                .then(r => send(res, r.status, r.body))
-                .catch(e => send(res, 502, { error: e.message }));
+                .then(result => send(res, result.status, result.body))
+                .catch(error => send(res, 502, { error: error.message }));
             return;
         }
-        if (m === 'GET' && url === '/api/install/jobs') {
+        if (requestMethod === 'GET' && url === '/api/install/jobs') {
             _forgeProxy('get', '/api/install')
-                .then(r => send(res, r.status, r.body))
-                .catch(e => send(res, 502, { error: e.message }));
+                .then(result => send(res, result.status, result.body))
+                .catch(error => send(res, 502, { error: error.message }));
             return;
         }
-        if (m === 'POST' && url === '/api/install/jobs') {
+        if (requestMethod === 'POST' && url === '/api/install/jobs') {
             _forgeProxy('post', '/api/install', body)
-                .then(r => send(res, r.status, r.body))
-                .catch(e => send(res, 502, { error: e.message }));
+                .then(result => send(res, result.status, result.body))
+                .catch(error => send(res, 502, { error: error.message }));
             return;
         }
         const jobMatch = url.match(/^\/api\/install\/jobs\/([a-f0-9]+)$/);
         if (jobMatch) {
-            if (m === 'GET') {
+            if (requestMethod === 'GET') {
                 _forgeProxy('get', `/api/install/${jobMatch[1]}`)
-                    .then(r => send(res, r.status, r.body))
-                    .catch(e => send(res, 502, { error: e.message }));
+                    .then(result => send(res, result.status, result.body))
+                    .catch(error => send(res, 502, { error: error.message }));
                 return;
             }
-            if (m === 'DELETE') {
+            if (requestMethod === 'DELETE') {
                 _forgeProxy('delete', `/api/install/${jobMatch[1]}`)
-                    .then(r => send(res, r.status, r.body))
-                    .catch(e => send(res, 502, { error: e.message }));
+                    .then(result => send(res, result.status, result.body))
+                    .catch(error => send(res, 502, { error: error.message }));
                 return;
             }
         }
@@ -356,24 +381,24 @@ function dispatch(req, res, body) {
 
     // ── Server list ───────────────────────────────────────────────────────
 
-    if (m === 'GET' && url === '/api/servers') {
+    if (requestMethod === 'GET' && url === '/api/servers') {
         send(res, 200, { servers: _getManagedServers().map(formatServer) });
         return;
     }
 
     // GET /api/servers/live — same as /api/servers but adds aggregate counts
-    if (m === 'GET' && url === '/api/servers/live') {
+    if (requestMethod === 'GET' && url === '/api/servers/live') {
         const servers = _getManagedServers().map(formatServer);
         send(res, 200, {
             servers,
-            online: servers.filter(s => s.status === 'Online').length,
+            online: servers.filter(server => server.status === 'Online').length,
             total:  servers.length,
         });
         return;
     }
 
     // POST /api/servers — add a new server entry
-    if (m === 'POST' && url === '/api/servers') {
+    if (requestMethod === 'POST' && url === '/api/servers') {
         if (!_addServer) { send(res, 501, { error: 'Not implemented' }); return; }
         const { name, type, path: exePath } = body;
         if (!name || !type || !exePath) {
@@ -382,8 +407,8 @@ function dispatch(req, res, body) {
         try {
             const created = _addServer(body);
             send(res, 201, created);
-        } catch (e) {
-            send(res, 500, { error: e.message });
+        } catch (error) {
+            send(res, 500, { error: error.message });
         }
         return;
     }
@@ -397,7 +422,7 @@ function dispatch(req, res, body) {
 
     const srvId  = srvMatch[1];
     const srvSub = (srvMatch[2] || '').replace(/^\//, ''); // e.g. 'start', 'config', 'backups/restore'
-    const srv    = _getManagedServers().find(s => s.id === srvId);
+    const srv    = _getManagedServers().find(managedServer => managedServer.id === srvId);
 
     if (!srv) {
         send(res, 404, { error: 'Server not found' });
@@ -405,25 +430,25 @@ function dispatch(req, res, body) {
     }
 
     // GET /api/servers/:id
-    if (m === 'GET' && !srvSub) {
+    if (requestMethod === 'GET' && !srvSub) {
         send(res, 200, formatServer(srv));
         return;
     }
 
     // PUT /api/servers/:id — update server config
-    if (m === 'PUT' && !srvSub) {
+    if (requestMethod === 'PUT' && !srvSub) {
         if (!_updateServer) { send(res, 501, { error: 'Not implemented' }); return; }
         try {
             const updated = _updateServer(srvId, body);
             send(res, updated ? 200 : 404, updated || { error: 'Server not found' });
-        } catch (e) {
-            send(res, 500, { error: e.message });
+        } catch (error) {
+            send(res, 500, { error: error.message });
         }
         return;
     }
 
     // DELETE /api/servers/:id — remove server entry (must be Offline)
-    if (m === 'DELETE' && !srvSub) {
+    if (requestMethod === 'DELETE' && !srvSub) {
         if (!_deleteServer) { send(res, 501, { error: 'Not implemented' }); return; }
         if (srv.status === 'Online' || srv.status === 'Starting') {
             send(res, 409, { error: `Cannot delete a server that is ${srv.status}` }); return;
@@ -431,14 +456,14 @@ function dispatch(req, res, body) {
         try {
             const ok = _deleteServer(srvId);
             send(res, ok ? 200 : 404, ok ? { deleted: true } : { error: 'Server not found' });
-        } catch (e) {
-            send(res, 500, { error: e.message });
+        } catch (error) {
+            send(res, 500, { error: error.message });
         }
         return;
     }
 
     // POST /api/servers/:id/start
-    if (m === 'POST' && srvSub === 'start') {
+    if (requestMethod === 'POST' && srvSub === 'start') {
         if (srv.status === 'Online' || srv.status === 'Starting') {
             send(res, 409, { error: `Server is already ${srv.status}` });
             return;
@@ -449,7 +474,7 @@ function dispatch(req, res, body) {
     }
 
     // POST /api/servers/:id/stop
-    if (m === 'POST' && srvSub === 'stop') {
+    if (requestMethod === 'POST' && srvSub === 'stop') {
         if (srv.status === 'Offline') {
             send(res, 409, { error: 'Server is already Offline' });
             return;
@@ -460,7 +485,7 @@ function dispatch(req, res, body) {
     }
 
     // POST /api/servers/:id/restart
-    if (m === 'POST' && srvSub === 'restart') {
+    if (requestMethod === 'POST' && srvSub === 'restart') {
         _ipcMain.emit('restart-server', makeReplyEvent(), srv.id);
         send(res, 200, { message: `Restart signal sent to ${srv.name}` });
         return;
@@ -468,7 +493,7 @@ function dispatch(req, res, body) {
 
     // POST /api/servers/:id/kill
     // Hard kill via taskkill--use when stop is unresponsive.
-    if (m === 'POST' && srvSub === 'kill') {
+    if (requestMethod === 'POST' && srvSub === 'kill') {
         const processInfo = _getActiveProcesses()[srv.id];
         if (!processInfo?.pid) {
             send(res, 409, { error: 'Server is not running' });
@@ -480,7 +505,7 @@ function dispatch(req, res, body) {
     }
 
     // GET /api/servers/:id/logs
-    if (m === 'GET' && srvSub === 'logs') {
+    if (requestMethod === 'GET' && srvSub === 'logs') {
         const raw   = srv.logs || '';
         const lines = raw.split('\n');
         const tail  = lines.slice(-200).join('\n');
@@ -489,7 +514,7 @@ function dispatch(req, res, body) {
     }
 
     // GET /api/servers/:id/players
-    if (m === 'GET' && srvSub === 'players') {
+    if (requestMethod === 'GET' && srvSub === 'players') {
         if (srv.status !== 'Online') {
             send(res, 409, { error: 'Server is not running' });
             return;
@@ -506,7 +531,7 @@ function dispatch(req, res, body) {
     }
 
     // POST /api/servers/:id/command
-    if (m === 'POST' && srvSub === 'command') {
+    if (requestMethod === 'POST' && srvSub === 'command') {
         const command = (body.command || '').trim();
         if (!command) {
             send(res, 400, { error: 'command field is required' });
@@ -527,31 +552,31 @@ function dispatch(req, res, body) {
     }
 
     // GET /api/servers/:id/config?filePath=...
-    if (m === 'GET' && srvSub === 'config') {
+    if (requestMethod === 'GET' && srvSub === 'config') {
         if (!_readConfigFile) { send(res, 501, { error: 'Not implemented' }); return; }
         const filePath = qs.get('filePath');
         if (!filePath) { send(res, 400, { error: 'filePath query parameter is required' }); return; }
         _readConfigFile(filePath)
-            .then(r  => send(res, r.success ? 200 : 500, r))
-            .catch(e => send(res, 500, { error: e.message }));
+            .then(result  => send(res, result.success ? 200 : 500, result))
+            .catch(error => send(res, 500, { error: error.message }));
         return;
     }
 
     // POST /api/servers/:id/config — write (and optionally backup) a config file
-    if (m === 'POST' && srvSub === 'config') {
+    if (requestMethod === 'POST' && srvSub === 'config') {
         if (!_writeConfigFile) { send(res, 501, { error: 'Not implemented' }); return; }
         const { filePath, content, backupDir } = body;
         if (!filePath || content === undefined) {
             send(res, 400, { error: 'filePath and content are required' }); return;
         }
         _writeConfigFile({ filePath, content, backupDir: backupDir || null, serverType: srv.type, serverName: srv.name })
-            .then(r  => send(res, r.success ? 200 : 500, r))
-            .catch(e => send(res, 500, { error: e.message }));
+            .then(result  => send(res, result.success ? 200 : 500, result))
+            .catch(error => send(res, 500, { error: error.message }));
         return;
     }
 
     // GET /api/servers/:id/backups?backupDir=...&fileName=...
-    if (m === 'GET' && srvSub === 'backups') {
+    if (requestMethod === 'GET' && srvSub === 'backups') {
         if (!_listBackups) { send(res, 501, { error: 'Not implemented' }); return; }
         const backupDir = qs.get('backupDir');
         const fileName  = qs.get('fileName');
@@ -559,25 +584,25 @@ function dispatch(req, res, body) {
             send(res, 400, { error: 'backupDir and fileName query parameters are required' }); return;
         }
         _listBackups({ backupDir, serverType: srv.type, serverName: srv.name, fileName })
-            .then(r  => send(res, r.success ? 200 : 500, r))
-            .catch(e => send(res, 500, { error: e.message }));
+            .then(result  => send(res, result.success ? 200 : 500, result))
+            .catch(error => send(res, 500, { error: error.message }));
         return;
     }
 
     // POST /api/servers/:id/backups/restore — copy a .bak file back to the original path
-    if (m === 'POST' && srvSub === 'backups/restore') {
+    if (requestMethod === 'POST' && srvSub === 'backups/restore') {
         if (!_readConfigFile || !_writeConfigFile) { send(res, 501, { error: 'Not implemented' }); return; }
         const { backupPath, targetPath } = body;
         if (!backupPath || !targetPath) {
             send(res, 400, { error: 'backupPath and targetPath are required' }); return;
         }
         _readConfigFile(backupPath)
-            .then(r => {
-                if (!r.success) { send(res, 500, r); return; }
-                return _writeConfigFile({ filePath: targetPath, content: r.content, backupDir: null })
+            .then(result => {
+                if (!result.success) { send(res, 500, result); return; }
+                return _writeConfigFile({ filePath: targetPath, content: result.content, backupDir: null })
                     .then(wr => send(res, wr.success ? 200 : 500, wr));
             })
-            .catch(e => send(res, 500, { error: e.message }));
+            .catch(error => send(res, 500, { error: error.message }));
         return;
     }
 
@@ -630,6 +655,10 @@ function send(res, statusCode, body) {
         'Content-Type':   'application/json',
         'Content-Length': buf.length,
         'Connection':     'close',
+        // Responses can contain server logs and config files -- never cache them
+        // and never let a browser second-guess the declared type.
+        'Cache-Control':          'no-store',
+        'X-Content-Type-Options': 'nosniff',
         'Access-Control-Allow-Origin':  allowOrigin,
         'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, x-api-key',
@@ -665,102 +694,57 @@ function makeReplyEvent() {
     };
 }
 
+// Sends one command to a running server and resolves with its reply text.
+// DIRECT_CONSOLE servers (Minecraft, Terraria, 7 Days to Die, Project Zomboid)
+// take commands on stdin, so capture whatever they print back for 1.5 s. Every
+// other game is reached through the shared network protocols (Source RCON,
+// Rust WebRCON, ...) -- the same code the desktop UI uses, so a command that
+// works in the app works here too.
 async function executeCommand(srv, processInfo, command) {
-    const serverCategory = _findServType(srv);
-
-    // DIRECT_CONSOLE servers (Minecraft, Terraria, 7DaysToDie)--write to stdin
-    // and capture whatever the server echoes back on stdout within 1.5 s.
-    if (serverCategory === 'DIRECT_CONSOLE') {
-        const child = processInfo.shell;
-        if (!child?.stdin?.writable) throw new Error('Console stdin is not available');
+    if (_findServType(srv) === 'DIRECT_CONSOLE') {
+        const childProcess = processInfo.shell;
+        if (!childProcess?.stdin?.writable) throw new Error('Console stdin is not available');
 
         return new Promise((resolve) => {
-            const chunks = [];
-            const onData = (data) => chunks.push(data.toString());
-            child.stdout.on('data', onData);
-            child.stdin.write(command + '\n');
+            const outputChunks = [];
+            const collectOutput = (data) => outputChunks.push(data.toString());
+            childProcess.stdout.on('data', collectOutput);
+            childProcess.stdin.write(command + '\n');
 
             setTimeout(() => {
-                child.stdout.off('data', onData);
-                const output = chunks.join('').trim();
-                resolve(output || '(no output)');
+                childProcess.stdout.off('data', collectOutput);
+                resolve(outputChunks.join('').trim() || '(no output)');
             }, 1500);
         });
     }
 
-    // Space Engineers--VRage Remote HTTP API
-    if (srv.type === 'space-engineers') {
-        if (!srv.apiPort || !srv.apiPass) {
-            throw new Error('API Port and Password are required for Space Engineers commands');
-        }
-        const url = `http://localhost:${srv.apiPort}/vrageremote/v1/server/command`;
-        await axios.post(url, { Command: command }, {
-            headers: {
-                'Remote-Control-Http-Password': srv.apiPass,
-                'Content-Type': 'application/json'
-            },
-            timeout: 3000
-        });
-        return 'Command sent to Space Engineers';
-    }
-
-    // RCON (Ark, Starfield, etc.)
-    if (!srv.apiPort || !srv.apiPass) {
-        throw new Error('RCON Port and Password are required to send commands');
-    }
-    const rcon = await Rcon.connect({
-        host:     '127.0.0.1',
-        port:     parseInt(srv.apiPort),
-        password: srv.apiPass,
-        timeout:  3000
-    });
-    try {
-        const response = await rcon.send(command);
-        return response || 'Command sent';
-    } finally {
-        rcon.end();
-    }
+    if (!_sendNetworkCommand) throw new Error('Network commands are not available');
+    const reply = await _sendNetworkCommand(srv, command);
+    return reply || 'Command sent';
 }
 
 async function fetchPlayers(srv, processInfo) {
-    // Space Engineers--VRage HTTP session endpoint returns structured data;
-    // executeCommand only returns 'Command sent' so we need the direct HTTP call here.
-    if (srv.type === 'space-engineers') {
-        if (!srv.apiPort) throw new Error('API Port is required for Space Engineers player count');
-        const port = srv.apiPort || 8080;
-        const pass = srv.apiPass || '';
-        const hdrs = pass ? { Authorization: `Basic ${Buffer.from(`:${pass}`).toString('base64')}` } : {};
-        const res  = await axios.get(`http://localhost:${port}/v1/session`, { headers: hdrs, timeout: 3000 });
-        const session = res.data?.data || res.data || {};
-        return { online: session.Players ?? null, max: session.MaxPlayers ?? null, players: [] };
+    // Games reachable over the network (Space Engineers VRage API, Palworld REST,
+    // Satisfactory HTTPS API, Rust WebRCON, Source RCON) answer through the shared
+    // protocol module. Games with nothing to query fall through to the console.
+    if (_queryPlayerCount) {
+        const networkResult = await _queryPlayerCount(srv);
+        if (networkResult && networkResult.online !== null) {
+            return { online: networkResult.online, max: networkResult.max, players: networkResult.players };
+        }
     }
 
-    // All other game types: send the command defined in the game config and parse the output.
-    // New games never need to touch this function--just set backend.playerListCommand in their config.
+    // Everything else: send the command defined in the game config and parse the output.
+    // New games never need to touch this function -- just set backend.playerListCommand in their config.
     if (!srv.playerListCommand) {
         return { online: null, max: null, players: [], note: 'Player list not supported for this server type' };
     }
 
     const output = await executeCommand(srv, processInfo, srv.playerListCommand);
+    const parsedPlayers = parsePlayerListOutput(output);
+    if (parsedPlayers.online !== null) return parsedPlayers;
 
-    // Minecraft-style: "There are 2 of a max of 20 players online: Alice, Bob"
-    const mcMatch = output.match(/There are (\d+) of a max(?: of)? (\d+) players online:\s*(.*)/i);
-    if (mcMatch) {
-        const players = mcMatch[3].trim() ? mcMatch[3].split(',').map(p => p.trim()).filter(Boolean) : [];
-        return { online: parseInt(mcMatch[1]), max: parseInt(mcMatch[2]), players };
-    }
-
-    // RCON numbered-list style: "1. PlayerName, steamid\n2. PlayerName2, steamid2" (Ark, Rust, PalWorld, etc.)
-    const numberedLines = output.trim().split('\n').filter(l => /^\d+\./.test(l));
-    if (numberedLines.length > 0) {
-        const players = numberedLines.map(l => {
-            const m = l.match(/^\d+\.\s+(.+?),/);
-            return m ? m[1].trim() : l.replace(/^\d+\.\s*/, '').trim();
-        });
-        return { online: players.length, max: null, players };
-    }
-
-    // Generic fallback--return raw output for the caller to interpret
+    // Unrecognised format -- return the raw text for the caller to interpret
     return { online: null, max: null, players: [], rawOutput: output.trim() };
 }
 

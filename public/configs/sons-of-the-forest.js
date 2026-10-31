@@ -14,6 +14,9 @@ export const sonsOfTheForest = {
         // Not yet verified against a real log file -- add patterns here once
         // someone's actually run this server and seen what's noisy.
         logNoisePatterns: [],
+        // No verified graceful-stop route for this game yet, so RSM closes the
+        // process directly. See ServerTemplate.js for the supported transports.
+        gracefulStop: null,
     },
     label: 'SERVER EXECUTABLE (SonsOfTheForestDS.exe)',
     blocks: {
@@ -37,9 +40,9 @@ export const sonsOfTheForest = {
         customArgs: 'value',
     },
     firewallPorts: [
-        { id: 'game',  label: 'Game Port',  default: 8766,  tcp: true,  udp: true,  description: 'Player connections' },
-        { id: 'query', label: 'Query Port', default: 27016, tcp: false, udp: true,  description: 'Steam server browser' },
-        { id: 'blob',  label: 'Blob Sync',  default: 9700,  tcp: true,  udp: false, description: 'Save sync' },
+        { id: 'game', label: 'Game Port', default: 8766, tcp: false, udp: true, description: 'Player connections' },
+        { id: 'query', label: 'Query Port', default: 27016, tcp: false, udp: true, description: 'Steam server browser' },
+        { id: 'blob', label: 'Blob Sync', default: 9700, tcp: false, udp: true, description: 'Save sync (UDP)' },
     ],
     quickActions: [],
 };

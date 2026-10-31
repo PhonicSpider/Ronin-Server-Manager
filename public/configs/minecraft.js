@@ -14,6 +14,9 @@ export const minecraft = {
         // Not consumed today -- Minecraft is DIRECT_CONSOLE (stdin/stdout
         // piped directly), not file-tailed. Kept for config-schema consistency.
         logNoisePatterns: [],
+        // How RSM asks this game to save and quit before closing the process.
+        // Java console: save-all flushes the world, stop saves and exits.
+        gracefulStop: { transport: 'stdin', commands: ['save-all', 'stop'], timeoutSeconds: 60 },
     },
     gameFiles: {
         configs: [
@@ -43,8 +46,8 @@ export const minecraft = {
         customArgs: 'value',
     },
     firewallPorts: [
-        { id: 'game', label: 'Game Port', default: 25565, tcp: true,  udp: false, description: 'Player connections' },
-        { id: 'rcon', label: 'RCON',      default: 25575, tcp: true,  udp: false, description: 'Remote admin console' },
+        { id: 'game', label: 'Game Port', default: 25565, tcp: true, udp: false, description: 'Player connections' },
+        { id: 'rcon', label: 'RCON', default: 25575, tcp: false, udp: false, description: 'Remote admin console -- closed by default -- RSM reaches it over localhost' },
     ],
     quickActions: [
         { label: 'List Players',  command: 'list' },
@@ -55,8 +58,8 @@ export const minecraft = {
     parseForRsm(fileContentsMap, { exePath }) {
         const content = fileContentsMap['server.properties'] || '';
         function parseProp(key) {
-            const m = content.match(new RegExp(`^\\s*${key}\\s*=\\s*(.*)$`, 'm'));
-            return m ? m[1].trim() : null;
+            const match = content.match(new RegExp(`^\\s*${key}\\s*=\\s*(.*)$`, 'm'));
+            return match ? match[1].trim() : null;
         }
         const apiPort = parseProp('rcon\\.port')     || '25575';
         const apiPass = parseProp('rcon\\.password') || '';

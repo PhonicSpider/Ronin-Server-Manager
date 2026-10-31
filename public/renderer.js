@@ -27,6 +27,17 @@ function SystemLog(msg) {
     window.updateSystemLog(msg);
 }
 
+// Escapes text for safe interpolation into an innerHTML template (element text
+// AND double-quoted attribute values). Anything that originates outside this
+// file -- server names, Windows Firewall rule names written by other programs,
+// game config labels, error messages -- must pass through here before it is
+// placed in markup, otherwise a name like `<img onerror=...>` runs with the
+// renderer's full IPC access (config file writes, server launch, firewall).
+const HTML_ESCAPE_LOOKUP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => HTML_ESCAPE_LOOKUP[character]);
+}
+
 // Updates the status text on the init overlay during startup.
 // Safe to call before the overlay element exists; silently ignored if not found.
 function setInitStatus(text) {
@@ -197,12 +208,12 @@ function renderTypeCards() {
         card.onclick = () => window.selectServerType(key);
 
         const iconHtml = config.meta.icon.includes('/')
-            ? `<img src="${config.meta.icon}" class="type-icon" style="width:40px; height:40px; object-fit:contain;">`
-            : `<span class="type-icon">${config.meta.icon}</span>`;
+            ? `<img src="${escapeHtml(config.meta.icon)}" class="type-icon" style="width:40px; height:40px; object-fit:contain;">`
+            : `<span class="type-icon">${escapeHtml(config.meta.icon)}</span>`;
 
         card.innerHTML = `
             ${iconHtml}
-            <span>${config.meta.displayName}</span>
+            <span>${escapeHtml(config.meta.displayName)}</span>
         `;
         grid.appendChild(card);
     });
@@ -230,10 +241,10 @@ window.showView = (viewName) => {
         'portier': document.getElementById('portier-ui')
     };
 
-    Object.values(views).forEach(v => {
-        if (v) {
-            v.style.setProperty('display', 'none', 'important');
-            v.style.pointerEvents = 'none';
+    Object.values(views).forEach(view => {
+        if (view) {
+            view.style.setProperty('display', 'none', 'important');
+            view.style.pointerEvents = 'none';
         }
     });
 
@@ -278,19 +289,19 @@ function renderSidebar() {
         return;
     }
 
-    servers.forEach((s, index) => {
+    servers.forEach((server, index) => {
         const item = document.createElement('div');
-        item.className = `nav-item ${activeId === s.id ? 'active' : ''}`;
+        item.className = `nav-item ${activeId === server.id ? 'active' : ''}`;
         item.draggable = true;
 
-        const config = ServerTypeRegistry[s.type];
+        const config = ServerTypeRegistry[server.type];
         const icon = config ? config.meta.icon : '🖥️';
-        const iconHtml = icon.includes('/') ? `<img src="${icon}" class="nav-type-icon" style="width:25px; height:25px; margin-right:5px; margin-top:5px; object-fit:contain;">` : `<span class="type-icon" style="margin-right:3px;">${icon}</span>`;
+        const iconHtml = icon.includes('/') ? `<img src="${escapeHtml(icon)}" class="nav-type-icon" style="width:25px; height:25px; margin-right:5px; margin-top:5px; object-fit:contain;">` : `<span class="type-icon" style="margin-right:3px;">${escapeHtml(icon)}</span>`;
 
         const hasFwPorts = (config?.firewallPorts?.length > 0);
         let fwBadgeHtml = '';
         if (hasFwPorts) {
-            const status = serverFirewallStatus[s.id];
+            const status = serverFirewallStatus[server.id];
             const badgeState = status === true ? 'active' : status === false ? 'none' : 'inactive';
             const badgeTip   = status === true ? 'Firewall rules active' : status === false ? 'No firewall rules applied' : 'Firewall status unknown';
             fwBadgeHtml = `<span class="portier-nav-badge portier-srv-badge ${badgeState}" title="${badgeTip}"></span>`;
@@ -298,25 +309,25 @@ function renderSidebar() {
 
         item.innerHTML = `
             <div class="nav-content">
-                <span class="status-dot ${s.status === 'Online' ? 'dot-online' : 'dot-offline'}"></span>
+                <span class="status-dot ${server.status === 'Online' ? 'dot-online' : 'dot-offline'}"></span>
                 ${iconHtml}
-                <span class="server-name">${s.name}</span>
+                <span class="server-name">${escapeHtml(server.name)}</span>
             </div>
             ${fwBadgeHtml}
-            <div class="item-options-gear" onclick="toggleSidebarMenu(event, '${s.id}')" style="position:absolute; right:0;">
+            <div class="item-options-gear" data-server-id="${escapeHtml(server.id)}" onclick="toggleSidebarMenu(event, this.dataset.serverId)" style="position:absolute; right:0;">
                 ⚙️
             </div>
         `;
 
         item.addEventListener('dragstart', () => { draggedItemIndex = index; item.style.opacity = '0.4'; });
         item.addEventListener('dragend', () => item.style.opacity = '1');
-        item.addEventListener('dragover', (e) => e.preventDefault());
-        item.addEventListener('drop', (e) => {
-            e.preventDefault();
+        item.addEventListener('dragover', (event) => event.preventDefault());
+        item.addEventListener('drop', (event) => {
+            event.preventDefault();
             handleSort(draggedItemIndex, index);
         });
-        item.onclick = (e) => {
-            if (!e.target.closest('.item-options-gear')) selectServer(s.id);
+        item.onclick = (event) => {
+            if (!event.target.closest('.item-options-gear')) selectServer(server.id);
         };
         nav.appendChild(item);
     });
@@ -335,7 +346,7 @@ function handleSort(fromIndex, toIndex) {
 function selectServer(id) {
     console.log(`[RSM] selectServer--id: ${id}`);
     activeId = id;
-    const srv = servers.find(s => s.id === id);
+    const srv = servers.find(server => server.id === id);
     if (!srv) return;
 
     updateGauge('cpu', 0, '...');
@@ -431,9 +442,9 @@ function renderFirewallPorts(srv, config) {
         row.className = 'fw-port-row';
         row.dataset.portId = def.id;
         row.innerHTML = `
-            <span class="fw-port-label" title="${def.description || ''}">${def.label}</span>
+            <span class="fw-port-label" title="${escapeHtml(def.description || '')}">${escapeHtml(def.label)}</span>
             <input class="fw-port-input" type="number" min="1" max="65535"
-                   value="${portVal}" data-id="${def.id}" />
+                   value="${escapeHtml(portVal)}" data-id="${escapeHtml(def.id)}" />
             <label class="fw-toggle" title="TCP">
                 <input type="checkbox" data-id="${def.id}" data-proto="tcp" ${tcpVal ? 'checked' : ''}>
                 <span>TCP</span>
@@ -451,7 +462,7 @@ function renderFirewallPorts(srv, config) {
 }
 
 window.saveFirewallPortOverrides = async function () {
-    const srv = servers.find(s => s.id === activeId);
+    const srv = servers.find(server => server.id === activeId);
     if (!srv) return;
     console.log(`[RSM] saveFirewallPortOverrides--srv: "${srv.name}"`);
 
@@ -472,11 +483,11 @@ window.saveFirewallPortOverrides = async function () {
     });
 
     // Conflict check--runs BEFORE touching any existing rules; exclude this server's own rules
-    const newPorts = Object.values(overrides).map(o => o.port);
+    const newPorts = Object.values(overrides).map(override => override.port);
     const conflicts = await window.api.invoke('check-port-conflicts', { ports: newPorts, excludeServerName: srv.name });
     console.log(`[RSM] saveFirewallPortOverrides--conflicts:`, conflicts);
     if (conflicts?.length) {
-        const names = conflicts.map(c => `Port ${c.port} (${c.protocol}): "${c.ruleName}"`).join('; ');
+        const names = conflicts.map(conflict => `Port ${conflict.port} (${conflict.protocol}): "${conflict.ruleName}"`).join('; ');
         window.updateSystemLog(`[RSM] ⚠ Port conflict--the following ports are already claimed by other rules: ${names}. Review before applying.`);
     }
 
@@ -537,7 +548,7 @@ async function checkFirewallStatus(srv) {
 }
 
 window.applyFirewallRules = async function () {
-    const srv = servers.find(s => s.id === activeId);
+    const srv = servers.find(server => server.id === activeId);
     if (!srv) return;
     console.log(`[RSM] applyFirewallRules--srv: "${srv.name}"`);
 
@@ -570,7 +581,7 @@ window.applyFirewallRules = async function () {
 };
 
 window.removeFirewallRules = async function () {
-    const srv = servers.find(s => s.id === activeId);
+    const srv = servers.find(server => server.id === activeId);
     if (!srv) return;
     console.log(`[RSM] removeFirewallRules--srv: "${srv.name}"`);
 
@@ -657,16 +668,27 @@ async function loadPortierView() {
     list.innerHTML = '';
 
     rules.forEach(rule => {
-        const enabled  = rule.enabled === 'True';
-        const safeName = rule.name.replace(/'/g, "\\'");
+        const enabled = rule.enabled === 'True';
         const row = document.createElement('div');
         row.className = 'portier-rule-row';
+        // Rule names come from the Windows Firewall, where any program with
+        // admin rights can create one -- treat them as untrusted. Build with
+        // DOM APIs and real listeners instead of interpolating the name into
+        // markup or an inline onclick string.
         row.innerHTML = `
-            <span class="portier-rule-name" title="${rule.name}">${rule.name}</span>
-            <span class="portier-rule-pill portier-rule-proto">${rule.protocol || '--'}</span>
-            <span class="portier-rule-pill portier-rule-port">${rule.port || '--'}</span>
-            <button class="portier-toggle-btn ${enabled ? 'toggle-on' : 'toggle-off'}" ${!isAdmin ? 'disabled' : ''} onclick="togglePortierRule('${safeName}', ${enabled})">${enabled ? 'Enabled' : 'Disabled'}</button>
-            <button class="btn btn-outline portier-remove-btn" ${!isAdmin ? 'disabled' : ''} onclick="removePortierRule('${safeName}')">Remove</button>`;
+            <span class="portier-rule-name"></span>
+            <span class="portier-rule-pill portier-rule-proto"></span>
+            <span class="portier-rule-pill portier-rule-port"></span>
+            <button class="portier-toggle-btn ${enabled ? 'toggle-on' : 'toggle-off'}" ${!isAdmin ? 'disabled' : ''}>${enabled ? 'Enabled' : 'Disabled'}</button>
+            <button class="btn btn-outline portier-remove-btn" ${!isAdmin ? 'disabled' : ''}>Remove</button>`;
+
+        const nameElement = row.querySelector('.portier-rule-name');
+        nameElement.textContent = rule.name;
+        nameElement.title = rule.name;
+        row.querySelector('.portier-rule-proto').textContent = rule.protocol || '--';
+        row.querySelector('.portier-rule-port').textContent = rule.port || '--';
+        row.querySelector('.portier-toggle-btn').addEventListener('click', () => window.togglePortierRule(rule.name, enabled));
+        row.querySelector('.portier-remove-btn').addEventListener('click', () => window.removePortierRule(rule.name));
         list.appendChild(row);
     });
 }
@@ -694,8 +716,8 @@ window.applyAllServerRules = async function () {
     const isAdmin = await window.api.invoke('check-admin');
     if (!isAdmin) { portierLog('Error: RSM must be run as Administrator to manage firewall rules.'); return; }
 
-    const targets = servers.filter(s => {
-        const portDefs = ServerTypeRegistry[s.type]?.firewallPorts;
+    const targets = servers.filter(server => {
+        const portDefs = ServerTypeRegistry[server.type]?.firewallPorts;
         return portDefs && portDefs.length > 0;
     });
 
@@ -761,7 +783,7 @@ window.addCustomRule = async function () {
         const conflicts = await window.api.invoke('check-port-conflicts', { ports: [port] });
         console.log('[Portier] addCustomRule--conflicts:', conflicts);
         if (conflicts?.length) {
-            const names = conflicts.map(c => `Port ${c.port} (${c.protocol}): "${c.ruleName}"`).join('; ');
+            const names = conflicts.map(conflict => `Port ${conflict.port} (${conflict.protocol}): "${conflict.ruleName}"`).join('; ');
             portierLog(`⚠ Port conflict--${names}. Click Add Anyway to proceed.`);
             window._portierAddConflictAcknowledged = true;
             window._portierAddConflictPort = port;
@@ -841,7 +863,7 @@ window.deleteServer = (id) => {
 
     if (confirm("Are you sure you want to delete this server? This cannot be undone.")) {
         const originalLength = servers.length;
-        servers = servers.filter(s => s.id.toString() !== idToRemove.toString());
+        servers = servers.filter(server => server.id.toString() !== idToRemove.toString());
 
         if (servers.length < originalLength) {
             window.api.send('save-servers', servers);
@@ -866,10 +888,10 @@ window.openEditModal = (serverId) => {
         return;
     }
 
-    const srv = servers.find(s => s.id.toString() === serverId.toString());
+    const srv = servers.find(server => server.id.toString() === serverId.toString());
 
     if (!srv) {
-        console.error("[RSM-ERROR] Could not find server in the list. Available IDs:", servers.map(s => s.id));
+        console.error("[RSM-ERROR] Could not find server in the list. Available IDs:", servers.map(server => server.id));
         return;
     }
     DebugLog(`Server found: ${srv.name} | Type: ${srv.type}`);
@@ -949,7 +971,7 @@ window.browseWorkingFolder = async () => {
 
 window.openServerFolder = (targetId) => {
     if (!targetId) return;
-    const srv = servers.find(s => s.id === targetId);
+    const srv = servers.find(server => server.id === targetId);
     if (!srv) return;
 
     const folderToOpen = srv.workingDir || srv.exePath || srv.path;
@@ -979,7 +1001,7 @@ window.addEventListener('mousedown', (event) => {
 //
 
 window.startServer = () => {
-    const srv = servers.find(s => s.id === activeId);
+    const srv = servers.find(server => server.id === activeId);
     if (srv && srv.status !== 'Online') {
         console.log(`[RSM] startServer--"${srv.name}" (id: ${srv.id} | type: ${srv.type})`);
         window.updateSystemLog(`Attempting to start server "${srv.name}"...`);
@@ -991,7 +1013,7 @@ window.startServer = () => {
 };
 
 window.stopServer = () => {
-    const srv = servers.find(s => s.id === activeId);
+    const srv = servers.find(server => server.id === activeId);
 
     if (srv) {
         console.log(`[RSM] stopServer--"${srv.name}" (id: ${srv.id} | pid: ${srv.pid || 'none'})`);
@@ -1009,7 +1031,7 @@ window.rescanServers = () => {
 };
 
 window.killServer = () => {
-    const srv = servers.find(s => s.id === activeId);
+    const srv = servers.find(server => server.id === activeId);
     if (srv && srv.pid) {
         if (confirm(`FORCE KILL "${srv.name}"?`)) {
             console.log(`[RSM] killServer--"${srv.name}" | PID: ${srv.pid}`);
@@ -1021,7 +1043,7 @@ window.killServer = () => {
 
 // Starts or stops ALL servers from the sidebar global action buttons
 window.globalAction = (action) => {
-    const targets = servers.filter(s => action === 'start' ? s.status !== 'Online' : s.status === 'Online');
+    const targets = servers.filter(server => action === 'start' ? server.status !== 'Online' : server.status === 'Online');
     console.log(`[RSM] globalAction--action: "${action}" | targets: ${targets.length}`);
     servers.forEach(srv => {
         if (action === 'start' && srv.status !== 'Online') {
@@ -1047,7 +1069,7 @@ window.sendConsoleCommand = (event) => {
         const command = inputEl.value.trim();
 
         if (command && activeId) {
-            const srv = servers.find(s => s.id === activeId);
+            const srv = servers.find(server => server.id === activeId);
             console.log(`[RSM] sendConsoleCommand--srv: "${srv?.name || activeId}" | command: "${command}"`);
             const consoleEl = document.getElementById('console');
 
@@ -1074,7 +1096,7 @@ window.sendConsoleCommand = (event) => {
 // Fires a predefined command without needing the console input field
 window.sendQuickAction = (command) => {
     if (!activeId) return;
-    const srv = servers.find(s => s.id === activeId);
+    const srv = servers.find(server => server.id === activeId);
     console.log(`[RSM] sendQuickAction--srv: "${srv?.name || activeId}" | command: "${command}"`);
     const consoleEl = document.getElementById('console');
 
@@ -1101,12 +1123,12 @@ window.sendQuickAction = (command) => {
 
 function formatUptime(ms) {
     const totalSeconds = Math.floor(ms / 1000);
-    const h = Math.floor(totalSeconds / 3600);
-    const m = Math.floor((totalSeconds % 3600) / 60);
-    const s = totalSeconds % 60;
-    if (h > 0) return `${h}h ${m}m ${s}s`;
-    if (m > 0) return `${m}m ${s}s`;
-    return `${s}s`;
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+    if (minutes > 0) return `${minutes}m ${seconds}s`;
+    return `${seconds}s`;
 }
 
 function startStatusDashboard(srvId) {
@@ -1154,7 +1176,7 @@ window.api.receive('servers-updated', (updatedList) => {
 
 // Appends new text from the server's console to the UI
 window.api.receive('console-out', (data) => {
-    const srv = servers.find(s => s.id === data.id);
+    const srv = servers.find(server => server.id === data.id);
     if (!srv) { console.warn(`[RSM] console-out--unknown server id: ${data.id}`); return; }
 
     if (srv) {
@@ -1166,25 +1188,25 @@ window.api.receive('console-out', (data) => {
     }
 
     if (activeId === data.id) {
-        const c = document.getElementById('console');
-        if (c) {
+        const consoleElement = document.getElementById('console');
+        if (consoleElement) {
             const logLine = document.createElement('div');
             logLine.style.whiteSpace = 'pre-wrap';
             logLine.style.wordBreak = 'break-all';
             logLine.textContent = data.msg;
 
-            c.appendChild(logLine);
-            c.scrollTop = c.scrollHeight;
+            consoleElement.appendChild(logLine);
+            consoleElement.scrollTop = consoleElement.scrollHeight;
 
-            if (c.childNodes.length > 500) {
-                c.removeChild(c.firstChild);
+            if (consoleElement.childNodes.length > 500) {
+                consoleElement.removeChild(consoleElement.firstChild);
             }
         }
 
         // Parse each DIRECT_CONSOLE game's player-list response to update the
         // player count pill. Each game's stdout format is different, so each
         // gets its own regex against this console-out chunk.
-        const srv = servers.find(s => s.id === data.id);
+        const srv = servers.find(server => server.id === data.id);
         if (srv?.type === 'minecraft') {
             const match = data.msg.match(/There are (\d+) of a max of (\d+) players/i);
             if (match) document.getElementById('stat-players').innerText = `${match[1]} / ${match[2]}`;
@@ -1214,7 +1236,7 @@ window.api.receive('console-out', (data) => {
 // Updates the UI when a server starts, stops, or crashes
 window.api.receive('status-change', (data) => {
     console.log(`[RSM] status-change--id: ${data.id} | status: ${data.status} | pid: ${data.pid || 'none'}`);
-    const srv = servers.find(s => s.id === data.id);
+    const srv = servers.find(server => server.id === data.id);
     if (srv) {
         srv.status = data.status;
         srv.pid = data.pid || null;
@@ -1252,7 +1274,7 @@ window.api.receive('player-count-update', (data) => {
 
 // Receives per-server CPU/RAM data every 2 seconds; updates circular gauges
 window.api.receive('server-perf-update', (data) => {
-    const srv = servers.find(s => s.id === data.id);
+    const srv = servers.find(server => server.id === data.id);
     if (!srv) return;
 
     srv.ramMB = data.ramRaw;
@@ -1445,33 +1467,33 @@ function drawConnectionsGraph() {
     const canvas = document.getElementById('connections-graph');
     if (!canvas) return;
 
-    const W = canvas.offsetWidth;
-    const H = canvas.offsetHeight;
-    if (W === 0 || H === 0) return;
+    const canvasWidth = canvas.offsetWidth;
+    const canvasHeight = canvas.offsetHeight;
+    if (canvasWidth === 0 || canvasHeight === 0) return;
 
-    canvas.width = W;
-    canvas.height = H;
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
 
     const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, W, H);
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
     // Only draw points that have data (non-null)
-    const known = connHistory.filter(v => v !== null);
+    const known = connHistory.filter(value => value !== null);
     const maxVal = known.length > 0 ? Math.max(...known, 1) : 1;
 
     const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#007bff';
 
     // Build point list--skip leading nulls
     const pts = [];
-    for (let i = 0; i < connHistory.length; i++) {
-        if (connHistory[i] === null) continue;
+    for (let index = 0; index < connHistory.length; index++) {
+        if (connHistory[index] === null) continue;
         pts.push({
-            x: (i / (connHistory.length - 1)) * W,
-            y: H - (connHistory[i] / maxVal) * (H - 8) - 4
+            x: (index / (connHistory.length - 1)) * canvasWidth,
+            y: canvasHeight - (connHistory[index] / maxVal) * (canvasHeight - 8) - 4
         });
     }
 
-    const current = [...connHistory].reverse().find(v => v !== null);
+    const current = [...connHistory].reverse().find(value => value !== null);
     const el = document.getElementById('stat-connections');
     if (el) el.textContent = current ?? '--';
 
@@ -1479,9 +1501,9 @@ function drawConnectionsGraph() {
 
     // Filled area--strong alpha; CSS opacity on the canvas element fades it overall
     ctx.beginPath();
-    ctx.moveTo(pts[0].x, H);
-    pts.forEach(p => ctx.lineTo(p.x, p.y));
-    ctx.lineTo(pts[pts.length - 1].x, H);
+    ctx.moveTo(pts[0].x, canvasHeight);
+    pts.forEach(point => ctx.lineTo(point.x, point.y));
+    ctx.lineTo(pts[pts.length - 1].x, canvasHeight);
     ctx.closePath();
     ctx.fillStyle = 'rgba(0,123,255,0.55)';
     ctx.fill();
@@ -1491,7 +1513,7 @@ function drawConnectionsGraph() {
     ctx.strokeStyle = accentColor;
     ctx.lineWidth = 2;
     ctx.lineJoin = 'round';
-    pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    pts.forEach((point, index) => index === 0 ? ctx.moveTo(point.x, point.y) : ctx.lineTo(point.x, point.y));
     ctx.stroke();
 }
 
@@ -1513,24 +1535,24 @@ function drawNetworkGraph() {
     const canvas = document.getElementById('network-graph');
     if (!canvas) return;
 
-    const W = canvas.offsetWidth;
-    const H = canvas.offsetHeight;
-    if (W === 0 || H === 0) return;
+    const canvasWidth = canvas.offsetWidth;
+    const canvasHeight = canvas.offsetHeight;
+    if (canvasWidth === 0 || canvasHeight === 0) return;
 
-    canvas.width = W;
-    canvas.height = H;
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
 
     const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, W, H);
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
     // Faint horizontal grid lines
     ctx.strokeStyle = 'rgba(255,255,255,0.06)';
     ctx.lineWidth = 1;
-    for (let i = 1; i < 4; i++) {
-        const y = Math.round((H * i) / 4) + 0.5;
+    for (let index = 1; index < 4; index++) {
+        const gridLineY = Math.round((canvasHeight * index) / 4) + 0.5;
         ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(W, y);
+        ctx.moveTo(0, gridLineY);
+        ctx.lineTo(canvasWidth, gridLineY);
         ctx.stroke();
     }
 
@@ -1539,16 +1561,16 @@ function drawNetworkGraph() {
 
     const drawLine = (history, color, fill) => {
         if (history.length < 2) return;
-        const pts = history.map((v, i) => ({
-            x: (i / (history.length - 1)) * W,
-            y: H - (v / maxVal) * (H - 4) - 2
+        const pts = history.map((value, index) => ({
+            x: (index / (history.length - 1)) * canvasWidth,
+            y: canvasHeight - (value / maxVal) * (canvasHeight - 4) - 2
         }));
 
         // Filled area under line
         ctx.beginPath();
-        ctx.moveTo(pts[0].x, H);
-        pts.forEach(p => ctx.lineTo(p.x, p.y));
-        ctx.lineTo(pts[pts.length - 1].x, H);
+        ctx.moveTo(pts[0].x, canvasHeight);
+        pts.forEach(point => ctx.lineTo(point.x, point.y));
+        ctx.lineTo(pts[pts.length - 1].x, canvasHeight);
         ctx.closePath();
         ctx.fillStyle = fill;
         ctx.fill();
@@ -1558,7 +1580,7 @@ function drawNetworkGraph() {
         ctx.strokeStyle = color;
         ctx.lineWidth = 1.5;
         ctx.lineJoin = 'round';
-        pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+        pts.forEach((point, index) => index === 0 ? ctx.moveTo(point.x, point.y) : ctx.lineTo(point.x, point.y));
         ctx.stroke();
     };
 
@@ -1648,7 +1670,7 @@ window.selectServerType = (type) => {
     const config = ServerTypeRegistry[type];
 
     if (!config) {
-        document.querySelectorAll('.platform-specific').forEach(b => b.style.display = 'block');
+        document.querySelectorAll('.platform-specific').forEach(element => element.style.display = 'block');
         document.getElementById('path-label').innerText = "EXECUTABLE PATH";
         document.getElementById('port-label').innerText = "PORT";
         document.getElementById('portpass-label').innerText = "PASSWORD";
@@ -1787,17 +1809,18 @@ window.saveNewServer = async () => {
 
     // Port conflict check--skip if user has already acknowledged the warning
     if (!window._fwConflictsAcknowledged && firewallPorts) {
-        const portsToCheck = Object.values(firewallPorts).map(o => o.port);
+        const portsToCheck = Object.values(firewallPorts).map(firewallPort => firewallPort.port);
         // When editing an existing server, exclude its own rules (they'll be replaced on apply)
         const existingName = window.editingServerId
-            ? servers.find(s => s.id.toString() === window.editingServerId.toString())?.name
+            ? servers.find(server => server.id.toString() === window.editingServerId.toString())?.name
             : null;
         const conflicts = await window.api.invoke('check-port-conflicts', { ports: portsToCheck, excludeServerName: existingName });
         console.log(`[RSM] saveNewServer--conflicts:`, conflicts);
         if (conflicts?.length) {
             const banner = document.getElementById('wizard-fw-conflict-banner');
             if (banner) {
-                const items = conflicts.map(c => `<li>Port ${c.port} (${c.protocol})--already used by: <em>${c.ruleName}</em></li>`).join('');
+                // ruleName belongs to ANY firewall rule on the machine, not just ours.
+                const items = conflicts.map(conflict => `<li>Port ${escapeHtml(conflict.port)} (${escapeHtml(conflict.protocol)})--already used by: <em>${escapeHtml(conflict.ruleName)}</em></li>`).join('');
                 banner.innerHTML = `<strong>⚠ Port Conflict Detected</strong><br>
                     The following ports are already claimed by existing Windows Firewall rules. Opening them may conflict with another service:<ul>${items}</ul>
                     <span style="opacity:0.75;font-size:11px;">Adjust the ports above, or click <strong>Save Anyway</strong> to proceed.</span>`;
@@ -1813,7 +1836,7 @@ window.saveNewServer = async () => {
     window._fwConflictsAcknowledged = false;
 
     if (window.editingServerId) {
-        const index = servers.findIndex(s => s.id.toString() === window.editingServerId.toString());
+        const index = servers.findIndex(server => server.id.toString() === window.editingServerId.toString());
         if (index !== -1) {
             const existing = servers[index];
             servers[index] = {
@@ -1931,18 +1954,18 @@ function updateActiveSwatches(container, color) {
 }
 
 function hexToRgb(hex) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `${r}, ${g}, ${b}`;
+    const red = parseInt(hex.slice(1, 3), 16);
+    const green = parseInt(hex.slice(3, 5), 16);
+    const blue = parseInt(hex.slice(5, 7), 16);
+    return `${red}, ${green}, ${blue}`;
 }
 
 function rgbToHex(rgb) {
     if (!rgb) return "";
-    let a = rgb.split("(")[1].split(")")[0].split(",");
-    return "#" + a.map(x => {
-        x = parseInt(x).toString(16);
-        return (x.length == 1) ? "0" + x : x;
+    let channels = rgb.split("(")[1].split(")")[0].split(",");
+    return "#" + channels.map(channel => {
+        channel = parseInt(channel).toString(16);
+        return (channel.length == 1) ? "0" + channel : channel;
     }).join("");
 }
 
@@ -2036,7 +2059,7 @@ function resolveCfgPath(srv, fileEntry) {
 }
 
 window.openConfigEditor = async () => {
-    const srv = servers.find(s => s.id === activeId);
+    const srv = servers.find(server => server.id === activeId);
     if (!srv) return;
     SystemLog(`Config editor opened for "${srv.name}" (${srv.type})`);
     const config = ServerTypeRegistry[srv.type];
@@ -2051,11 +2074,11 @@ window.openConfigEditor = async () => {
 
     const tabsEl = document.getElementById('cfg-tabs');
     tabsEl.innerHTML = '';
-    configs.forEach((entry, i) => {
+    configs.forEach((entry, index) => {
         const tab = document.createElement('button');
-        tab.className = 'cfg-tab' + (i === 0 ? ' active' : '');
+        tab.className = 'cfg-tab' + (index === 0 ? ' active' : '');
         tab.textContent = entry.label || entry.file;
-        tab.onclick = () => switchCfgTab(i);
+        tab.onclick = () => switchCfgTab(index);
         tabsEl.appendChild(tab);
     });
 
@@ -2069,13 +2092,13 @@ window.openConfigEditor = async () => {
 };
 
 async function switchCfgTab(index) {
-    const srv = servers.find(s => s.id === activeId);
+    const srv = servers.find(server => server.id === activeId);
     if (!srv) return;
 
     if (cfgIsDirty && !confirm('You have unsaved changes. Discard them and switch tabs?')) return;
 
     const tabs = document.querySelectorAll('.cfg-tab');
-    tabs.forEach((t, i) => t.classList.toggle('active', i === index));
+    tabs.forEach((tab, tabIndex) => tab.classList.toggle('active', tabIndex === index));
 
     cfgActiveTabIndex = index;
     await loadCfgTab(srv, index);
@@ -2114,11 +2137,11 @@ function updateCfgLineNumbers() {
     const editor = document.getElementById('cfg-editor');
     const lineNumbers = document.getElementById('cfg-line-numbers');
     const count = editor.value.split('\n').length;
-    lineNumbers.textContent = Array.from({ length: count }, (_, i) => i + 1).join('\n');
+    lineNumbers.textContent = Array.from({ length: count }, (unusedElement, index) => index + 1).join('\n');
 }
 
 window.saveConfigFile = async () => {
-    const srv = servers.find(s => s.id === activeId);
+    const srv = servers.find(server => server.id === activeId);
     const editor = document.getElementById('cfg-editor');
     const content = editor.value;
     const statusEl = document.getElementById('cfg-save-status');
@@ -2191,7 +2214,7 @@ window.browseBackupFolder = async () => {
 };
 
 window.openRestoreBackup = async () => {
-    const srv = servers.find(s => s.id === activeId);
+    const srv = servers.find(server => server.id === activeId);
     if (!srv || !cfgCurrentFilePath || !cfgBackupDir) return;
 
     const fileName = cfgCurrentFilePath.split(/[/\\]/).pop();
@@ -2214,12 +2237,12 @@ window.openRestoreBackup = async () => {
     } else {
         emptyEl.style.display = 'none';
         listEl.style.display  = 'block';
-        result.backups.forEach(b => {
+        result.backups.forEach(backup => {
             const item = document.createElement('button');
             item.className = 'restore-backup-item';
-            const ts = b.name.match(/(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})\.bak$/);
-            item.textContent = ts ? `${ts[1]}  ${ts[2]}:${ts[3]}:${ts[4]}` : b.name;
-            item.onclick = () => window.loadBackupIntoEditor(b.path);
+            const ts = backup.name.match(/(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})\.bak$/);
+            item.textContent = ts ? `${ts[1]}  ${ts[2]}:${ts[3]}:${ts[4]}` : backup.name;
+            item.onclick = () => window.loadBackupIntoEditor(backup.path);
             listEl.appendChild(item);
         });
     }
@@ -2268,7 +2291,7 @@ async function loadApiSettings() {
     try {
         _apiConfig = await window.api.invoke('get-api-config');
         console.log('[RSM] loadApiSettings--loaded:', { enabled: _apiConfig.enabled, port: _apiConfig.port });
-    } catch (e) {
+    } catch (error) {
         _apiConfig = { enabled: false, port: 3002, apiKey: '', lanAccess: false };
     }
     const enabledChk = document.getElementById('api-enabled-chk');
@@ -2351,7 +2374,7 @@ let _citadelConfig = { enabled: false, portalUrl: '', agentToken: '', citadelApi
 async function loadCitadelSettings() {
     try {
         _citadelConfig = await window.api.invoke('get-citadel-config');
-    } catch (e) {
+    } catch (error) {
         _citadelConfig = { enabled: false, portalUrl: '', agentToken: '', citadelApiUrl: '', orgSlug: '', machSlug: '' };
     }
     const enabledChk  = document.getElementById('citadel-enabled-chk');
@@ -2382,7 +2405,7 @@ async function loadCitadelSettings() {
     try {
         const status = await window.api.invoke('get-citadel-status');
         if (status) _applyCitadelStatus(status);
-    } catch (e) { /* main process not ready yet -- next status push will catch up */ }
+    } catch (error) { /* main process not ready yet -- next status push will catch up */ }
 }
 
 function _updateCitadelBodyOpacity(enabled) {
@@ -2481,7 +2504,7 @@ window.updateSystemLog = (msg) => {
     logEntry.innerHTML = `
         <span style="color: var(--dim);">[${time}]</span>
         <span style="color: var(--accent);">[System/INFO]:</span>
-        <span>${msg}</span>`;
+        <span>${escapeHtml(msg)}</span>`;
 
     homeConsole.appendChild(logEntry);
     homeConsole.scrollTop = homeConsole.scrollHeight;
@@ -2495,9 +2518,9 @@ window.updateSystemLog = (msg) => {
 document.addEventListener('DOMContentLoaded', () => {
     const consoleInput = document.getElementById('console-input');
     if (consoleInput) {
-        consoleInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                window.sendConsoleCommand(e);
+        consoleInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                window.sendConsoleCommand(event);
             }
         });
     }
@@ -2519,17 +2542,17 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.addEventListener('scroll', () => {
         lineNumbers.scrollTop = editor.scrollTop;
     });
-    editor.addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.key === 's') {
-            e.preventDefault();
+    editor.addEventListener('keydown', (event) => {
+        if (event.ctrlKey && event.key === 's') {
+            event.preventDefault();
             window.saveConfigFile();
         }
     });
     editor.addEventListener('click', updateCfgCursorPos);
     editor.addEventListener('keyup', updateCfgCursorPos);
 
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
             const restoreModal = document.getElementById('restore-backup-modal');
             if (restoreModal && restoreModal.style.display === 'flex') { window.closeRestoreBackup(); return; }
             const modal = document.getElementById('config-modal');
@@ -2559,9 +2582,9 @@ let wizardInstalling   = false;
 let _wizLogCb      = null;
 let _wizPhaseCb    = null;
 let _wizProgressCb = null;
-window.api.receive('forge:log',      (...a) => _wizLogCb      && _wizLogCb(...a));
-window.api.receive('forge:phase',    (...a) => _wizPhaseCb    && _wizPhaseCb(...a));
-window.api.receive('forge:progress', (...a) => _wizProgressCb && _wizProgressCb(...a));
+window.api.receive('forge:log',      (...callbackArguments) => _wizLogCb      && _wizLogCb(...callbackArguments));
+window.api.receive('forge:phase',    (...callbackArguments) => _wizPhaseCb    && _wizPhaseCb(...callbackArguments));
+window.api.receive('forge:progress', (...callbackArguments) => _wizProgressCb && _wizProgressCb(...callbackArguments));
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 
@@ -2588,8 +2611,8 @@ window.browseInstallFolder = async () => {
 
 window.showWizardStep = (step) => {
     const all = ['0','1','2','2a','2b','3','4'];
-    for (const s of all) {
-        const el = document.getElementById(`wizard-step-${s}`);
+    for (const stepId of all) {
+        const el = document.getElementById(`wizard-step-${stepId}`);
         if (el) el.style.display = 'none';
     }
     const target = document.getElementById(`wizard-step-${step}`);
@@ -2631,7 +2654,7 @@ function renderWizardGameGrid (games) {
         const icon = game.icon && game.icon.includes('/')
             ? `<img src="${game.icon}" class="wizard-game-icon-img">`
             : `<span class="wizard-game-icon">${game.icon || '🎮'}</span>`;
-        card.innerHTML = `${icon}<span class="wizard-game-name">${game.displayName}</span>`;
+        card.innerHTML = `${icon}<span class="wizard-game-name">${escapeHtml(game.displayName)}</span>`;
         card.onclick = () => window.selectWizardGame(game.slug);
         grid.appendChild(card);
     }
@@ -2692,8 +2715,8 @@ window.beginWizardInstall = async () => {
 
     const stepper = document.getElementById('wizard-stepper');
     const progBar = document.getElementById('wizard-progress-bar-wrap');
-    if (stepper) stepper.querySelectorAll('.forge-step').forEach(s => {
-        s.classList.remove('forge-step-active', 'forge-step-done');
+    if (stepper) stepper.querySelectorAll('.forge-step').forEach(stepElement => {
+        stepElement.classList.remove('forge-step-active', 'forge-step-done');
     });
     window.showWizardStep(3);
     document.getElementById('wizard-3-cancel-btn').disabled = true;
@@ -2701,20 +2724,20 @@ window.beginWizardInstall = async () => {
     // Wire module-level callbacks (registered once at load -- avoids listener accumulation)
     _wizLogCb = (line) => {
         if (!logEl) return;
-        const d = document.createElement('div');
-        d.textContent = line;
-        logEl.appendChild(d);
+        const logLine = document.createElement('div');
+        logLine.textContent = line;
+        logEl.appendChild(logLine);
         logEl.scrollTop = logEl.scrollHeight;
     };
     _wizPhaseCb = (phase) => {
         const steps = { validate: 0, install: 1, done: 2 };
         const cur = steps[phase] ?? -1;
-        ['wiz-step-validate','wiz-step-install','wiz-step-done'].forEach((id, i) => {
+        ['wiz-step-validate','wiz-step-install','wiz-step-done'].forEach((id, index) => {
             const el = document.getElementById(id);
             if (!el) return;
             el.classList.remove('forge-step-active', 'forge-step-done');
-            if (i < cur)        el.classList.add('forge-step-done');
-            else if (i === cur) el.classList.add('forge-step-active');
+            if (index < cur)        el.classList.add('forge-step-done');
+            else if (index === cur) el.classList.add('forge-step-active');
         });
         if (phase === 'install' && progBar) progBar.style.display = 'flex';
     };
@@ -2831,23 +2854,23 @@ async function loadStep4 (gameSlug, installDir, serverName) {
         if (cfgSection) cfgSection.style.display = 'block';
         if (noConfigs)  noConfigs.style.display  = 'none';
         tabsEl.innerHTML = '';
-        configFiles.forEach((cf, i) => {
+        configFiles.forEach((cf, index) => {
             const btn = document.createElement('button');
-            btn.className = 'cfg-tab' + (i === 0 ? ' cfg-tab-active' : '');
+            btn.className = 'cfg-tab' + (index === 0 ? ' cfg-tab-active' : '');
             btn.textContent = cf.label;
             btn.onclick = () => {
                 editorEl.value = cf.content || '';
                 if (pathLbl) pathLbl.textContent = cf.filePath;
-                tabsEl.querySelectorAll('.cfg-tab').forEach((t, ti) => t.classList.toggle('cfg-tab-active', ti === i));
+                tabsEl.querySelectorAll('.cfg-tab').forEach((tab, ti) => tab.classList.toggle('cfg-tab-active', ti === index));
                 // Keep content in sync when switching tabs
-                configFiles[i].content = editorEl.value;
+                configFiles[index].content = editorEl.value;
             };
             tabsEl.appendChild(btn);
         });
         editorEl.value = configFiles[0].content || '';
         // Track edits back into configFiles array so saves work
         editorEl.oninput = () => {
-            const activeIdx = [...tabsEl.querySelectorAll('.cfg-tab')].findIndex(t => t.classList.contains('cfg-tab-active'));
+            const activeIdx = [...tabsEl.querySelectorAll('.cfg-tab')].findIndex(tab => tab.classList.contains('cfg-tab-active'));
             if (activeIdx >= 0) configFiles[activeIdx].content = editorEl.value;
         };
         if (pathLbl) pathLbl.textContent = configFiles[0].filePath;
@@ -2912,7 +2935,7 @@ async function saveStep4Configs () {
     const tabsEl   = document.getElementById('step4-cfg-tabs');
     if (!editorEl || !tabsEl) return;
     // Flush current tab content back into data array
-    const activeIdx = [...tabsEl.querySelectorAll('.cfg-tab')].findIndex(t => t.classList.contains('cfg-tab-active'));
+    const activeIdx = [...tabsEl.querySelectorAll('.cfg-tab')].findIndex(tab => tab.classList.contains('cfg-tab-active'));
     if (activeIdx >= 0 && wizardStep4Data.configFiles[activeIdx]) {
         wizardStep4Data.configFiles[activeIdx].content = editorEl.value;
     }

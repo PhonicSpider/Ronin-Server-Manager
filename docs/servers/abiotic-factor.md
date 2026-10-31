@@ -22,9 +22,13 @@
 
 | Flag | Function |
 | :--- | :--- |
-| `/Game/AbioticFactor/Maps/AF_PersistentWorld?listen` | Map and listen-server flag. |
-| `-Port=7777` | Game connection port. |
-| `-MaxPlayers=6` | Player cap (Abiotic Factor's hard limit is small). |
+| `-log` | Writes the server log. |
+| `-useperfthreads` | Uses the performance thread pool. |
+| `-PORT=7777` | Game connection port (UDP). |
+| `-QueryPort=27015` | Steam server browser port (UDP). |
+| `-MaxServerPlayers=6` | Player cap (1-24; more than 6 is not recommended by the game). |
+| `-SteamServerName="..."` | Name shown in the server browser. |
+| `-WorldSaveName=Cascade` | Which world save to load (defaults to `Cascade`). |
 | `-AdminPassword=...` | Grants admin access in-game -- this is the only form of "remote" administration available. |
 | `-log` | Enables logging. |
 

@@ -13,6 +13,9 @@ export const terraria = {
         // Not consumed today -- Terraria is DIRECT_CONSOLE (stdin/stdout
         // piped directly), not file-tailed. Kept for config-schema consistency.
         logNoisePatterns: [],
+        // How RSM asks this game to save and quit before closing the process.
+        // "exit" saves the world and shuts down ("exit-nosave" does not).
+        gracefulStop: { transport: 'stdin', commands: ['save', 'exit'], timeoutSeconds: 30 },
     },
     gameFiles: {
         configs: [
@@ -50,8 +53,8 @@ export const terraria = {
     parseForRsm(fileContentsMap) {
         const content = fileContentsMap['serverconfig.txt'] || '';
         function parseProp(key) {
-            const m = content.match(new RegExp(`^\\s*${key}\\s*=?\\s*(.*)$`, 'm'));
-            return m ? m[1].trim() : null;
+            const match = content.match(new RegExp(`^\\s*${key}\\s*=?\\s*(.*)$`, 'm'));
+            return match ? match[1].trim() : null;
         }
         const port = parseProp('port') || '7777';
         return {

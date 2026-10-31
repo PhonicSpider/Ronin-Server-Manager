@@ -18,6 +18,9 @@ export const rust = {
         // Not yet verified against a real log file -- add patterns here once
         // someone's actually run this server and seen what's noisy.
         logNoisePatterns: [],
+        // How RSM asks this game to save and quit before closing the process.
+        // "quit" over WebRCON saves and stops; killing the process risks a rollback.
+        gracefulStop: { transport: 'webrcon', commands: ['server.save', 'quit'], timeoutSeconds: 60 },
     },
     gameFiles: {
         configPath: 'server\\server1\\cfg',
@@ -56,9 +59,9 @@ export const rust = {
         portPass: 'placeholder',
     },
     firewallPorts: [
-        { id: 'game',  label: 'Game Port',  default: 28015, tcp: false, udp: true,  description: 'Player connections' },
-        { id: 'query', label: 'Query Port', default: 28017, tcp: false, udp: true,  description: 'Steam server browser' },
-        { id: 'rcon',  label: 'WebRCON',    default: 28016, tcp: true,  udp: false, description: 'Admin console (WebRCON)' },
+        { id: 'game', label: 'Game Port', default: 28015, tcp: false, udp: true, description: 'Player connections' },
+        { id: 'query', label: 'Query Port', default: 28017, tcp: false, udp: true, description: 'Steam server browser' },
+        { id: 'rcon', label: 'WebRCON', default: 28016, tcp: false, udp: false, description: 'Admin console (WebRCON) -- closed by default -- RSM reaches it over localhost' },
     ],
     quickActions: [
         { label: 'List Players', command: 'global.players' },
@@ -67,9 +70,9 @@ export const rust = {
     parseForRsm(fileContentsMap, { installDir, exePath }) {
         const content = fileContentsMap['server.cfg'] || '';
         function parseVal(key) {
-            const m = content.match(new RegExp(`^\\s*${key}\\s+(?:"([^"\\n]*)"|([^\\s\\n]+))`, 'm'));
-            if (!m) return null;
-            return (m[1] !== undefined ? m[1] : m[2] || '').trim();
+            const match = content.match(new RegExp(`^\\s*${key}\\s+(?:"([^"\\n]*)"|([^\\s\\n]+))`, 'm'));
+            if (!match) return null;
+            return (match[1] !== undefined ? match[1] : match[2] || '').trim();
         }
         const apiPort  = parseVal('rcon\\.port')     || '28016';
         const apiPass  = parseVal('rcon\\.password') || '';

@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Everything the UI needs ships inside the app, and all server I/O goes over
+         IPC, so the page may load nothing from the network and open no connections.
+         'unsafe-inline' remains only because the markup uses inline onclick handlers
+         and style attributes; escapeHtml() in renderer.js is the primary XSS defence
+         and this policy is the backstop (no remote scripts, no exfiltration). -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
     <title>RONIN SERVER MANAGER</title>
     <link rel="stylesheet" href="style.css">
 </head>

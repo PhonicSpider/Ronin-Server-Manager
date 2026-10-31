@@ -17,6 +17,9 @@ export const valheim = {
         // Not yet verified against a real log file -- add patterns here once
         // someone's actually run this server and seen what's noisy.
         logNoisePatterns: [],
+        // No verified graceful-stop route for this game yet, so RSM closes the
+        // process directly. See ServerTemplate.js for the supported transports.
+        gracefulStop: null,
     },
     label: 'SERVER EXECUTABLE (valheim_server.exe)',
     blocks: {

@@ -16,6 +16,9 @@ export const conanExiles = {
         // Not yet verified against a real log file -- add patterns here once
         // someone's actually run this server and seen what's noisy.
         logNoisePatterns: [],
+        // No verified graceful-stop route for this game yet, so RSM closes the
+        // process directly. See ServerTemplate.js for the supported transports.
+        gracefulStop: null,
     },
     gameFiles: {
         configPath: 'ConanSandbox\\Saved\\Config\\WindowsServer',
@@ -55,9 +58,10 @@ export const conanExiles = {
         portPass: 'placeholder',
     },
     firewallPorts: [
-        { id: 'game', label: 'Game Port', default: 7777,  tcp: true,  udp: true,  description: 'Player connections' },
-        { id: 'peer', label: 'Peer Port', default: 7778,  tcp: true,  udp: true,  description: 'Peer-to-peer' },
-        { id: 'rcon', label: 'RCON',      default: 25575, tcp: true,  udp: false, description: 'Admin console (RCON)' },
+        { id: 'game', label: 'Game Port', default: 7777, tcp: false, udp: true, description: 'Player connections' },
+        { id: 'peer', label: 'Peer Port', default: 7778, tcp: false, udp: true, description: 'Raw UDP socket / pinger' },
+        { id: 'query', label: 'Query Port', default: 27015, tcp: false, udp: true, description: 'Steam server browser' },
+        { id: 'rcon', label: 'RCON', default: 25575, tcp: false, udp: false, description: 'Admin console (RCON) -- closed by default -- RSM reaches it over localhost' },
     ],
     quickActions: [
         { label: 'List Players', command: 'listplayers' },
@@ -74,8 +78,8 @@ export const conanExiles = {
         function parseIni(content, section, key) {
             const secM = content.match(new RegExp(`\\[${section.replace(/\//g, '\\/')}\\]([\\s\\S]*?)(?=\\[|$)`, 'i'));
             if (!secM) return null;
-            const m = secM[1].match(new RegExp(`^\\s*${key}\\s*=\\s*(.*)$`, 'mi'));
-            return m ? m[1].trim() : null;
+            const match = secM[1].match(new RegExp(`^\\s*${key}\\s*=\\s*(.*)$`, 'mi'));
+            return match ? match[1].trim() : null;
         }
         // RCON lives in Game.ini under [RconPlugin] -- NOT Engine.ini. Verified
         // against the official Conan Exiles wiki and hosting-provider docs.

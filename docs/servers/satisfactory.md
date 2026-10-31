@@ -46,7 +46,7 @@
 ## 🔍 Troubleshooting {: .rsm-header }
 
 * **Player count doesn't show:** Almost always an auth mismatch. Confirm the password in RSM matches the server's actual admin/client password, or that you've explicitly enabled `FG.DedicatedServer.AllowInsecureLocalAccess=1` if you're leaving the password blank.
-* **Opened port 7778 but it didn't help:** That port isn't used by this game's API -- see the correction above. Only the game port (`7777` by default) needs to be open.
+* **Opened port 7778 (or the old 15000 beacon port) but it didn't help:** Neither is used. Since Satisfactory 1.0 the server needs **UDP 7777**, **TCP 7777** (HTTPS API) and **TCP 8888** (reliable messaging). A missing 8888 is the classic "server shows in the browser but players time out joining".
 * **Server appears to hang on "unattended" startup:** Give it a minute -- the first boot after install can take a while to finish initializing before it's joinable.
 
 ---

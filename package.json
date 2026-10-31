@@ -10,13 +10,12 @@
   "author": "PhonicSpider",
   "license": "AGPL-3.0",
   "dependencies": {
-    "axios": "^1.14.0",
-    "electron-updater": "^6.8.9",
-    "extract-zip": "^2.0.1",
+    "axios": "^1.21.0",
+    "electron-updater": "^6.8.11",
     "rcon-client": "^4.2.5",
     "selfsigned": "^2.4.1",
-    "systeminformation": "^5.21.0",
-    "ws": "^8.21.0"
+    "systeminformation": "^5.33.19",
+    "ws": "^8.22.1"
   },
   "devDependencies": {
     "electron": "^28.0.0",
@@ -51,6 +50,14 @@
       "preload.js",
       "api-server.js",
       "ronin-agent.js",
+      "powershell-safety.js",
+      "firewall-service.js",
+      "config-file-guard.js",
+      "server-protocols.js",
+      "player-list-parser.js",
+      "vrage-remote-client.js",
+      "windows-processes.js",
+      "secret-store.js",
       "icon.png",
       "public/**/*",
       "node_modules/**/*"

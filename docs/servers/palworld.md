@@ -43,7 +43,6 @@ When using the Palworld preset in RSM, your **Arguments** field should look simi
 | :--- | :--- |
 | `EpicApp=PalServer` | Required launch identifier for the Epic Games build of the server. |
 | `-port=8211` | The game connection port. |
-| `-RCONPort=25575` | Sets the (deprecated) RCON port. Harmless to leave in even though RSM doesn't use it. |
 
 REST API settings (`RESTAPIEnabled`, `RESTAPIPort`) are configured in `PalWorldSettings.ini`, not as launch flags. RSM's config editor can parse an existing `PalWorldSettings.ini` and auto-fill the REST API port and password when adding an existing install.
 

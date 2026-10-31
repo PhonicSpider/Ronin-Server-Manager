@@ -150,7 +150,7 @@ The dedicated **Firewall Manager** view (*🛡️ Firewall Manager* in the sideb
 -   ![Conan Exiles](../assets/images/conan-steps/conan-logo.png){: .rsm-card-logo } **Conan Exiles**
 
     ---
-    SteamCMD binary via PowerShell bridge. RCON (lowercase commands) for player listing, config editor, and firewall ports (Game 7777, Peer 7778, RCON 25575).
+    SteamCMD binary via PowerShell bridge. RCON (lowercase commands) for player listing, config editor, and firewall ports (Game 7777, Peer 7778, Query 27015 -- all UDP; RCON 25575 closed by default).
 
     [:octicons-arrow-right-24: View Guide](conan-exiles.md)
 
@@ -192,14 +192,14 @@ The dedicated **Firewall Manager** view (*🛡️ Firewall Manager* in the sideb
 -   ![Satisfactory](../assets/images/sati-steps/sati-logo.png){: .rsm-card-logo } **Satisfactory**
 
     ---
-    PowerShell bridge. Player count via the HTTPS API on the same port as the game, mostly in-game configuration, and firewall ports (Game/API 7777, Beacon 15000).
+    PowerShell bridge. Player count via the HTTPS API on the same port as the game, mostly in-game configuration, and firewall ports (UDP 7777, TCP 7777, TCP 8888 reliable messaging).
 
     [:octicons-arrow-right-24: View Guide](satisfactory.md)
 
 -   ![Sons of the Forest](../assets/images/sotf-steps/sotf-logo.png){: .rsm-card-logo } **Sons of the Forest**
 
     ---
-    PowerShell bridge. No RCON (game limitation), config editor N/A (arguments only), and firewall ports (Game 8766, Query 27016, Blob Sync 9700).
+    PowerShell bridge. No RCON (game limitation), config editor N/A (arguments only), and firewall ports (Game 8766, Query 27016, Blob Sync 9700 -- all UDP).
 
     [:octicons-arrow-right-24: View Guide](sons-of-the-forest.md)
 
@@ -213,7 +213,7 @@ The dedicated **Firewall Manager** view (*🛡️ Firewall Manager* in the sideb
 -   ![Space Engineers](../assets/images/se-steps/seLogo.png){: .rsm-card-logo } **Space Engineers**
 
     ---
-    Native Windows binary via PowerShell bridge. Headless background launch, VRage HTTP API for commands and player counts, config editor, and firewall ports (Game 27016 UDP, API 8080).
+    Native Windows binary via PowerShell bridge. Headless background launch, HMAC-signed VRage Remote API for Quick Actions and console commands (save, status, players, grids, floating objects, delete/stop, power, chat, kick/ban), player names and a clean save-and-stop, config editor, and firewall ports (Game 27016 UDP, Steam 8766 UDP; API 8080 closed by default).
 
     [:octicons-arrow-right-24: View Guide](space-engineers.md)
 

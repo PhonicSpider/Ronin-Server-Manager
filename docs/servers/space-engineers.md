@@ -17,8 +17,8 @@ Before adding the server to RSM, you must perform a "Clean Boot" to stage the en
     1. __Server EXE:__ Usually located at `C:\SteamLibrary\steamapps\common\SpaceEngineersDedicatedServer\DedicatedServer64\SpaceEngineersDedicated.exe`
     2. __Instance Folder:__ Usually located at `C:\ProgramData\SpaceEngineersDedicated\InstanceFolder`
     3. __Log Folder:__ Same as instance usually, but can be different so we grab it anyway `C:\ProgramData\SpaceEngineersDedicated\InstanceFolder`
-    4. __Server IP Port__ This is the port you will end up using for the server. Default is 8080
-    5. __Server API Password__ This is the password to access the API, You will need this to type console commands.  
+    4. __Remote API Port__ The `<RemoteApiPort>` in `SpaceEngineers-Dedicated.cfg` (default 8080). The Remote API must be enabled (`<RemoteApiEnabled>true</RemoteApiEnabled>`).
+    5. __Remote Security Key__ The `<RemoteSecurityKey>` value from the same file. RSM signs every API request with it (HMAC-SHA1). If you leave the field blank, RSM reads the key from the instance's own `SpaceEngineers-Dedicated.cfg`.
 
 ---
 
@@ -59,14 +59,14 @@ Before adding the server to RSM, you must perform a "Clean Boot" to stage the en
 -   :material-import: __Server Port__
 
     ___
-    **Required For Console Commands** SE uses the axius API to send commands to the server. We will need the port to send commands to the correct server.
+    **Required for player count and a clean stop.** RSM talks to the VRage Remote API on this port (over localhost) to read the player count and to ask the server to save and stop.
 
     ![Adding Server Port - glow](../assets/images/se-steps/se-files-needed-port.png)
 
 -   :material-export: __Server API Password__
 
     ___
-    **Required For Console Commands** Since we want to send commands as *Admin*, We need the "*API Security Key*" to send the commands
+    **Required.** This is the `<RemoteSecurityKey>` from `SpaceEngineers-Dedicated.cfg` (not an admin password). Without it the Remote API rejects RSM with a 403.
 
     ![Adding Server Port - glow](../assets/images/se-steps/se-files-needed-portpass.png)
 </div>
@@ -82,6 +82,27 @@ When using the Space Engineers preset in the RSM Wizard, ensure these flags are 
 | `-console` | Enables the text stream RSM uses for logging. |
 | `-ignorelastsession` | Automatically clears "unclean shutdown" popups. |
 | `-path "..."` | Same path as to your Instance folder. |
+
+!!! info "What RSM does through the Remote API"
+    The Space Engineers Remote API has no console-command runner (the server lists its 32 routes at `/vrageremote/api`), so RSM gives the console its own small command language that maps onto the routes behind the server's admin screens. The player count and the **Stop** button use the same API -- Stop calls `DELETE /v1/server`, so the world is saved first. The API uses plain HTTP and its port is closed in the firewall by default; RSM only needs it on localhost.
+
+    **Quick Actions:** Save World, Server Status, List Players, List Grids, Floating Objects and Commands (prints the list below).
+
+    **Console commands** (type them in the console bar; `help` prints this list):
+
+    | Command | What it does |
+    | :--- | :--- |
+    | `save`, `status`, `players` | Save the world, show server health, list connected players |
+    | `grids`, `floating`, `characters`, `asteroids` | List what is in the world, with ids |
+    | `delete grid\|floating\|asteroid <id>` | Remove one |
+    | `clear floating` | Remove every floating object |
+    | `stop grid\|floating\|character <id>` | Halt its movement |
+    | `power on\|off <gridId>` | Switch a grid's power |
+    | `say <message>`, `chat` | Send or read global chat |
+    | `kick`, `unkick`, `ban`, `unban`, `promote`, `demote <steamId>` | Player administration |
+    | `bans` | List banned players |
+
+    Delete and clear are typed on purpose and have no one-click button. The server answers "OK" even for an id that does not exist, so RSM checks the id against the live list first and tells you when nothing matches. The server applies changes on its game thread, so a list read in the same second can still show the old state. Free-text vanilla console commands do not exist for this game; moving or teleporting grids and checking whether a grid is "floating" are not available through the Remote API, which only offers stop-movement and the list data the server returns.
 
 ---
 

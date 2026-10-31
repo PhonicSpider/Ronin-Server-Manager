@@ -19,6 +19,9 @@ export const satisfactory = {
         // Not yet verified against a real log file -- add patterns here once
         // someone's actually run this server and seen what's noisy.
         logNoisePatterns: [],
+        // No verified graceful-stop route for this game yet, so RSM closes the
+        // process directly. See ServerTemplate.js for the supported transports.
+        gracefulStop: null,
     },
     label: 'SERVER EXECUTABLE (UnrealServer-Win64-Shipping.exe)',
     blocks: {
@@ -50,9 +53,9 @@ export const satisfactory = {
         portPass: 'placeholder',
     },
     firewallPorts: [
-        { id: 'game',   label: 'Game Port',   default: 7777,  tcp: false, udp: true,  description: 'Player connections (UDP) -- the HTTPS API also uses this same port over TCP' },
-        { id: 'api',    label: 'API Port',    default: 7777,  tcp: true,  udp: false,  description: 'HTTPS API (self-signed TLS) -- same port number as Game Port' },
-        { id: 'beacon', label: 'Beacon Port', default: 15000, tcp: false, udp: true,  description: 'Server beacon' },
+        { id: 'game', label: 'Game Port', default: 7777, tcp: false, udp: true, description: 'Player connections and lightweight query (UDP)' },
+        { id: 'api', label: 'API Port', default: 7777, tcp: true, udp: false, description: 'Server traffic and HTTPS API (TCP) -- same port number as the Game Port' },
+        { id: 'reliable', label: 'Reliable Messaging', default: 8888, tcp: true, udp: false, description: 'Required since Satisfactory 1.0 (replaces the old 15000 beacon port)' },
     ],
     quickActions: [],
 };

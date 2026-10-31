@@ -25,6 +25,9 @@ export const spaceEngineers = {
             // 'loading cube blocks' intentionally not filtered -- kept visible.
             'created block definitions',
         ],
+        // How RSM asks this game to save and quit before closing the process.
+        // VRage Remote API: DELETE /v1/server stops the dedicated server (it saves first).
+        gracefulStop: { transport: 'vrage-remote', commands: [], timeoutSeconds: 60 },
     },
     gameFiles: {
         configs: [
@@ -46,7 +49,7 @@ export const spaceEngineers = {
         workingDir: 'C:\\ProgramData\\SpaceEngineersDedicated\\Instance',
         logPath: 'Select SpaceEngineersDedicated.log location...',
         portId: 'API Port',
-        portPass: 'API Key',
+        portPass: 'Remote Security Key',
         customArgs: '-console -ignorelastsession',
     },
     varInputs: {
@@ -59,23 +62,32 @@ export const spaceEngineers = {
         customArgs: 'value',
     },
     firewallPorts: [
-        { id: 'game',  label: 'Game Port', default: 27016, tcp: false, udp: true,  description: 'Player connections (UDP)' },
-        { id: 'steam', label: 'Steam Port', default: 8766, tcp: false, udp: true,  description: 'Steam networking' },
-        { id: 'api',   label: 'API Port',  default: 8080,  tcp: true,  udp: false, description: 'Remote API / admin access' },
+        { id: 'game', label: 'Game Port', default: 27016, tcp: false, udp: true, description: 'Player connections (UDP)' },
+        { id: 'steam', label: 'Steam Port', default: 8766, tcp: false, udp: true, description: 'Steam networking' },
+        { id: 'api', label: 'API Port', default: 8080, tcp: false, udp: false, description: 'VRage Remote API (HMAC-signed, plain HTTP) -- closed by default -- RSM reaches it over localhost' },
     ],
+    // The Remote API has no console-command runner, so server-protocols.js gives the
+    // console a small command language mapped onto the routes that do the same jobs
+    // (save, status, players, grids, floating objects, delete/stop, power, chat,
+    // kick/ban). Type "help" in the console for the full list. Destructive commands
+    // (delete, clear) stay typed on purpose and are not one-click buttons.
     quickActions: [
-        { label: 'Save World',    command: '\\save' },
-        { label: 'Server Status', command: '\\status' },
-        { label: 'List Players',  command: '\\players' },
+        { label: 'Save World',       command: 'save' },
+        { label: 'Server Status',    command: 'status' },
+        { label: 'List Players',     command: 'players' },
+        { label: 'List Grids',       command: 'grids' },
+        { label: 'Floating Objects', command: 'floating' },
+        { label: 'Commands',         command: 'help' },
     ],
     parseForRsm(fileContentsMap, { installDir, exePath }) {
         const content = fileContentsMap['SpaceEngineers-Dedicated.cfg'] || '';
         function parseTag(tag) {
-            const m = content.match(new RegExp(`<${tag}>([^<]*)</${tag}>`));
-            return m ? m[1].trim() : null;
+            const match = content.match(new RegExp(`<${tag}>([^<]*)</${tag}>`));
+            return match ? match[1].trim() : null;
         }
         const apiPort = parseTag('RemoteApiPort') || '8080';
-        const apiPass = parseTag('RemoteApiKey')  || '';
+        // The element is <RemoteSecurityKey> (not RemoteApiKey, which never existed).
+        const apiPass = parseTag('RemoteSecurityKey') || '';
         return {
             args: `-path "${installDir}" -console`,
             apiPort,

@@ -24,6 +24,9 @@ export const projectZomboid = {
         // (stdin/stdout piped directly), not file-tailed. Kept for
         // config-schema consistency.
         logNoisePatterns: [],
+        // How RSM asks this game to save and quit before closing the process.
+        // "quit" saves and shuts the server down.
+        gracefulStop: { transport: 'stdin', commands: ['save', 'quit'], timeoutSeconds: 60 },
     },
     label: 'SERVER BATCH FILE (ProjectZomboidServer.bat)',
     blocks: {
@@ -51,8 +54,9 @@ export const projectZomboid = {
         portPass: 'placeholder',
     },
     firewallPorts: [
-        { id: 'game', label: 'Game Port', default: 16261, tcp: true, udp: true,  description: 'Player connections' },
-        { id: 'rcon', label: 'RCON',      default: 27015, tcp: true, udp: false, description: 'Admin console (RCON)' },
+        { id: 'game', label: 'Game Port', default: 16261, tcp: false, udp: true, description: 'Player connections' },
+        { id: 'second', label: 'Secondary Port', default: 16262, tcp: false, udp: true, description: 'Secondary UDP port (direct connections)' },
+        { id: 'rcon', label: 'RCON', default: 27015, tcp: false, udp: false, description: 'Admin console (RCON) -- closed by default -- RSM reaches it over localhost' },
     ],
     quickActions: [
         { label: 'List Players', command: 'players' },

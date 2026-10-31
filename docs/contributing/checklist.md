@@ -23,10 +23,10 @@ Before opening a pull request, run through this list. Every item below has cause
     ---
     Imported and registered in `public/configs/index.js` with a lowercase kebab-case key. The key becomes `srv.type` in the saved JSON.
 
--   :material-code-braces: **Category registered**
+-   :material-code-braces: **Category and stop plan chosen**
 
     ---
-    Game type key added to the correct `case` block in `findServType()` in `main.js`--either `DIRECT_CONSOLE` or `POWERSHELL_BRIDGE`.
+    `backend.category` is `DIRECT_CONSOLE` or `POWERSHELL_BRIDGE` (nothing to register in `main.js`). `backend.gracefulStop` is either a verified plan or `null`.
 
 -   :material-fire: **Firewall ports defined** *(if applicable)*
 

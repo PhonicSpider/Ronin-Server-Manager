@@ -30,11 +30,11 @@
 | Flag | Function |
 | :--- | :--- |
 | `/Game/Aki/Maps/RW_Aki?listen` | Map and listen-server flag. |
-| `-Port=7777` | Game connection port. |
+| `-Port=8777` | Game connection port (UDP; 8777 is the documented default). |
 | `-QueryPort=27015` | Steam server browser query port. |
 | `-MaxPlayers=40` | Player cap. |
 | `-rconpsw="..."` | **Required for RCON.** RCON password. |
-| `-rconaddr=0.0.0.0` | **Required for RCON.** Interface to bind RCON to. |
+| `-rconaddr=127.0.0.1` | **Required for RCON.** Interface to bind RCON to. RSM's preset uses loopback so the admin console is not reachable from the network; use `0.0.0.0` only if an external tool must connect. |
 | `-rconport=19000` | RCON port RSM uses for player count. |
 
 ---

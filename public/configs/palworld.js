@@ -18,6 +18,9 @@ export const palworld = {
         // Not yet verified against a real log file -- add patterns here once
         // someone's actually run this server and seen what's noisy.
         logNoisePatterns: [],
+        // How RSM asks this game to save and quit before closing the process.
+        // REST: POST /v1/api/save then POST /v1/api/shutdown (short countdown + broadcast).
+        gracefulStop: { transport: 'palworld-rest', commands: [], timeoutSeconds: 60 },
     },
     gameFiles: {
         configPath: 'Pal\\Saved\\Config\\WindowsServer',
@@ -42,7 +45,7 @@ export const palworld = {
         newName: 'e.g. Palworld - Pal Paradise',
         exePath: '...\\PalServer.exe',
         workingDir: 'C:\\Servers\\Palworld',
-        customArgs: 'EpicApp=PalServer -port=8211 -RCONPort=25575',
+        customArgs: 'EpicApp=PalServer -port=8211',
         // REST API, not RCON -- RSM's player-count uses this port/password pair
         // against Palworld's REST API (default 8212), not the deprecated RCON
         // port (25575, still listed separately in Firewall Ports below).
@@ -58,17 +61,17 @@ export const palworld = {
         portPass: 'placeholder',
     },
     firewallPorts: [
-        { id: 'game',    label: 'Game Port',     default: 8211,  tcp: false, udp: true,  description: 'Player connections' },
-        { id: 'restapi', label: 'REST API Port', default: 8212,  tcp: true,  udp: false, description: 'Player count & admin (used by RSM)' },
-        { id: 'rcon',    label: 'RCON Port',     default: 25575, tcp: true,  udp: false, description: 'Deprecated by Palworld -- not used by RSM' },
+        { id: 'game', label: 'Game Port', default: 8211, tcp: false, udp: true, description: 'Player connections' },
+        { id: 'query', label: 'Query Port', default: 27015, tcp: false, udp: true, description: 'Community server browser (optional)' },
+        { id: 'restapi', label: 'REST API Port', default: 8212, tcp: false, udp: false, description: 'REST API, used by RSM for player count and shutdown -- closed by default -- RSM reaches it over localhost; never expose it to the internet' },
     ],
     quickActions: [],
     parseForRsm(fileContentsMap) {
         const content = fileContentsMap['PalWorldSettings.ini'] || '';
         function parsePalOpt(key) {
-            const m = content.match(new RegExp(`${key}=(?:"([^"]*?)"|([^,)]+))`));
-            if (!m) return null;
-            return (m[1] !== undefined ? m[1] : m[2] || '').trim();
+            const match = content.match(new RegExp(`${key}=(?:"([^"]*?)"|([^,)]+))`));
+            if (!match) return null;
+            return (match[1] !== undefined ? match[1] : match[2] || '').trim();
         }
         // RSM reads the REST API port/password, not RCON's -- see the comments
         // on backend.playerListCommand and defaults.portId above.

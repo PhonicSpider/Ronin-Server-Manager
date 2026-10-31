@@ -17,6 +17,9 @@ export const soulmask = {
         // Not yet verified against a real log file -- add patterns here once
         // someone's actually run this server and seen what's noisy.
         logNoisePatterns: [],
+        // No verified graceful-stop route for this game yet, so RSM closes the
+        // process directly. See ServerTemplate.js for the supported transports.
+        gracefulStop: null,
     },
     label: 'SERVER EXECUTABLE (WSServer-Win64-Shipping.exe)',
     blocks: {
@@ -33,7 +36,7 @@ export const soulmask = {
         workingDir: 'C:\\Servers\\Soulmask',
         // -rconpsw/-rconaddr/-rconport enable RCON -- confirmed launch-flag
         // syntax (Soulmask uses flags, not a config-file section, for RCON).
-        customArgs: '/Game/Aki/Maps/RW_Aki?listen -server -ServerName="Soulmask Server" -Port=7777 -QueryPort=27015 -MaxPlayers=40 -log -UTF8Output -rconpsw="changeme" -rconaddr=0.0.0.0 -rconport=19000',
+        customArgs: 'Level01_Main -server -log -UTF8Output -SteamServerName="Soulmask Server" -MaxPlayers=40 -Port=8777 -QueryPort=27015 -adminpsw="changeme" -rconpsw="changeme" -rconaddr=127.0.0.1 -rconport=19000',
         portId: 'RCON Port',
         portPass: 'RCON Password',
     },
@@ -46,9 +49,9 @@ export const soulmask = {
         portPass: 'placeholder',
     },
     firewallPorts: [
-        { id: 'game',  label: 'Game Port',  default: 7777,  tcp: true,  udp: true,  description: 'Player connections' },
-        { id: 'query', label: 'Query Port', default: 27015, tcp: false, udp: true,  description: 'Steam server browser' },
-        { id: 'rcon',  label: 'RCON Port',  default: 19000, tcp: true,  udp: false, description: 'Admin console (RCON)' },
+        { id: 'game', label: 'Game Port', default: 8777, tcp: false, udp: true, description: 'Player connections' },
+        { id: 'query', label: 'Query Port', default: 27015, tcp: false, udp: true, description: 'Steam server browser' },
+        { id: 'rcon', label: 'RCON Port', default: 19000, tcp: false, udp: false, description: 'Admin console (RCON) -- closed by default -- RSM reaches it over localhost' },
     ],
     quickActions: [
         { label: 'List Players', command: 'List_OnlinePlayers' },

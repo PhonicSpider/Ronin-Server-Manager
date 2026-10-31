@@ -14,6 +14,9 @@ export const sevenDaysToDie = {
         // DIRECT_CONSOLE (stdin/stdout piped directly), so this isn't
         // consumed today, but keep it for consistency / a future switch.
         logNoisePatterns: [],
+        // How RSM asks this game to save and quit before closing the process.
+        // "shutdown" is the clean stop command.
+        gracefulStop: { transport: 'stdin', commands: ['saveworld', 'shutdown'], timeoutSeconds: 60 },
     },
     gameFiles: {
         configs: [
@@ -46,9 +49,12 @@ export const sevenDaysToDie = {
         portPass: 'placeholder',
     },
     firewallPorts: [
-        { id: 'game',    label: 'Game Port',    default: 26900, tcp: true,  udp: true,  description: 'Player connections' },
-        { id: 'telnet',  label: 'Telnet',       default: 8081,  tcp: true,  udp: false, description: 'Admin console (Telnet)' },
-        { id: 'control', label: 'Control Panel', default: 8080, tcp: true,  udp: false, description: 'Web control panel' },
+        { id: 'game', label: 'Game Port', default: 26900, tcp: true, udp: true, description: 'Player connections' },
+        { id: 'steam1', label: 'Game Port +1', default: 26901, tcp: false, udp: true, description: 'Steam networking (UDP)' },
+        { id: 'steam2', label: 'Game Port +2', default: 26902, tcp: false, udp: true, description: 'Steam networking (UDP)' },
+        { id: 'crossplay', label: 'Game Port +3', default: 26903, tcp: false, udp: true, description: 'Crossplay (UDP)' },
+        { id: 'telnet', label: 'Telnet', default: 8081, tcp: false, udp: false, description: 'Admin console (Telnet) -- closed by default -- RSM reaches it over localhost' },
+        { id: 'control', label: 'Control Panel', default: 8080, tcp: false, udp: false, description: 'Web control panel -- closed by default -- RSM reaches it over localhost' },
     ],
     quickActions: [
         { label: 'List Players', command: 'listplayers' },
@@ -57,8 +63,8 @@ export const sevenDaysToDie = {
     parseForRsm(fileContentsMap, { installDir }) {
         const content = fileContentsMap['serverconfig.xml'] || '';
         function parseProp(name) {
-            const m = content.match(new RegExp(`<property\\s+name="${name}"\\s+value="([^"]*)"`, 'i'));
-            return m ? m[1] : null;
+            const match = content.match(new RegExp(`<property\\s+name="${name}"\\s+value="([^"]*)"`, 'i'));
+            return match ? match[1] : null;
         }
         const apiPort = parseProp('TelnetPort')     || '8081';
         const apiPass = parseProp('TelnetPassword') || '';
